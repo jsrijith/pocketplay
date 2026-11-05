@@ -1,12 +1,18 @@
 # BoardByte
 
 A games firmware for the Seeed reTerminal Sticky, built up one step at a time.
-Right now it shows the buttons and touch input on screen, with sample text at each font size. A box turns black while its button is held, and counts its presses. Tapping the screen moves a cross to your finger and prints its position, and swipes show their direction. All of this is saved to the SD card as it changes, standing in for a game in progress.
+Right now it shows the buttons and touch input on screen, with sample text at each font size. A box turns black while its button is held, and counts its presses. Tapping the screen moves a cross to your finger and prints its position, and swipes show their direction. All of this is saved to the SD card as it changes, standing in for a game in progress. It can also join a Wi-Fi network from the screen.
 
 - **Hold OK for 1 second:** sleep. The screen shows `ASLEEP`.
 - **No activity for the idle time:** sleep. Tap the `SLEEP` line to choose 1, 5 or 10 minutes.
 - **Press OK while asleep:** the chip restarts and redraws the screen, with everything back where it was.
 - **Hold UP for 2 seconds:** clear the counts and erase the save, standing in for a game ending.
+
+- **Tap the `WIFI` line:** join the most recent network, or scan for one if none is remembered. Once connected, the status screen shows the IP address, signal strength and UTC time.
+
+The radio is only on while scanning or connected, and sleep always turns it off. Up to 4 networks are remembered, and only after they've joined successfully. It can't join 5 GHz, enterprise or hidden networks, because the chip only has 2.4 GHz and the list leaves the other two out.
+
+Passwords are saved on the card scrambled with the chip's MAC address. **This isn't encryption:** it stops someone reading a password straight off the card, but anyone with the card and this code can undo it.
 
 Saving needs a FAT32 or exFAT SD card, and saves go in `/.boardbyte/`, leaving other files alone. Without a card the screen shows `NO CARD` and everything else still works. A card put in later is only seen after a restart.
 
@@ -32,7 +38,10 @@ Saving needs a FAT32 or exFAT SD card, and saves go in `/.boardbyte/`, leaving o
 | `src/text.h`, `text.cpp` | Drawing, measuring, aligning and wrapping text |
 | `src/fonts/` | Jersey 25 at six sizes, copied from CrossPlay, with its licences |
 | `src/storage.h`, `storage.cpp` | Save files on the SD card |
-| `src/state.h`, `state.cpp` | The settings and game state, and how they turn into bytes |
+| `src/state.h`, `state.cpp` | The settings, game state and remembered networks, and how they turn into bytes |
+| `src/network.h`, `network.cpp` | The Wi-Fi radio: scanning, joining and the internet time check |
+| `src/wifi_screen.h`, `wifi_screen.cpp` | The Wi-Fi list and status screens, and remembering networks |
+| `src/keyboard.h`, `keyboard.cpp` | The on-screen password keyboard |
 | `freeink-sdk/` | Screen and power libraries, as a git submodule |
 | `scripts/package.sh` | Builds and produces `dist/boardbyte-full.bin` |
 
@@ -114,6 +123,6 @@ To use your own CrossPlay build, flash `.pio/build/gh_release_sticky/firmware.fa
 - [x] Touch input (GT911)
 - [x] A real font engine
 - [x] Settings saved to storage
-- [ ] Wi-Fi connection
+- [x] Wi-Fi connection
 - [ ] Games home page
 - [ ] First game

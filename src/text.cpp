@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 
 #include "fonts/toybox_10.h"
@@ -160,6 +161,26 @@ void drawTextInBox(uint8_t* frame, Font font, int left, int top, int width, int 
   const EpdGlyph& capital = capitalGlyph(data);
   const int baseline = top + (height - capital.height) / 2 + capital.top;
   drawText(frame, font, left + width / 2, baseline, text, Align::Center, black);
+}
+
+void fitText(Font font, const char* text, int maxWidth, char* out, size_t outSize) {
+  if (outSize == 0) return;
+  snprintf(out, outSize, "%s", text);
+  if (textWidth(font, out) <= maxWidth) return;
+
+  constexpr const char* ENDING = "..";
+  constexpr size_t ENDING_LENGTH = 2;
+  if (outSize <= ENDING_LENGTH) {
+    out[0] = '\0';
+    return;
+  }
+
+  size_t keep = strlen(out);
+  if (keep > outSize - 1 - ENDING_LENGTH) keep = outSize - 1 - ENDING_LENGTH;
+  do {
+    memcpy(out + keep, ENDING, ENDING_LENGTH + 1);
+  } while (textWidth(font, out) > maxWidth && keep-- > 0);
+  if (textWidth(font, out) > maxWidth) out[0] = '\0';
 }
 
 int drawWrapped(uint8_t* frame, Font font, int left, int top, int width, const char* text, Align align, bool black) {

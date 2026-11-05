@@ -17,9 +17,11 @@
 #include <cstdlib>
 
 #include "graphics.h"
+#include "network.h"
 #include "state.h"
 #include "storage.h"
 #include "text.h"
+#include "wifi_screen.h"
 
 namespace {
 
@@ -46,10 +48,12 @@ constexpr int BOX_LABEL_HEIGHT = 56;
 constexpr int SAMPLES_TOP = BOX_TOP + BOX_HEIGHT + 8;
 constexpr int SAMPLES_MARGIN = 12;
 
-constexpr int CARD_MESSAGE_TOP = SCREEN_HEIGHT - 212;
-constexpr int STATUS_TOP = SCREEN_HEIGHT - 176;
+constexpr int CARD_MESSAGE_TOP = SCREEN_HEIGHT - 254;
+constexpr int STATUS_TOP = SCREEN_HEIGHT - 218;
 constexpr int SLEEP_LINE = 3;
-constexpr int SLEEP_TAP_WIDTH = 260;  // narrow, so the bottom corners still move the cross
+constexpr int WIFI_LINE = 4;
+constexpr int LINE_TAP_WIDTH = 260;  // narrow, so the bottom corners still move the cross
+constexpr int WIFI_LINE_MAX_WIDTH = SCREEN_WIDTH - 24;
 
 constexpr int CROSS_ARM = 24;
 constexpr int CROSS_THICKNESS = 4;
@@ -67,7 +71,6 @@ constexpr Sample SAMPLES[] = {
     {Font::Size20, "20 HOW TO PLAY"},
     {Font::Size30, "30 YOUR TURN"},
     {Font::Size44, "44 WINNER"},
-    {Font::Size64, "64 Ag!"},
 };
 
 struct Button {
@@ -184,6 +187,12 @@ void drawSleepLine(uint8_t* frame) {
   drawStatusLine(frame, SLEEP_LINE, text);
 }
 
+void drawWifiLine(uint8_t* frame) {
+  char text[48];
+  wifiScreen::statusLine(text, sizeof(text), WIFI_LINE_MAX_WIDTH);
+  drawStatusLine(frame, WIFI_LINE, text);
+}
+
 void drawCardMessage(uint8_t* frame) {
   const char* message = nullptr;
   if (!storage::ready()) {
@@ -196,12 +205,7 @@ void drawCardMessage(uint8_t* frame) {
   }
 }
 
-void drawScreen() {
-  const uint32_t startUs = micros();
-
-  display.clearScreen(0xFF);
-  uint8_t* frame = display.getFrameBuffer();
-
+void drawInputScreen(uint8_t* frame) {
   int left = BOX_MARGIN;
   for (int i = 0; i < BUTTON_COUNT; i++) {
     drawButtonBox(frame, i, left);
@@ -212,7 +216,21 @@ void drawScreen() {
   drawCardMessage(frame);
   drawTouchStatus(frame);
   drawSleepLine(frame);
+  drawWifiLine(frame);
   if (game.hasTapped) drawCross(frame, game.tapX, game.tapY);
+}
+
+void drawScreen() {
+  const uint32_t startUs = micros();
+
+  display.clearScreen(0xFF);
+  uint8_t* frame = display.getFrameBuffer();
+
+  if (wifiScreen::isOpen()) {
+    wifiScreen::draw(frame);
+  } else {
+    drawInputScreen(frame);
+  }
 
   Serial.printf("Screen drawn in %lu us\n", static_cast<unsigned long>(micros() - startUs));
 }
@@ -288,10 +306,10 @@ bool handleButtons(uint32_t now) {
 int touchToScreenX(float panelY) { return static_cast<int>((1.0f - panelY) * (SCREEN_WIDTH - 1)); }
 int touchToScreenY(float panelX) { return static_cast<int>(panelX * (SCREEN_HEIGHT - 1)); }
 
-bool isOnSleepLine(int x, int y) {
+bool isOnStatusLine(int line, int x, int y) {
   const int height = lineHeight(Font::Size20);
-  const int top = STATUS_TOP + SLEEP_LINE * height;
-  return y >= top && y < top + height && abs(x - SCREEN_WIDTH / 2) <= SLEEP_TAP_WIDTH / 2;
+  const int top = STATUS_TOP + line * height;
+  return y >= top && y < top + height && abs(x - SCREEN_WIDTH / 2) <= LINE_TAP_WIDTH / 2;
 }
 
 void cycleIdleSleep() {
@@ -322,8 +340,12 @@ bool handleTouch() {
   if (input.wasTouchTap(x, y)) {
     const int screenX = touchToScreenX(y);
     const int screenY = touchToScreenY(x);
-    if (isOnSleepLine(screenX, screenY)) {
+    if (isOnStatusLine(SLEEP_LINE, screenX, screenY)) {
       cycleIdleSleep();
+      return true;
+    }
+    if (isOnStatusLine(WIFI_LINE, screenX, screenY)) {
+      wifiScreen::open();
       return true;
     }
     game.tapX = static_cast<int16_t>(screenX);
@@ -336,6 +358,20 @@ bool handleTouch() {
   }
 
   return false;
+}
+
+// The stand-in game only changes on the input screen, so here buttons and touch go
+// to the Wi-Fi screens instead. Returns true if anything on screen needs to change.
+bool handleWifiScreenInput() {
+  upHoldUsed = true;  // a hold of UP that began here doesn't clear the save
+
+  bool changed = false;
+  if (input.wasPressed(InputManager::BTN_UP)) changed = wifiScreen::onUpPressed() || changed;
+  if (input.wasPressed(InputManager::BTN_DOWN)) changed = wifiScreen::onDownPressed() || changed;
+
+  float x, y;
+  if (input.wasTouchTap(x, y)) changed = wifiScreen::onTap(touchToScreenX(y), touchToScreenY(x)) || changed;
+  return changed;
 }
 
 // Returns as soon as the frame is sent, so input keeps being read while the
@@ -360,6 +396,9 @@ void showAsleep() {
 }
 
 [[noreturn]] void goToSleep() {
+  // Otherwise the modem's power domain could stay on through deep sleep.
+  network::turnOff();
+
   // Every change is saved as it happens, so this only retries one that failed.
   if (settingsSaveFailed) saveSettings();
   if (gameSaveFailed) saveGame();
@@ -409,6 +448,7 @@ void setup() {
   input.update();
 
   if (storage::begin()) loadSaved();
+  wifiScreen::begin();
 
   display.begin();
   if (!display.framebufferReady()) {
@@ -435,10 +475,17 @@ void loop() {
   input.update();
   const uint32_t now = millis();
 
-  const bool buttonsChanged = handleButtons(now);
-  const bool touchChanged = handleTouch();
-  if (buttonsChanged || touchChanged) screenDirty = true;
-  if (buttonsChanged || input.wasTouchActivity()) lastActivityMs = now;
+  if (wifiScreen::update()) screenDirty = true;
+
+  // Input can open or close the Wi-Fi screen, so that also needs a redraw.
+  if (wifiScreen::isOpen()) {
+    if (handleWifiScreenInput()) screenDirty = true;
+  } else {
+    const bool buttonsChanged = handleButtons(now);
+    const bool touchChanged = handleTouch();
+    if (buttonsChanged || touchChanged) screenDirty = true;
+  }
+  if (input.wasAnyPressed() || input.wasAnyReleased() || input.wasTouchActivity()) lastActivityMs = now;
 
   // Before the redraw, so the screen can report a save that failed.
   if (settingsChanged) {

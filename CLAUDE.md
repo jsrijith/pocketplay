@@ -28,7 +28,7 @@ Use `python`, because this machine has no `py` launcher. Always flash the merged
 
 ## Architecture
 
-`src/main.cpp` is an Arduino `setup()`/`loop()` program, with drawing in `src/graphics.cpp`, text in `src/text.cpp`, save files in `src/storage.cpp`, and saved values in `src/state.cpp`. It runs on top of five `freeink-sdk` libraries (BoardConfig, EInkDisplay, InputManager, PowerManager, SDCardManager), which are symlinked through `lib_deps` in `platformio.ini`. `-DFREEINK_DEVICE_STICKY=1` makes the SDK's `BoardConfig::ACTIVE` resolve to the Sticky's pins and panel settings, so take pins from `ACTIVE` rather than hardcoding them. To use another SDK library (touch, input, sensors), add it to `lib_deps`. Its API is in `freeink-sdk/libs/*/*/include/`.
+`src/main.cpp` is an Arduino `setup()`/`loop()` program, with drawing in `src/graphics.cpp`, text in `src/text.cpp`, save files in `src/storage.cpp`, saved values in `src/state.cpp`, and Wi-Fi in `src/network.cpp`, `src/wifi_screen.cpp` and `src/keyboard.cpp`. It runs on top of five `freeink-sdk` libraries (BoardConfig, EInkDisplay, InputManager, PowerManager, SDCardManager), which are symlinked through `lib_deps` in `platformio.ini`. `-DFREEINK_DEVICE_STICKY=1` makes the SDK's `BoardConfig::ACTIVE` resolve to the Sticky's pins and panel settings, so take pins from `ACTIVE` rather than hardcoding them. To use another SDK library (touch, input, sensors), add it to `lib_deps`. Its API is in `freeink-sdk/libs/*/*/include/`.
 
 `freeink-sdk/` is a submodule pinned to the commit CrossPlay builds against. Don't edit it.
 
@@ -51,7 +51,18 @@ Use `python`, because this machine has no `py` launcher. Always flash the merged
 
 `storage::save()` writes a temp file, reads it back, then replaces the old save, and `load()` falls back to a valid temp file. Don't shortcut this: a power cut can come at any step, and opening a file for writing empties it.
 
-**One task only:** the card and panel share an SPI bus, with nothing guarding it. That's safe because everything runs in `loop()` and a refresh only watches the busy pin. A second task that touches the card or panel needs a lock first.
+**One task only:** the card and panel share an SPI bus, with nothing guarding it. That's safe because everything of ours runs in `loop()` and a refresh only watches the busy pin. The Wi-Fi stack runs its own tasks, but they never touch the card or panel. Keep all `WiFi` calls in `loop()` too. A second task that touches the card or panel needs a lock first.
+
+**Wi-Fi:** `network.cpp` owns the radio and knows nothing about the screen or card, and `wifi_screen.cpp` holds the screens and remembered networks. Follow these rules:
+
+- The radio stays off unless it's scanning or using a network. Games must turn it on only when needed, because a running radio drains the battery.
+- Don't wait in `loop()` for the network. Start something, then check on it from `network::update()`.
+- Keep `WiFi.persistent(false)`, or the driver stores its own plain copy of the password in flash.
+- Only remember a network after it has joined, and never log a password.
+- Check `network::state()` is `Connected` before any future download: entering the socket layer with Wi-Fi never started crashes the device instead of returning an error.
+- A wrong password usually doesn't report a failure, because the driver keeps retrying. The join time limit is what ends the attempt.
+- `configTime()` holds the network stack's lock while it changes SNTP, so stopping SNTP holds it too. `stopTimeCheck()` only runs after `startTimeCheck()`, so the stack is up by then.
+- ESP-NOW multiplayer can't run alongside a Wi-Fi connection, so it has to take over the radio when it's added.
 
 ## Hardware rules
 
@@ -60,7 +71,7 @@ These cause silent failures, and the build won't catch them:
 - **Boot order in `setup()` matters.** `BoardConfig::holdPowerRails()` runs first, then `BoardConfig::releaseSdRail()`, then input, then `storage::begin()`, then `display.begin()`. The SD card shares the panel's SPI bus, and an unpowered card clamps the bus so the panel never hears a command.
 - **`gpio_hold_en` survives resets and reflashing.** A held pin silently ignores writes, so call `gpio_hold_dis` before driving any pin that a sleep path, including another firmware's, may have held.
 - **Sleep cuts the card's power.** The SDK's `shutdown()` does nothing on this board, so a save has to finish before the rails go down. `storage::save()` reads its file back, which makes the card finish first.
-- **Sleep order in `goToSleep()` matters.** `display.deepSleep()` runs first while the panel still has power, then the latches on GPIO45/46 are held HIGH, then the rails are cut, then the chip sleeps.
+- **Sleep order in `goToSleep()` matters.** The radio goes off first. `display.deepSleep()` runs next while the panel still has power, then the latches on GPIO45/46 are held HIGH, then the rails are cut, then the chip sleeps.
 - **Waking is a full chip reset.** Every wake runs `setup()` again. Only the OK button (GPIO4) can wake the device, since touch power is cut during sleep. OK must be released once after boot before a hold counts as sleep.
 - **USB-C reaches UART0 through a CH343 chip, not native USB.** That's why `ARDUINO_USB_CDC_ON_BOOT=0` is set, which differs from CrossPlay. Opening the serial port resets the device.
 - **GPIO0 is a strapping pin** and also the sensor bus SCL. Don't leave a pull on it that disturbs boot mode.
