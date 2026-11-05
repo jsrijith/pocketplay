@@ -20,6 +20,12 @@ Redraw onDownPressed();
 
 void draw(uint8_t* frame);
 
+// True while a game is doing work that a sleep would throw away.
+bool busy();
+
+// Screen updates between clean-up refreshes. 0 means never.
+int updatesPerCleanup();
+
 uint32_t idleSleepMs();
 
 // Turns the radio off and retries any save that failed. Call before cutting power.

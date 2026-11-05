@@ -114,13 +114,21 @@ bool unpackNetworks(uint8_t version, const uint8_t* in, size_t size, const uint8
 
 size_t packSettings(const Settings& settings, uint8_t* out) {
   out[0] = settings.idleSleepMinutes;
+  out[1] = settings.timeZone;
+  out[2] = settings.refreshChoice;
   return SETTINGS_BYTES;
 }
 
 bool unpackSettings(uint8_t version, const uint8_t* in, size_t size, Settings& settings) {
-  if (version != SETTINGS_VERSION || size != SETTINGS_BYTES) return false;
+  // Each version added one value to the end, and older files keep the default for
+  // anything they don't have.
+  if (version < 1 || version > SETTINGS_VERSION || size != version) return false;
   if (!validIdleMinutes(in[0])) return false;
+  if (version >= 2 && in[1] >= wallClock::ZONE_COUNT) return false;
+  if (version >= 3 && in[2] >= REFRESH_CHOICE_COUNT) return false;
 
   settings.idleSleepMinutes = in[0];
+  if (version >= 2) settings.timeZone = in[1];
+  if (version >= 3) settings.refreshChoice = in[2];
   return true;
 }

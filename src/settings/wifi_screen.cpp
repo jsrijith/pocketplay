@@ -497,6 +497,8 @@ void open() {
 
 bool isOpen() { return screenOpen; }
 
+void close() { screenOpen = false; }
+
 bool onTap(int x, int y) {
   switch (view) {
     case View::Status:

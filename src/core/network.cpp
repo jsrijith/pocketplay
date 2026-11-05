@@ -8,6 +8,8 @@
 #include <cstdio>
 #include <cstring>
 
+#include "clock.h"
+
 namespace network {
 
 namespace {
@@ -42,7 +44,7 @@ void stopTimeCheck() {
   if (!timeStarted) return;
   timeStarted = false;
 
-  // configTime() holds this lock around the same calls.
+  // configTzTime() holds this lock around the same calls.
   LOCK_TCPIP_CORE();
   if (esp_sntp_enabled()) esp_sntp_stop();
   UNLOCK_TCPIP_CORE();
@@ -52,7 +54,8 @@ void startTimeCheck() {
   currentInternet = Internet::Waiting;
   connectedMs = millis();
   sntp_set_sync_status(SNTP_SYNC_STATUS_RESET);
-  configTime(0, 0, "pool.ntp.org", "time.google.com");
+  // Not configTime(), which replaces the time zone with a plain offset.
+  configTzTime(wallClock::posixTz(), "pool.ntp.org", "time.google.com");
   timeStarted = true;
 }
 
@@ -182,6 +185,7 @@ bool updateInternet(uint32_t now) {
   if (sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED) {
     Serial.printf("Time server answered after %lu ms\n", static_cast<unsigned long>(now - connectedMs));
     currentInternet = Internet::Reached;
+    wallClock::saveToChip();
     return true;
   }
   if (currentInternet == Internet::Waiting && now - connectedMs >= INTERNET_TIMEOUT_MS) {

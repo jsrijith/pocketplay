@@ -8,6 +8,7 @@ games/
   game_list.inc    the list of games: one line each
   games.h/.cpp     looks games up from the list; no game-specific code
   tictactoe/       the example to copy
+  wordle/          a larger example: several views, downloads and big saves
 ```
 
 ## Adding a game

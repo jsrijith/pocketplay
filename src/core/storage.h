@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 // Small save files on the SD card, one per name, in /.boardbyte/. A power cut at
 // any moment leaves either the old save or the new one, never a damaged one.
@@ -20,5 +21,17 @@ bool load(const char* name, uint8_t& version, uint8_t* data, size_t capacity, si
 
 // Returns true once no save by this name is left on the card.
 bool erase(const char* name);
+
+// For data too big for a save, such as a word list. These work the same way, and the
+// data lives in PSRAM. A blob named "x" is a separate file from a save named "x".
+struct BlobDeleter {
+  void operator()(uint8_t* data) const;
+};
+using Blob = std::unique_ptr<uint8_t[], BlobDeleter>;
+
+bool saveBlob(const char* name, const uint8_t* data, size_t size);
+
+// Returns nothing if there's no valid blob or no memory for it.
+Blob loadBlob(const char* name, size_t& size);
 
 }  // namespace storage

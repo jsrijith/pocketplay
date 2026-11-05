@@ -3,3 +3,4 @@
 // to add a game. Git merges this file by keeping both sides (see .gitattributes),
 // so two branches can each add a game without a conflict.
 GAME(ticTacToe)
+GAME(wordleGame)

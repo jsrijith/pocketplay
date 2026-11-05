@@ -123,3 +123,6 @@ To use your own CrossPlay build, flash `.pio/build/gh_release_sticky/firmware.fa
 - [x] Wi-Fi connection
 - [x] Games home page
 - [x] First game: Tic Tac Toe
+- [x] Time zone setting and clock chip
+- [x] HTTPS downloads
+- [x] Second game: Wordle

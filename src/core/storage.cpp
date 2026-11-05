@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <SDCardManager.h>
+#include <esp_heap_caps.h>
 
 #include <cstdio>
 #include <cstring>
@@ -16,6 +17,10 @@ constexpr size_t PATH_BYTES = 48;
 // byte first. The checksum covers the version, the length and the data.
 constexpr size_t HEADER_BYTES = 10;
 constexpr uint8_t FORMAT = 1;
+
+// 'B', 'L', format, 32-bit length, 32-bit checksum of the data.
+constexpr size_t BLOB_HEADER_BYTES = 11;
+constexpr uint8_t BLOB_FORMAT = 1;
 
 bool mounted = false;
 
@@ -56,12 +61,12 @@ void makeHeader(uint8_t* header, uint8_t version, const uint8_t* data, size_t si
 
 // Reads back what was just written. This catches a bad write, and because the card
 // can't answer until it finishes writing, it's also safe to cut its power afterwards.
-bool fileMatches(const char* path, const uint8_t* header, const uint8_t* data, size_t size) {
+bool fileMatches(const char* path, const uint8_t* header, size_t headerBytes, const uint8_t* data, size_t size) {
   FsFile file = SdMan.open(path, O_RDONLY);
-  if (!file || file.fileSize() != HEADER_BYTES + size) return false;
+  if (!file || file.fileSize() != headerBytes + size) return false;
 
   uint8_t buffer[64];
-  if (file.read(buffer, HEADER_BYTES) != static_cast<int>(HEADER_BYTES) || memcmp(buffer, header, HEADER_BYTES) != 0) return false;
+  if (file.read(buffer, headerBytes) != static_cast<int>(headerBytes) || memcmp(buffer, header, headerBytes) != 0) return false;
 
   size_t offset = 0;
   while (offset < size) {
@@ -72,10 +77,10 @@ bool fileMatches(const char* path, const uint8_t* header, const uint8_t* data, s
   return true;
 }
 
-bool writeFile(const char* path, const uint8_t* header, const uint8_t* data, size_t size) {
+bool writeFile(const char* path, const uint8_t* header, size_t headerBytes, const uint8_t* data, size_t size) {
   FsFile file = SdMan.open(path, O_WRONLY | O_CREAT | O_TRUNC);
   if (!file) return false;
-  if (file.write(header, HEADER_BYTES) != HEADER_BYTES || file.write(data, size) != size) return false;
+  if (file.write(header, headerBytes) != headerBytes || file.write(data, size) != size) return false;
   return file.close();
 }
 
@@ -102,7 +107,47 @@ bool readValid(const char* path, uint8_t& version, uint8_t* data, size_t capacit
   return true;
 }
 
+uint32_t readUint32(const uint8_t* in) {
+  uint32_t value = 0;
+  for (int i = 0; i < 4; i++) {
+    value |= static_cast<uint32_t>(in[i]) << (8 * i);
+  }
+  return value;
+}
+
+void writeUint32(uint8_t* out, uint32_t value) {
+  for (int i = 0; i < 4; i++) {
+    out[i] = static_cast<uint8_t>(value >> (8 * i));
+  }
+}
+
+Blob readValidBlob(const char* path, size_t& size) {
+  FsFile file = SdMan.open(path, O_RDONLY);
+  if (!file) return nullptr;
+
+  uint8_t header[BLOB_HEADER_BYTES];
+  if (file.read(header, BLOB_HEADER_BYTES) != static_cast<int>(BLOB_HEADER_BYTES)) return nullptr;
+  if (header[0] != 'B' || header[1] != 'L' || header[2] != BLOB_FORMAT) return nullptr;
+
+  const uint32_t length = readUint32(header + 3);
+  if (file.fileSize() != BLOB_HEADER_BYTES + length) return nullptr;
+
+  // One extra byte, so an empty blob still returns a buffer.
+  Blob data(static_cast<uint8_t*>(heap_caps_malloc(length + 1, MALLOC_CAP_SPIRAM)));
+  if (!data) {
+    Serial.printf("ERROR: no memory for %lu bytes from %s\n", static_cast<unsigned long>(length), path);
+    return nullptr;
+  }
+  if (file.read(data.get(), length) != static_cast<int>(length)) return nullptr;
+  if (~updateChecksum(0xFFFFFFFFu, data.get(), length) != readUint32(header + 7)) return nullptr;
+
+  size = length;
+  return data;
+}
+
 }  // namespace
+
+void BlobDeleter::operator()(uint8_t* data) const { heap_caps_free(data); }
 
 bool begin() {
   mounted = SdMan.begin();
@@ -131,7 +176,7 @@ bool save(const char* name, uint8_t version, const uint8_t* data, size_t size) {
   makeHeader(header, version, data, size);
 
   SdMan.remove(tempPath);
-  if (!writeFile(tempPath, header, data, size) || !fileMatches(tempPath, header, data, size)) {
+  if (!writeFile(tempPath, header, HEADER_BYTES, data, size) || !fileMatches(tempPath, header, HEADER_BYTES, data, size)) {
     Serial.printf("ERROR: could not write %s\n", tempPath);
     return false;
   }
@@ -170,6 +215,45 @@ bool erase(const char* name) {
     if (SdMan.exists(path) && !SdMan.remove(path)) erased = false;
   }
   return erased;
+}
+
+bool saveBlob(const char* name, const uint8_t* data, size_t size) {
+  if (!mounted) return false;
+
+  char blobPath[PATH_BYTES];
+  char tempPath[PATH_BYTES];
+  makePath(blobPath, name, "bin");
+  makePath(tempPath, name, "bit");
+
+  uint8_t header[BLOB_HEADER_BYTES] = {'B', 'L', BLOB_FORMAT};
+  writeUint32(header + 3, static_cast<uint32_t>(size));
+  writeUint32(header + 7, ~updateChecksum(0xFFFFFFFFu, data, size));
+
+  SdMan.remove(tempPath);
+  if (!writeFile(tempPath, header, BLOB_HEADER_BYTES, data, size) || !fileMatches(tempPath, header, BLOB_HEADER_BYTES, data, size)) {
+    Serial.printf("ERROR: could not write %s\n", tempPath);
+    return false;
+  }
+  if (!SdMan.replaceFile(tempPath, blobPath)) {
+    Serial.printf("ERROR: could not replace %s\n", blobPath);
+    return false;
+  }
+  return true;
+}
+
+Blob loadBlob(const char* name, size_t& size) {
+  if (!mounted) return nullptr;
+
+  char path[PATH_BYTES];
+  makePath(path, name, "bin");
+  Blob data = readValidBlob(path, size);
+  if (data) return data;
+  if (SdMan.exists(path)) Serial.printf("%s is damaged\n", path);
+
+  makePath(path, name, "bit");
+  data = readValidBlob(path, size);
+  if (data) Serial.printf("Recovered %s\n", path);
+  return data;
 }
 
 }  // namespace storage

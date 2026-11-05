@@ -3,13 +3,21 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "core/clock.h"
+
 // What survives sleep, and how it turns into bytes for a save file. Values are
 // written one at a time rather than copying the struct, so the file layout is a
 // decision here instead of whatever the compiler's padding happens to be.
 
 struct Settings {
   uint8_t idleSleepMinutes = 10;  // 1, 5 or 10
+  uint8_t timeZone = wallClock::UTC_ZONE;  // a position in wallClock's list
+  uint8_t refreshChoice = 3;               // a position in REFRESH_CHOICES
 };
+
+// How many screen updates run between clean-up refreshes. 0 means never.
+constexpr uint8_t REFRESH_CHOICES[] = {5, 10, 15, 30, 0};
+constexpr uint8_t REFRESH_CHOICE_COUNT = sizeof(REFRESH_CHOICES);
 
 constexpr int MAX_SAVED_NETWORKS = 4;
 constexpr int MAX_SSID_BYTES = 32;
@@ -36,8 +44,8 @@ bool rememberNetwork(SavedNetworks& networks, const char* ssid, const char* pass
 // Returns true if the network was in the list.
 bool forgetNetwork(SavedNetworks& networks, const char* ssid);
 
-constexpr uint8_t SETTINGS_VERSION = 1;
-constexpr size_t SETTINGS_BYTES = 1;
+constexpr uint8_t SETTINGS_VERSION = 3;
+constexpr size_t SETTINGS_BYTES = 3;
 
 constexpr uint8_t NETWORKS_VERSION = 1;
 constexpr size_t NETWORKS_MAX_BYTES = 1 + MAX_SAVED_NETWORKS * (1 + MAX_SSID_BYTES + 1 + MAX_PASSWORD_BYTES);

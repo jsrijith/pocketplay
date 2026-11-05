@@ -13,6 +13,7 @@
 #include <driver/gpio.h>
 #include <esp_sleep.h>
 
+#include "core/clock.h"
 #include "core/graphics.h"
 #include "core/storage.h"
 #include "core/text.h"
@@ -24,9 +25,6 @@ namespace {
 // than a button bounces means one press can only produce one edge.
 constexpr uint32_t POLL_MS = 15;
 constexpr uint32_t SLEEP_HOLD_MS = 1000;
-
-// Fast refreshes slowly leave ghosts behind; a full refresh clears them.
-constexpr int FAST_REFRESHES_PER_FULL = 30;
 
 InputManager input;
 
@@ -72,9 +70,18 @@ void handleInput() {
 // Returns as soon as the frame is sent, so input keeps being read while the
 // panel updates itself. The framebuffer is free to redraw straight away.
 void startRefresh(shell::Redraw redraw) {
-  if (redraw == shell::Redraw::Full || ++fastRefreshes >= FAST_REFRESHES_PER_FULL) {
+  if (redraw == shell::Redraw::Full) {
     fastRefreshes = 0;
     display.displayBufferAsync(EInkDisplay::FULL_REFRESH);
+    return;
+  }
+
+  // Fast refreshes slowly leave ghosts behind. A half refresh clears them, and is
+  // gentler to watch than a full one.
+  const int updatesPerCleanup = shell::updatesPerCleanup();
+  if (updatesPerCleanup != 0 && ++fastRefreshes >= updatesPerCleanup) {
+    fastRefreshes = 0;
+    display.displayBufferAsync(EInkDisplay::HALF_REFRESH);
   } else {
     display.displayBufferAsync(EInkDisplay::FAST_REFRESH);
   }
@@ -135,6 +142,7 @@ void setup() {
   // Absorbs any button already held, so the press that woke the device does nothing.
   input.update();
 
+  wallClock::begin();
   storage::begin();
   shell::begin(input.hasTouch());
 
@@ -179,6 +187,7 @@ void loop() {
   if (!okDown) releasedSinceBoot = true;
 
   if (releasedSinceBoot && okDown && input.getPowerButtonHeldTime() >= SLEEP_HOLD_MS) goToSleep();
+  if (shell::busy()) lastActivityMs = now;
   if (now - lastActivityMs >= shell::idleSleepMs()) goToSleep();
 
   delay(POLL_MS);

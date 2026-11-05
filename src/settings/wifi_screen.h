@@ -18,6 +18,7 @@ bool update();
 // radio is off and one is remembered, scans if none is, or shows the status.
 void open();
 bool isOpen();
+void close();  // leaves the radio as it is
 
 // These return true if the display needs redrawing.
 bool onTap(int x, int y);

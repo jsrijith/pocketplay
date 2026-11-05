@@ -2,11 +2,13 @@
 
 #include <cstring>
 
+#include "core/download.h"
 #include "core/network.h"
 #include "core/storage.h"
 #include "games/games.h"
 #include "home_screen.h"
 #include "settings/settings_screen.h"
+#include "settings/timezone_screen.h"
 #include "settings/wifi_screen.h"
 #include "ui/ui.h"
 
@@ -20,12 +22,13 @@ constexpr const char* SESSION_FILE = "session";
 constexpr uint8_t SESSION_VERSION = 1;
 constexpr size_t MAX_NAME_BYTES = 32;
 
-enum class Screen { Home, Settings, Wifi, Playing };
+enum class Screen { Home, Settings, Wifi, TimeZone, Playing };
 
 Screen screen = Screen::Home;
 Game* currentGame = nullptr;
 bool hasTouch = true;
 bool sessionSaveFailed = false;
+bool wifiOpenedByGame = false;
 
 // Without this file the device wakes on the home page, with the game's own save
 // intact, so a failure here only costs a tap.
@@ -86,13 +89,35 @@ Redraw tapSettings(int x, int y) {
       wifiScreen::open();
       screen = Screen::Wifi;
       return Redraw::Fast;
+    case settingsScreen::Tap::OpenTimeZone:
+      timezoneScreen::open();
+      screen = Screen::TimeZone;
+      return Redraw::Fast;
   }
   return Redraw::None;
 }
 
+void leaveWifiForGame() {
+  wifiOpenedByGame = false;
+  screen = Screen::Playing;
+  currentGame->onWifiClosed();
+}
+
 Redraw tapWifi(int x, int y) {
   const bool changed = wifiScreen::onTap(x, y);
-  if (!wifiScreen::isOpen()) screen = Screen::Settings;
+  if (!wifiScreen::isOpen()) {
+    if (wifiOpenedByGame) {
+      leaveWifiForGame();
+    } else {
+      screen = Screen::Settings;
+    }
+  }
+  return changed ? Redraw::Fast : Redraw::None;
+}
+
+Redraw tapTimeZone(int x, int y) {
+  const bool changed = timezoneScreen::onTap(x, y);
+  if (!timezoneScreen::isOpen()) screen = Screen::Settings;
   return changed ? Redraw::Fast : Redraw::None;
 }
 
@@ -107,6 +132,11 @@ Redraw tapGame(int x, int y) {
     case Game::TapResult::Leave:
       clearSession();
       screen = Screen::Home;
+      return Redraw::Fast;
+    case Game::TapResult::OpenWifi:
+      wifiOpenedByGame = true;
+      wifiScreen::open();
+      screen = Screen::Wifi;
       return Redraw::Fast;
   }
   return Redraw::None;
@@ -134,6 +164,15 @@ void begin(bool touchWorks) {
 // because the connection changed.
 Redraw update() {
   const bool networkChanged = wifiScreen::update();
+
+  // A game asked for Wi-Fi, so it goes back as soon as it has it.
+  if (screen == Screen::Wifi && wifiOpenedByGame && network::state() == network::State::Connected) {
+    wifiScreen::close();
+    leaveWifiForGame();
+    return Redraw::Fast;
+  }
+  if (screen == Screen::Playing && currentGame->update()) return Redraw::Fast;
+
   if (!networkChanged) return Redraw::None;
   return screen == Screen::Settings || screen == Screen::Wifi ? Redraw::Fast : Redraw::None;
 }
@@ -146,15 +185,25 @@ Redraw onTap(int x, int y) {
       return tapSettings(x, y);
     case Screen::Wifi:
       return tapWifi(x, y);
+    case Screen::TimeZone:
+      return tapTimeZone(x, y);
     case Screen::Playing:
       return tapGame(x, y);
   }
   return Redraw::None;
 }
 
-Redraw onUpPressed() { return screen == Screen::Wifi && wifiScreen::onUpPressed() ? Redraw::Fast : Redraw::None; }
+Redraw onUpPressed() {
+  if (screen == Screen::Wifi) return wifiScreen::onUpPressed() ? Redraw::Fast : Redraw::None;
+  if (screen == Screen::TimeZone) return timezoneScreen::onUpPressed() ? Redraw::Fast : Redraw::None;
+  return Redraw::None;
+}
 
-Redraw onDownPressed() { return screen == Screen::Wifi && wifiScreen::onDownPressed() ? Redraw::Fast : Redraw::None; }
+Redraw onDownPressed() {
+  if (screen == Screen::Wifi) return wifiScreen::onDownPressed() ? Redraw::Fast : Redraw::None;
+  if (screen == Screen::TimeZone) return timezoneScreen::onDownPressed() ? Redraw::Fast : Redraw::None;
+  return Redraw::None;
+}
 
 void draw(uint8_t* frame) {
   switch (screen) {
@@ -167,6 +216,9 @@ void draw(uint8_t* frame) {
     case Screen::Wifi:
       wifiScreen::draw(frame);
       return;  // it reports its own problems, and its keyboard fills this space
+    case Screen::TimeZone:
+      timezoneScreen::draw(frame);
+      break;
     case Screen::Playing:
       currentGame->draw(frame);
       break;
@@ -175,9 +227,16 @@ void draw(uint8_t* frame) {
   if (const char* warning = warningText()) ui::drawWarning(frame, warning);
 }
 
+bool busy() { return screen == Screen::Playing && currentGame->busy(); }
+
+int updatesPerCleanup() { return settingsScreen::updatesPerCleanup(); }
+
 uint32_t idleSleepMs() { return settingsScreen::idleSleepMinutes() * 60UL * 1000UL; }
 
 void beforeSleep() {
+  // Before the radio, which a running download is using.
+  download::stopForSleep();
+
   // Otherwise the modem's power domain could stay on through deep sleep.
   network::turnOff();
 

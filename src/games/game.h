@@ -11,6 +11,7 @@ class Game {
     Redraw,      // a move: fast refresh
     RedrawFull,  // a game ending or starting: full refresh
     Leave,       // BACK: return to the home page
+    OpenWifi,    // show the Wi-Fi screen, then come back and call onWifiClosed()
   };
 
   // Shown on the home page, and saved to reopen this game after waking. Changing
@@ -25,6 +26,16 @@ class Game {
 
   virtual bool saveFailed() const = 0;
   virtual void retrySave() = 0;  // called before sleep if saveFailed()
+
+  // For a game with work going on between taps. Called every loop while it's on
+  // screen, and returns true if it needs redrawing.
+  virtual bool update() { return false; }
+
+  // True stops the idle timer, for work that a sleep would throw away.
+  virtual bool busy() const { return false; }
+
+  // Back from OpenWifi. network::state() says whether it joined.
+  virtual void onWifiClosed() {}
 
  protected:
   ~Game() = default;
