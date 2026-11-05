@@ -209,7 +209,8 @@ void testSave() {
   game.submit(anyWord, nullptr);
   typeWord(game, "TULIP");
   game.submit(anyWord, nullptr);
-  typeWord(game, "PL");  // the row being typed is not saved
+  game.type('P');  // the row being typed is not saved
+  game.type('L');
   CHECK(game.save() == "PLANT CRANE TULIP");
   Game back;
   CHECK(back.load(12, game.save()));
