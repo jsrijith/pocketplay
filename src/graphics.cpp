@@ -29,3 +29,15 @@ void drawRectOutline(uint8_t* frame, int left, int top, int width, int height, i
   fillRect(frame, left, top, thickness, height, true);
   fillRect(frame, left + width - thickness, top, thickness, height, true);
 }
+
+void drawRing(uint8_t* frame, int centerX, int centerY, int radius, int thickness, bool black) {
+  const int outer = radius * radius;
+  const int innerRadius = radius - thickness;
+  const int inner = innerRadius > 0 ? innerRadius * innerRadius : 0;
+  for (int dy = -radius; dy <= radius; dy++) {
+    for (int dx = -radius; dx <= radius; dx++) {
+      const int distance = dx * dx + dy * dy;
+      if (distance <= outer && distance >= inner) setPixel(frame, centerX + dx, centerY + dy, black);
+    }
+  }
+}

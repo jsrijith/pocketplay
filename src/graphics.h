@@ -13,3 +13,6 @@ constexpr int SCREEN_HEIGHT = EInkDisplay::DISPLAY_WIDTH;
 void setPixel(uint8_t* frame, int x, int y, bool black);
 void fillRect(uint8_t* frame, int left, int top, int width, int height, bool black);
 void drawRectOutline(uint8_t* frame, int left, int top, int width, int height, int thickness);
+
+// A circle outline. radius is its outer edge, and thickness grows inward.
+void drawRing(uint8_t* frame, int centerX, int centerY, int radius, int thickness, bool black);

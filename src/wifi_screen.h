@@ -26,7 +26,7 @@ bool onDownPressed();
 
 void draw(uint8_t* frame);
 
-// The input screen's one-line summary, such as "WIFI OFF".
+// A one-line summary for the Settings row, such as "WIFI OFF".
 void statusLine(char* out, size_t size, int maxWidth);
 
 }  // namespace wifiScreen

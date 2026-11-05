@@ -14,6 +14,7 @@
 #include "state.h"
 #include "storage.h"
 #include "text.h"
+#include "ui.h"
 
 namespace wifiScreen {
 
@@ -26,15 +27,16 @@ constexpr const char* NETWORKS_FILE = "networks";
 constexpr uint32_t SAVED_JOIN_TIMEOUT_MS = 7000;
 constexpr uint32_t TYPED_JOIN_TIMEOUT_MS = 15000;
 
-constexpr int MARGIN = 12;
-constexpr int BUTTON_GAP = 12;
-constexpr int BORDER = 3;
+using ui::drawButton;
+using ui::isInBox;
 
-constexpr int HEADER_TOP = 8;
-constexpr int HEADER_BUTTON_WIDTH = 150;
-constexpr int HEADER_BUTTON_HEIGHT = 64;
-constexpr int MESSAGE_TOP = 76;
-constexpr int ROWS_TOP = 108;
+constexpr int MARGIN = ui::MARGIN;
+constexpr int BUTTON_GAP = ui::GAP;
+
+constexpr int HEADER_TOP = ui::HEADER_TOP;
+constexpr int HEADER_BUTTON_WIDTH = ui::HEADER_BUTTON_WIDTH;
+constexpr int HEADER_BUTTON_HEIGHT = ui::HEADER_BUTTON_HEIGHT;
+constexpr int ROWS_TOP = ui::CONTENT_TOP;
 constexpr int ROW_HEIGHT = 72;
 constexpr int ROWS_PER_PAGE = 8;
 constexpr int PAGE_LABEL_TOP = ROWS_TOP + ROWS_PER_PAGE * ROW_HEIGHT + 8;
@@ -225,8 +227,6 @@ void runAction(Action action) {
   }
 }
 
-bool isInBox(int x, int y, int left, int top, int width, int height) { return x >= left && x < left + width && y >= top && y < top + height; }
-
 bool tapStatus(int x, int y) {
   StatusButton buttons[MAX_STATUS_BUTTONS];
   const int count = statusButtons(buttons);
@@ -242,7 +242,7 @@ bool tapStatus(int x, int y) {
 }
 
 bool tapList(int x, int y) {
-  if (isInBox(x, y, MARGIN, HEADER_TOP, HEADER_BUTTON_WIDTH, HEADER_BUTTON_HEIGHT)) {
+  if (ui::isOnBack(x, y)) {
     listMessage = "";
     network::turnOff();
     screenOpen = false;
@@ -282,11 +282,6 @@ bool tapKeyboard(int x, int y) {
   return false;
 }
 
-void drawButton(uint8_t* frame, int left, int top, int width, int height, const char* label) {
-  drawRectOutline(frame, left, top, width, height, BORDER);
-  drawTextInBox(frame, Font::Size20, left, top, width, height, label);
-}
-
 // Filled bars for how many of four signal levels this reaches. The thresholds are
 // the usual rough guide: -55 dBm is excellent and -85 dBm barely works.
 void drawSignalBars(uint8_t* frame, int right, int centerY, int rssi) {
@@ -321,10 +316,9 @@ void drawRow(uint8_t* frame, const network::ScanEntry& entry, int top) {
 }
 
 void drawList(uint8_t* frame) {
-  drawButton(frame, MARGIN, HEADER_TOP, HEADER_BUTTON_WIDTH, HEADER_BUTTON_HEIGHT, "BACK");
-  drawTextInBox(frame, Font::Size20, MARGIN + HEADER_BUTTON_WIDTH, HEADER_TOP, SCREEN_WIDTH - 2 * (MARGIN + HEADER_BUTTON_WIDTH), HEADER_BUTTON_HEIGHT, "WI-FI");
+  ui::drawHeader(frame, "WI-FI", true);
 
-  if (listMessage[0] != '\0') drawTextInBox(frame, Font::Size14, 0, MESSAGE_TOP, SCREEN_WIDTH, lineHeight(Font::Size14), listMessage);
+  if (listMessage[0] != '\0') ui::drawWarning(frame, listMessage);
 
   if (network::state() != network::State::ScanDone) {
     drawTextInBox(frame, Font::Size30, 0, ROWS_TOP, SCREEN_WIDTH, ROW_HEIGHT * 2, "SCANNING");

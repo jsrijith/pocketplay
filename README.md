@@ -1,20 +1,20 @@
 # BoardByte
 
 A games firmware for the Seeed reTerminal Sticky, built up one step at a time.
-Right now it shows the buttons and touch input on screen, with sample text at each font size. A box turns black while its button is held, and counts its presses. Tapping the screen moves a cross to your finger and prints its position, and swipes show their direction. All of this is saved to the SD card as it changes, standing in for a game in progress. It can also join a Wi-Fi network from the screen.
+It opens on a home page listing the games, with Settings at the bottom. Everything is tapped on the touch screen.
 
-- **Hold OK for 1 second:** sleep. The screen shows `ASLEEP`.
-- **No activity for the idle time:** sleep. Tap the `SLEEP` line to choose 1, 5 or 10 minutes.
-- **Press OK while asleep:** the chip restarts and redraws the screen, with everything back where it was.
-- **Hold UP for 2 seconds:** clear the counts and erase the save, standing in for a game ending.
+- **Tic Tac Toe:** two players on one device. Every move is saved to the SD card, so sleep, a crash or a flat battery returns you to the same board. `BACK` keeps the game for later, and finishing it or tapping `NEW GAME` clears the save.
+- **Settings:** the Wi-Fi row joins the most recent network, or scans for one if none is remembered. Once connected, the status screen shows the IP address, signal strength and UTC time. The sleep row chooses 1, 5 or 10 minutes.
+- **Hold OK for 1 second, or leave it idle for the sleep time:** sleep. The screen shows `ASLEEP`.
+- **Press OK while asleep:** the chip restarts. A game that was open comes back, and anything else returns to the home page.
 
-- **Tap the `WIFI` line:** join the most recent network, or scan for one if none is remembered. Once connected, the status screen shows the IP address, signal strength and UTC time.
-
-The radio is only on while scanning or connected, and sleep always turns it off. Up to 4 networks are remembered, and only after they've joined successfully. It can't join 5 GHz, enterprise or hidden networks, because the chip only has 2.4 GHz and the list leaves the other two out.
+The Wi-Fi radio is only on while scanning or connected, and sleep always turns it off. Up to 4 networks are remembered, and only after they've joined successfully. It can't join 5 GHz, enterprise or hidden networks, because the chip only has 2.4 GHz and the list leaves the other two out.
 
 Passwords are saved on the card scrambled with the chip's MAC address. **This isn't encryption:** it stops someone reading a password straight off the card, but anyone with the card and this code can undo it.
 
-Saving needs a FAT32 or exFAT SD card, and saves go in `/.boardbyte/`, leaving other files alone. Without a card the screen shows `NO CARD` and everything else still works. A card put in later is only seen after a restart.
+Saving needs a FAT32 or exFAT SD card, and saves go in `/.boardbyte/`, leaving other files alone. Without a card the screen shows `NO CARD` and everything else still works, though nothing survives sleep. A card put in later is only seen after a restart.
+
+Upgrading from an earlier version leaves an unused `/.boardbyte/game.sav` on the card. It's harmless, and you can delete it from a PC.
 
 ## The hardware
 
@@ -33,12 +33,17 @@ Saving needs a FAT32 or exFAT SD card, and saves go in `/.boardbyte/`, leaving o
 |---|---|
 | `platformio.ini` | Chip, flash layout, compiler flags, libraries |
 | `partitions.csv` | How the 16MB flash is divided |
-| `src/main.cpp` | The firmware: input, the screen layout, sleep |
+| `src/main.cpp` | Boot, input, refreshing the panel, sleep |
+| `src/app.h`, `app.cpp` | Which screen is open, where taps go, and which game to reopen |
+| `src/home_screen.h`, `home_screen.cpp` | The home page |
+| `src/settings_screen.h`, `settings_screen.cpp` | The Settings page and the saved settings |
+| `src/ui.h`, `ui.cpp` | The buttons and header every screen shares |
+| `src/games/` | The games: `game.h` says what each provides, and `games.cpp` lists them |
 | `src/graphics.h`, `graphics.cpp` | Pixels, rectangles and the portrait mapping |
 | `src/text.h`, `text.cpp` | Drawing, measuring, aligning and wrapping text |
 | `src/fonts/` | Jersey 25 at six sizes, copied from CrossPlay, with its licences |
 | `src/storage.h`, `storage.cpp` | Save files on the SD card |
-| `src/state.h`, `state.cpp` | The settings, game state and remembered networks, and how they turn into bytes |
+| `src/state.h`, `state.cpp` | The settings and remembered networks, and how they turn into bytes |
 | `src/network.h`, `network.cpp` | The Wi-Fi radio: scanning, joining and the internet time check |
 | `src/wifi_screen.h`, `wifi_screen.cpp` | The Wi-Fi list and status screens, and remembering networks |
 | `src/keyboard.h`, `keyboard.cpp` | The on-screen password keyboard |
@@ -46,6 +51,15 @@ Saving needs a FAT32 or exFAT SD card, and saves go in `/.boardbyte/`, leaving o
 | `scripts/package.sh` | Builds and produces `dist/boardbyte-full.bin` |
 
 After cloning, run `git submodule update --init freeink-sdk`.
+
+`src/games/tictactoe_rules.h` is copied unchanged from CrossPlay under its MIT licence, which is in `src/games/LICENSE-CrossPlay.txt`.
+
+## Adding a game
+
+1. Write a class in `src/games/` that implements `Game` from `game.h`. `tictactoe.cpp` is the example.
+2. Add it to the table in `src/games/games.cpp`, and raise `GAME_COUNT`.
+
+The game then appears on the home page and reopens after waking.
 
 ## How it boots
 
@@ -124,5 +138,5 @@ To use your own CrossPlay build, flash `.pio/build/gh_release_sticky/firmware.fa
 - [x] A real font engine
 - [x] Settings saved to storage
 - [x] Wi-Fi connection
-- [ ] Games home page
-- [ ] First game
+- [x] Games home page
+- [x] First game: Tic Tac Toe
