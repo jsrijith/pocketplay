@@ -14,9 +14,9 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 
-#include "font.h"
+#include "graphics.h"
+#include "text.h"
 
 namespace {
 
@@ -31,29 +31,37 @@ constexpr int FAST_REFRESHES_PER_FULL = 30;
 
 constexpr uint16_t COUNT_LIMIT = 10000;  // wraps to 0, so a count never exceeds 4 digits
 
-// The panel is natively landscape. The firmware draws in portrait, held with the
-// USB edge on the right. setPixel() and the touch helpers convert between the two.
-constexpr int SCREEN_WIDTH = EInkDisplay::DISPLAY_HEIGHT;
-constexpr int SCREEN_HEIGHT = EInkDisplay::DISPLAY_WIDTH;
-
-constexpr int TEXT_SCALE = 4;
-
 constexpr int BOX_GAP = 12;
 constexpr int BOX_MARGIN = 12;
 constexpr int BOX_WIDTH = (SCREEN_WIDTH - 2 * BOX_MARGIN - 2 * BOX_GAP) / 3;
 constexpr int BOX_HEIGHT = 130;
 constexpr int BOX_TOP = 24;
 constexpr int BOX_BORDER = 4;
-constexpr int BOX_LABEL_OFFSET = 24;
-constexpr int BOX_COUNT_OFFSET = 74;
+constexpr int BOX_LABEL_HEIGHT = 56;
 
-constexpr int STATUS_TOP = SCREEN_HEIGHT - 170;
-constexpr int STATUS_LINE_HEIGHT = 50;
+constexpr int SAMPLES_TOP = BOX_TOP + BOX_HEIGHT + 8;
+constexpr int SAMPLES_MARGIN = 12;
+
+constexpr int STATUS_TOP = SCREEN_HEIGHT - 150;
 
 constexpr int CROSS_ARM = 24;
 constexpr int CROSS_THICKNESS = 4;
 
-constexpr int ASLEEP_SCALE = 10;
+struct Sample {
+  Font font;
+  const char* text;
+};
+
+// Every character the fonts hold, then \x7F, which they don't, to show the missing
+// character box. The groups are separated by spaces so the first line wraps at one.
+constexpr Sample SAMPLES[] = {
+    {Font::Size10, "!\"#$%&'()*+,-./ 0123456789 :;<=>?@ ABCDEFGHIJKLMNOPQRSTUVWXYZ [\\]^_` abcdefghijklmnopqrstuvwxyz {|}~\x7F"},
+    {Font::Size14, "14 The quick brown fox jumps"},
+    {Font::Size20, "20 HOW TO PLAY"},
+    {Font::Size30, "30 YOUR TURN"},
+    {Font::Size44, "44 WINNER"},
+    {Font::Size64, "64 Ag!"},
+};
 
 struct Button {
   const char* label;
@@ -87,61 +95,6 @@ uint16_t tapCount = 0;
 uint16_t swipeCount = 0;
 const char* swipeDirection = "";
 
-// Framebuffer format: 1 bit per pixel, most significant bit first, 1 = white.
-// Touch can put the cross at a screen edge, so anything outside the screen is skipped.
-void setPixel(uint8_t* frame, int x, int y, bool black) {
-  if (x < 0 || x >= SCREEN_WIDTH || y < 0 || y >= SCREEN_HEIGHT) return;
-
-  const int panelX = y;
-  const int panelY = SCREEN_WIDTH - 1 - x;
-  uint8_t& byte = frame[panelY * EInkDisplay::DISPLAY_WIDTH_BYTES + panelX / 8];
-  const auto mask = static_cast<uint8_t>(0x80 >> (panelX % 8));
-  if (black) {
-    byte &= static_cast<uint8_t>(~mask);
-  } else {
-    byte |= mask;
-  }
-}
-
-void fillRect(uint8_t* frame, int left, int top, int width, int height, bool black) {
-  for (int y = top; y < top + height; y++) {
-    for (int x = left; x < left + width; x++) {
-      setPixel(frame, x, y, black);
-    }
-  }
-}
-
-void drawRectOutline(uint8_t* frame, int left, int top, int width, int height, int thickness) {
-  fillRect(frame, left, top, width, thickness, true);
-  fillRect(frame, left, top + height - thickness, width, thickness, true);
-  fillRect(frame, left, top, thickness, height, true);
-  fillRect(frame, left + width - thickness, top, thickness, height, true);
-}
-
-void drawGlyph(uint8_t* frame, const font::Glyph& glyph, int left, int top, int scale, bool black) {
-  for (int row = 0; row < font::GLYPH_HEIGHT; row++) {
-    for (int col = 0; col < font::GLYPH_WIDTH; col++) {
-      if (!(glyph.rows[row] & (1 << (font::GLYPH_WIDTH - 1 - col)))) continue;
-      fillRect(frame, left + col * scale, top + row * scale, scale, scale, black);
-    }
-  }
-}
-
-// Draws text with its horizontal centre at centerX. Spaces have no glyph, so they
-// just leave a gap.
-void drawText(uint8_t* frame, const char* text, int centerX, int top, int scale, bool black) {
-  const int advance = (font::GLYPH_WIDTH + 1) * scale;
-  const int characters = static_cast<int>(strlen(text));
-  const int width = characters * advance - scale;  // no gap after the last character
-  const int left = centerX - width / 2;
-
-  for (int i = 0; i < characters; i++) {
-    if (const font::Glyph* glyph = font::find(text[i])) {
-      drawGlyph(frame, *glyph, left + i * advance, top, scale, black);
-    }
-  }
-}
-
 void drawButtonBox(uint8_t* frame, const Button& button, int left) {
   const bool held = input.isPressed(button.index);
   if (held) {
@@ -150,13 +103,19 @@ void drawButtonBox(uint8_t* frame, const Button& button, int left) {
     drawRectOutline(frame, left, BOX_TOP, BOX_WIDTH, BOX_HEIGHT, BOX_BORDER);
   }
 
-  const int centerX = left + BOX_WIDTH / 2;
   const bool textBlack = !held;  // white text on a held button's black box
-  drawText(frame, button.label, centerX, BOX_TOP + BOX_LABEL_OFFSET, TEXT_SCALE, textBlack);
+  drawTextInBox(frame, Font::Size20, left, BOX_TOP, BOX_WIDTH, BOX_LABEL_HEIGHT, button.label, textBlack);
 
   char count[6];
   snprintf(count, sizeof(count), "%u", button.count);
-  drawText(frame, count, centerX, BOX_TOP + BOX_COUNT_OFFSET, TEXT_SCALE, textBlack);
+  drawTextInBox(frame, Font::Size30, left, BOX_TOP + BOX_LABEL_HEIGHT, BOX_WIDTH, BOX_HEIGHT - BOX_LABEL_HEIGHT, count, textBlack);
+}
+
+void drawSamples(uint8_t* frame) {
+  int top = SAMPLES_TOP;
+  for (const Sample& sample : SAMPLES) {
+    top += drawWrapped(frame, sample.font, SAMPLES_MARGIN, top, SCREEN_WIDTH - 2 * SAMPLES_MARGIN, sample.text);
+  }
 }
 
 void drawCross(uint8_t* frame, int x, int y) {
@@ -164,32 +123,37 @@ void drawCross(uint8_t* frame, int x, int y) {
   fillRect(frame, x - CROSS_THICKNESS / 2, y - CROSS_ARM, CROSS_THICKNESS, CROSS_ARM * 2, true);
 }
 
-void drawTouchStatus(uint8_t* frame) {
-  const int centerX = SCREEN_WIDTH / 2;
+void drawStatusLine(uint8_t* frame, int line, const char* text) {
+  const int height = lineHeight(Font::Size20);
+  drawTextInBox(frame, Font::Size20, 0, STATUS_TOP + line * height, SCREEN_WIDTH, height, text);
+}
 
+void drawTouchStatus(uint8_t* frame) {
   if (!input.hasTouch()) {
-    drawText(frame, "NO TOUCH", centerX, STATUS_TOP, TEXT_SCALE, true);
+    drawStatusLine(frame, 0, "NO TOUCH");
     return;
   }
 
   char text[32];
   if (hasTapped) {
     snprintf(text, sizeof(text), "X %d Y %d", tapX, tapY);
-    drawText(frame, text, centerX, STATUS_TOP, TEXT_SCALE, true);
+    drawStatusLine(frame, 0, text);
   }
 
   snprintf(text, sizeof(text), "TAPS %u", tapCount);
-  drawText(frame, text, centerX, STATUS_TOP + STATUS_LINE_HEIGHT, TEXT_SCALE, true);
+  drawStatusLine(frame, 1, text);
 
   if (swipeCount > 0) {
     snprintf(text, sizeof(text), "SWIPE %s %u", swipeDirection, swipeCount);
   } else {
     snprintf(text, sizeof(text), "SWIPE %u", swipeCount);
   }
-  drawText(frame, text, centerX, STATUS_TOP + 2 * STATUS_LINE_HEIGHT, TEXT_SCALE, true);
+  drawStatusLine(frame, 2, text);
 }
 
 void drawScreen() {
+  const uint32_t startUs = micros();
+
   display.clearScreen(0xFF);
   uint8_t* frame = display.getFrameBuffer();
 
@@ -199,8 +163,11 @@ void drawScreen() {
     left += BOX_WIDTH + BOX_GAP;
   }
 
+  drawSamples(frame);
   drawTouchStatus(frame);
   if (hasTapped) drawCross(frame, tapX, tapY);
+
+  Serial.printf("Screen drawn in %lu us\n", static_cast<unsigned long>(micros() - startUs));
 }
 
 // Returns true if anything on screen needs to change.
@@ -260,7 +227,7 @@ void startRefresh() {
 
 void showAsleep() {
   display.clearScreen(0xFF);
-  drawText(display.getFrameBuffer(), "ASLEEP", SCREEN_WIDTH / 2, (SCREEN_HEIGHT - font::GLYPH_HEIGHT * ASLEEP_SCALE) / 2, ASLEEP_SCALE, true);
+  drawTextInBox(display.getFrameBuffer(), Font::Size64, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, "ASLEEP");
 
   // Async even though it waits: after an async refresh the panel's stored
   // previous frame is out of date, and only this path sends the correct one.

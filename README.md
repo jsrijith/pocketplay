@@ -1,7 +1,7 @@
 # BoardByte
 
 A games firmware for the Seeed reTerminal Sticky, built up one step at a time.
-Right now it shows the buttons and touch input on screen. A box turns black while its button is held, and counts its presses. Tapping the screen moves a cross to your finger and prints its position, and swipes show their direction.
+Right now it shows the buttons and touch input on screen, with sample text at each font size. A box turns black while its button is held, and counts its presses. Tapping the screen moves a cross to your finger and prints its position, and swipes show their direction.
 
 - **Hold OK for 1 second:** sleep. The screen shows `ASLEEP`.
 - **No button activity for 10 minutes:** sleep.
@@ -23,8 +23,10 @@ Right now it shows the buttons and touch input on screen. A box turns black whil
 |---|---|
 | `platformio.ini` | Chip, flash layout, compiler flags, libraries |
 | `partitions.csv` | How the 16MB flash is divided |
-| `src/main.cpp` | The firmware |
-| `src/font.h` | Bitmaps for the characters the firmware draws so far |
+| `src/main.cpp` | The firmware: input, the screen layout, sleep |
+| `src/graphics.h`, `graphics.cpp` | Pixels, rectangles and the portrait mapping |
+| `src/text.h`, `text.cpp` | Drawing, measuring, aligning and wrapping text |
+| `src/fonts/` | Jersey 25 at six sizes, copied from CrossPlay, with its licences |
 | `freeink-sdk/` | Screen and power libraries, as a git submodule |
 | `scripts/package.sh` | Builds and produces `dist/boardbyte-full.bin` |
 
@@ -104,7 +106,7 @@ To use your own CrossPlay build, flash `.pio/build/gh_release_sticky/firmware.fa
 - [x] Hello World
 - [x] Buttons on screen
 - [x] Touch input (GT911)
-- [ ] A real font engine
+- [x] A real font engine
 - [ ] Settings saved to storage
 - [ ] Wi-Fi connection
 - [ ] Games home page

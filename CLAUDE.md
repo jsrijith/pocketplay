@@ -28,11 +28,13 @@ Use `python`, because this machine has no `py` launcher. Always flash the merged
 
 ## Architecture
 
-`src/main.cpp` is an Arduino `setup()`/`loop()` program on top of four `freeink-sdk` libraries (BoardConfig, EInkDisplay, InputManager, PowerManager), which are symlinked through `lib_deps` in `platformio.ini`. `-DFREEINK_DEVICE_STICKY=1` makes the SDK's `BoardConfig::ACTIVE` resolve to the Sticky's pins and panel settings, so take pins from `ACTIVE` rather than hardcoding them. To use another SDK library (touch, input, sensors), add it to `lib_deps`. Its API is in `freeink-sdk/libs/*/*/include/`.
+`src/main.cpp` is an Arduino `setup()`/`loop()` program, with drawing in `src/graphics.cpp` and text in `src/text.cpp`. It runs on top of four `freeink-sdk` libraries (BoardConfig, EInkDisplay, InputManager, PowerManager), which are symlinked through `lib_deps` in `platformio.ini`. `-DFREEINK_DEVICE_STICKY=1` makes the SDK's `BoardConfig::ACTIVE` resolve to the Sticky's pins and panel settings, so take pins from `ACTIVE` rather than hardcoding them. To use another SDK library (touch, input, sensors), add it to `lib_deps`. Its API is in `freeink-sdk/libs/*/*/include/`.
 
 `freeink-sdk/` is a submodule pinned to the commit CrossPlay builds against. Don't edit it.
 
-**Drawing:** code writes into the framebuffer from `display.getFrameBuffer()`, then `displayBufferAsync()` sends it to the panel. The framebuffer is 48,000 bytes in native 800x480 landscape: 1 bit per pixel, MSB first, 1 = white. There is no graphics library; `src/font.h` holds only the characters the firmware draws so far.
+**Drawing:** code writes into the framebuffer from `display.getFrameBuffer()`, then `displayBufferAsync()` sends it to the panel. The framebuffer is 48,000 bytes in native 800x480 landscape: 1 bit per pixel, MSB first, 1 = white. There is no graphics library; `src/graphics.cpp` has the pixel and rectangle functions.
+
+**Text:** `src/text.cpp` draws Jersey 25 from the headers in `src/fonts/`, which are copied unchanged from CrossPlay. Read `src/fonts/README.md` before replacing one, because regenerating them with newer tools moves text on every screen. Keep fonts 1-bit: this panel draws pure black and white, and a pixel font has no grey edges to lose. Take line height and capital height from `text.h`, never as numbers copied from a font, and centre labels with `drawTextInBox()`, because centring on the line box makes capitals hang low. Text is ASCII, and any other byte draws as an outlined box. The font headers define `static` data, so include them only from `text.cpp`, or each file that includes them gets its own copy.
 
 **Orientation:** the firmware draws in portrait, 480 wide by 800 tall, held with the USB edge on the right. `setPixel()` is the only drawing code that knows the panel's native landscape layout, and `touchToScreenX()` and `touchToScreenY()` do the same for touch.
 
