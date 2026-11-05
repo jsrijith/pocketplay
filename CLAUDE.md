@@ -14,9 +14,13 @@ Run these from WSL. PlatformIO isn't on PATH.
 ```
 
 ```bash
-tests/wordle/run.sh    # Wordle's rules and save packing, on the PC
-tests/settings/run.sh  # settings packing, including files from older firmware
+scripts/check.sh          # every PC test; only "CHECK-VERDICT: green" is a pass
+tests/wordle/run.sh       # Wordle's rules and save packing
+tests/tictactoe/run.sh    # Tic Tac Toe's rules
+tests/settings/run.sh     # settings packing, including files from older firmware
 ```
+
+Every firmware build runs `scripts/check.sh` first and stops if it fails (`scripts/pre_build_gate.py`). To add a test, put `test_<name>.cpp` in `tests/<folder>/` and compile and run it from that folder's `run.sh`. The check fails if `run.sh` doesn't mention a test file.
 
 There are no linters. These tests cover code with no hardware in it, and a build only proves the rest compiles, so behaviour has to be confirmed on the device.
 
