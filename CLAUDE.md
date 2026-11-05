@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-BoardByte is a games-only firmware for the Seeed reTerminal Sticky (ESP32-S3), built up one milestone at a time so its owner can learn how ESP32 firmware works. Keep each step small, and explain the hardware reasoning. The milestone list is at the end of `README.md`.
+BoardByte is a games-only firmware for the Seeed reTerminal Sticky (ESP32-S3), built up one step at a time so its owner can learn how ESP32 firmware works. Keep each step small, and explain the hardware reasoning.
 
 ## Commands
 
