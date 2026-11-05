@@ -4,10 +4,10 @@
 
 #include <cstdio>
 
-#include "graphics.h"
+#include "core/graphics.h"
+#include "core/storage.h"
 #include "state.h"
-#include "storage.h"
-#include "ui.h"
+#include "ui/ui.h"
 #include "wifi_screen.h"
 
 namespace settingsScreen {

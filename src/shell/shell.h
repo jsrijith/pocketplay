@@ -4,7 +4,7 @@
 
 // Which screen is open, where taps go, and which game to reopen after waking. It
 // makes no hardware calls of its own: main.cpp reads the input and runs the panel.
-namespace app {
+namespace shell {
 
 enum class Redraw { None, Fast, Full };
 
@@ -25,4 +25,4 @@ uint32_t idleSleepMs();
 // Turns the radio off and retries any save that failed. Call before cutting power.
 void beforeSleep();
 
-}  // namespace app
+}  // namespace shell

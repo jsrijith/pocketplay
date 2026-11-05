@@ -1,0 +1,2 @@
+# One game per line. Keeping both sides lets two branches each add a game cleanly.
+src/games/game_list.inc merge=union

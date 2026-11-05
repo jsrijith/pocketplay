@@ -1,9 +1,9 @@
 #include "home_screen.h"
 
+#include "core/graphics.h"
+#include "core/text.h"
 #include "games/games.h"
-#include "graphics.h"
-#include "text.h"
-#include "ui.h"
+#include "ui/ui.h"
 
 namespace homeScreen {
 

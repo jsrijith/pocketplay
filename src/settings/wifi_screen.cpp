@@ -8,13 +8,13 @@
 #include <cstring>
 #include <ctime>
 
-#include "graphics.h"
-#include "keyboard.h"
-#include "network.h"
+#include "core/graphics.h"
+#include "core/network.h"
+#include "core/storage.h"
+#include "core/text.h"
 #include "state.h"
-#include "storage.h"
-#include "text.h"
-#include "ui.h"
+#include "ui/keyboard.h"
+#include "ui/ui.h"
 
 namespace wifiScreen {
 

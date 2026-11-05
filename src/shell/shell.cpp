@@ -1,16 +1,16 @@
-#include "app.h"
+#include "shell.h"
 
 #include <cstring>
 
+#include "core/network.h"
+#include "core/storage.h"
 #include "games/games.h"
 #include "home_screen.h"
-#include "network.h"
-#include "settings_screen.h"
-#include "storage.h"
-#include "ui.h"
-#include "wifi_screen.h"
+#include "settings/settings_screen.h"
+#include "settings/wifi_screen.h"
+#include "ui/ui.h"
 
-namespace app {
+namespace shell {
 
 namespace {
 
@@ -186,4 +186,4 @@ void beforeSleep() {
   if (currentGame != nullptr && currentGame->saveFailed()) currentGame->retrySave();
 }
 
-}  // namespace app
+}  // namespace shell

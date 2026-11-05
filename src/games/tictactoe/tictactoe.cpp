@@ -2,12 +2,12 @@
 
 #include <Arduino.h>
 
-#include "../graphics.h"
-#include "../storage.h"
-#include "../text.h"
-#include "../ui.h"
+#include "core/graphics.h"
+#include "core/storage.h"
+#include "core/text.h"
 #include "tictactoe_rules.h"
 #include "tictactoe_save.h"
+#include "ui/ui.h"
 
 namespace ttt = tictactoe;
 

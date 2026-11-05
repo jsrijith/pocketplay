@@ -3,7 +3,7 @@
 A games firmware for the Seeed reTerminal Sticky, built up one step at a time.
 It opens on a home page listing the games, with Settings at the bottom. Everything is tapped on the touch screen.
 
-- **Tic Tac Toe:** two players on one device. Every move is saved to the SD card, so sleep, a crash or a flat battery returns you to the same board. `BACK` keeps the game for later, and finishing it or tapping `NEW GAME` clears the save.
+- **Games:** each one describes itself in its own folder under `src/games/`.
 - **Settings:** the Wi-Fi row joins the most recent network, or scans for one if none is remembered. Once connected, the status screen shows the IP address, signal strength and UTC time. The sleep row chooses 1, 5 or 10 minutes.
 - **Hold OK for 1 second, or leave it idle for the sleep time:** sleep. The screen shows `ASLEEP`.
 - **Press OK while asleep:** the chip restarts. A game that was open comes back, and anything else returns to the home page.
@@ -27,39 +27,22 @@ Upgrading from an earlier version leaves an unused `/.boardbyte/game.sav` on the
 | Touch | GT911 over I2C: SDA GPIO3, SCL GPIO2, INT GPIO21, RST GPIO41, power enable GPIO42 |
 | SD card | SPI, shared with the screen: SCK GPIO13, MISO GPIO12, MOSI GPIO14, CS GPIO8, power enable GPIO10 |
 
-## Files
+## Folders
 
-| File | Purpose |
+| Path | Purpose |
 |---|---|
-| `platformio.ini` | Chip, flash layout, compiler flags, libraries |
-| `partitions.csv` | How the 16MB flash is divided |
 | `src/main.cpp` | Boot, input, refreshing the panel, sleep |
-| `src/app.h`, `app.cpp` | Which screen is open, where taps go, and which game to reopen |
-| `src/home_screen.h`, `home_screen.cpp` | The home page |
-| `src/settings_screen.h`, `settings_screen.cpp` | The Settings page and the saved settings |
-| `src/ui.h`, `ui.cpp` | The buttons and header every screen shares |
-| `src/games/` | The games: `game.h` says what each provides, and `games.cpp` lists them |
-| `src/graphics.h`, `graphics.cpp` | Pixels, rectangles and the portrait mapping |
-| `src/text.h`, `text.cpp` | Drawing, measuring, aligning and wrapping text |
-| `src/fonts/` | Jersey 25 at six sizes, copied from CrossPlay, with its licences |
-| `src/storage.h`, `storage.cpp` | Save files on the SD card |
-| `src/state.h`, `state.cpp` | The settings and remembered networks, and how they turn into bytes |
-| `src/network.h`, `network.cpp` | The Wi-Fi radio: scanning, joining and the internet time check |
-| `src/wifi_screen.h`, `wifi_screen.cpp` | The Wi-Fi list and status screens, and remembering networks |
-| `src/keyboard.h`, `keyboard.cpp` | The on-screen password keyboard |
+| `src/shell/` | Which screen is open, where taps go, which game to reopen, and the home page |
+| `src/games/` | One folder per game, plus what they all share. [How to add a game](src/games/README.md) |
+| `src/apps/` | One folder per app, when there are some. [The plan](src/apps/README.md) |
+| `src/settings/` | The Settings and Wi-Fi screens, and how their values turn into bytes |
+| `src/ui/` | The buttons, header and keyboard that screens share |
+| `src/core/` | Pixels and the portrait mapping, text and fonts, save files, and the Wi-Fi radio |
 | `freeink-sdk/` | Screen and power libraries, as a git submodule |
 | `scripts/package.sh` | Builds and produces `dist/boardbyte-full.bin` |
+| `platformio.ini`, `partitions.csv` | Build settings and how the 16MB flash is divided |
 
 After cloning, run `git submodule update --init freeink-sdk`.
-
-`src/games/tictactoe_rules.h` is copied unchanged from CrossPlay under its MIT licence, which is in `src/games/LICENSE-CrossPlay.txt`.
-
-## Adding a game
-
-1. Write a class in `src/games/` that implements `Game` from `game.h`. `tictactoe.cpp` is the example.
-2. Add it to the table in `src/games/games.cpp`, and raise `GAME_COUNT`.
-
-The game then appears on the home page and reopens after waking.
 
 ## How it boots
 

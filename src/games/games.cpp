@@ -2,7 +2,9 @@
 
 #include <cstring>
 
-#include "tictactoe.h"
+#define GAME(function) Game& function();
+#include "game_list.inc"
+#undef GAME
 
 namespace games {
 
@@ -10,12 +12,18 @@ namespace {
 
 Game& table(int index) {
   static Game* const GAMES[] = {
-      &ticTacToe(),
+#define GAME(function) &function(),
+#include "game_list.inc"
+#undef GAME
   };
   return *GAMES[index];
 }
 
-constexpr int GAME_COUNT = 1;
+constexpr int GAME_COUNT = 0
+#define GAME(function) +1
+#include "game_list.inc"
+#undef GAME
+    ;
 
 }  // namespace
 

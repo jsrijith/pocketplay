@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
-// What every game provides. To add one, write a class like this and add it to the
-// table in games.cpp. Follow the save rules in CLAUDE.md.
+// What every game provides. To add one, follow src/games/README.md, and follow the
+// save rules in CLAUDE.md.
 class Game {
  public:
   enum class TapResult {

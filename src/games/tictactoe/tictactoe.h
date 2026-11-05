@@ -1,5 +1,5 @@
 #pragma once
 
-#include "game.h"
+#include "games/game.h"
 
 Game& ticTacToe();

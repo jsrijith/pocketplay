@@ -1,5 +1,5 @@
 // BoardByte: a games firmware for the Seeed reTerminal Sticky. This file runs the
-// hardware: boot, input, the panel and sleep. app.cpp decides what's on screen.
+// hardware: boot, input, the panel and sleep. shell/shell.cpp decides what's on screen.
 //
 // Boot order matters on this board: power latches, then the SD rail, then input,
 // the card and the panel. Waking from deep sleep is a full chip reset, so every wake
@@ -13,10 +13,10 @@
 #include <driver/gpio.h>
 #include <esp_sleep.h>
 
-#include "app.h"
-#include "graphics.h"
-#include "storage.h"
-#include "text.h"
+#include "core/graphics.h"
+#include "core/storage.h"
+#include "core/text.h"
+#include "shell/shell.h"
 
 namespace {
 
@@ -40,11 +40,11 @@ uint32_t lastActivityMs = 0;
 
 // What the next refresh must be. Changes made during a refresh are combined into the
 // next frame, and a full refresh asked for meanwhile isn't downgraded.
-app::Redraw pendingRedraw = app::Redraw::None;
+shell::Redraw pendingRedraw = shell::Redraw::None;
 
-void requestRedraw(app::Redraw redraw) {
-  if (redraw == app::Redraw::Full || pendingRedraw == app::Redraw::None) {
-    if (redraw != app::Redraw::None) pendingRedraw = redraw;
+void requestRedraw(shell::Redraw redraw) {
+  if (redraw == shell::Redraw::Full || pendingRedraw == shell::Redraw::None) {
+    if (redraw != shell::Redraw::None) pendingRedraw = redraw;
   }
 }
 
@@ -52,7 +52,7 @@ void drawScreen() {
   const uint32_t startUs = micros();
 
   display.clearScreen(0xFF);
-  app::draw(display.getFrameBuffer());
+  shell::draw(display.getFrameBuffer());
 
   Serial.printf("Screen drawn in %lu us\n", static_cast<unsigned long>(micros() - startUs));
 }
@@ -62,17 +62,17 @@ int touchToScreenX(float panelY) { return static_cast<int>((1.0f - panelY) * (SC
 int touchToScreenY(float panelX) { return static_cast<int>(panelX * (SCREEN_HEIGHT - 1)); }
 
 void handleInput() {
-  if (input.wasPressed(InputManager::BTN_UP)) requestRedraw(app::onUpPressed());
-  if (input.wasPressed(InputManager::BTN_DOWN)) requestRedraw(app::onDownPressed());
+  if (input.wasPressed(InputManager::BTN_UP)) requestRedraw(shell::onUpPressed());
+  if (input.wasPressed(InputManager::BTN_DOWN)) requestRedraw(shell::onDownPressed());
 
   float x, y;
-  if (input.wasTouchTap(x, y)) requestRedraw(app::onTap(touchToScreenX(y), touchToScreenY(x)));
+  if (input.wasTouchTap(x, y)) requestRedraw(shell::onTap(touchToScreenX(y), touchToScreenY(x)));
 }
 
 // Returns as soon as the frame is sent, so input keeps being read while the
 // panel updates itself. The framebuffer is free to redraw straight away.
-void startRefresh(app::Redraw redraw) {
-  if (redraw == app::Redraw::Full || ++fastRefreshes >= FAST_REFRESHES_PER_FULL) {
+void startRefresh(shell::Redraw redraw) {
+  if (redraw == shell::Redraw::Full || ++fastRefreshes >= FAST_REFRESHES_PER_FULL) {
     fastRefreshes = 0;
     display.displayBufferAsync(EInkDisplay::FULL_REFRESH);
   } else {
@@ -91,7 +91,7 @@ void showAsleep() {
 }
 
 [[noreturn]] void goToSleep() {
-  app::beforeSleep();
+  shell::beforeSleep();
 
   Serial.println("Going to sleep. Press OK to wake.");
   Serial.flush();
@@ -136,7 +136,7 @@ void setup() {
   input.update();
 
   storage::begin();
-  app::begin(input.hasTouch());
+  shell::begin(input.hasTouch());
 
   display.begin();
   if (!display.framebufferReady()) {
@@ -163,13 +163,13 @@ void loop() {
   input.update();
   const uint32_t now = millis();
 
-  requestRedraw(app::update());
+  requestRedraw(shell::update());
   handleInput();
   if (input.wasAnyPressed() || input.wasAnyReleased() || input.wasTouchActivity()) lastActivityMs = now;
 
-  if (pendingRedraw != app::Redraw::None && !display.refreshBusy()) {
-    const app::Redraw redraw = pendingRedraw;
-    pendingRedraw = app::Redraw::None;
+  if (pendingRedraw != shell::Redraw::None && !display.refreshBusy()) {
+    const shell::Redraw redraw = pendingRedraw;
+    pendingRedraw = shell::Redraw::None;
     drawScreen();
     startRefresh(redraw);
   }
@@ -179,7 +179,7 @@ void loop() {
   if (!okDown) releasedSinceBoot = true;
 
   if (releasedSinceBoot && okDown && input.getPowerButtonHeldTime() >= SLEEP_HOLD_MS) goToSleep();
-  if (now - lastActivityMs >= app::idleSleepMs()) goToSleep();
+  if (now - lastActivityMs >= shell::idleSleepMs()) goToSleep();
 
   delay(POLL_MS);
 }

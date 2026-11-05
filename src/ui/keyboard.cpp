@@ -3,8 +3,8 @@
 #include <cstdio>
 #include <cstring>
 
-#include "graphics.h"
-#include "text.h"
+#include "core/graphics.h"
+#include "core/text.h"
 
 namespace keyboard {
 
