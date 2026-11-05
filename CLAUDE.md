@@ -32,7 +32,11 @@ Use `python`, because this machine has no `py` launcher. Always flash the merged
 
 `freeink-sdk/` is a submodule pinned to the commit CrossPlay builds against. Don't edit it.
 
-**Drawing:** code writes into the framebuffer from `display.getFrameBuffer()`, then `displayBuffer()` sends it to the panel. The framebuffer is 48,000 bytes in native 800x480 landscape: 1 bit per pixel, MSB first, 1 = white. There is no graphics library; `src/font.h` holds only the letters in "HELLO WORLD".
+**Drawing:** code writes into the framebuffer from `display.getFrameBuffer()`, then `displayBufferAsync()` sends it to the panel. The framebuffer is 48,000 bytes in native 800x480 landscape: 1 bit per pixel, MSB first, 1 = white. There is no graphics library; `src/font.h` holds only the characters the firmware draws so far.
+
+**Refreshing:** `displayBufferAsync()` returns once the frame is sent, so `loop()` keeps reading buttons while the panel updates. It allocates one 48 KB shadow frame on first use and keeps it. Once async refreshes have started, don't call a blocking `displayBuffer(FAST_REFRESH)`: in single-buffer mode it compares against the panel's stored previous frame, which async refreshes leave out of date. To wait for a frame, call `displayBufferAsync()` and then `waitRefreshComplete()`.
+
+**Buttons:** `updateButtons()` in `src/main.cpp` is the only code that reads the pins. Drawing and sleep use the `Button` state, which keeps a later switch to the SDK's `InputManager` small.
 
 ## Hardware rules
 

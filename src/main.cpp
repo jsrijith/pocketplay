@@ -1,8 +1,8 @@
-// BoardByte v0: draw "HELLO WORLD" on the Seeed reTerminal Sticky.
+// BoardByte: shows the Sticky's three buttons on screen, with a press count for each.
 //
 // Boot order matters on this board: power latches, then the SD rail, then the
 // panel. Waking from deep sleep is a full chip reset, so every wake runs setup()
-// again from the top.
+// again from the top, and the press counts start over.
 
 #include <Arduino.h>
 #include <BoardConfig.h>
@@ -11,62 +11,203 @@
 #include <driver/gpio.h>
 #include <esp_sleep.h>
 
+#include <cstdio>
+#include <cstring>
+
 #include "font.h"
 
 namespace {
 
-constexpr char MESSAGE[] = "HELLO WORLD";
-constexpr int TEXT_SCALE = 10;  // each font pixel becomes a 10x10 block
-
-constexpr uint32_t SLEEP_HOLD_MS = 400;
+constexpr uint32_t POLL_MS = 5;
+constexpr uint32_t DEBOUNCE_MS = 20;
+constexpr uint32_t SLEEP_HOLD_MS = 1000;
 constexpr uint32_t IDLE_SLEEP_MS = 10UL * 60UL * 1000UL;
+
+// Fast refreshes slowly leave ghosts behind; a full refresh clears them.
+constexpr int FAST_REFRESHES_PER_FULL = 30;
+
+constexpr uint16_t COUNT_LIMIT = 10000;  // wraps to 0, so a count never exceeds 4 digits
+
+constexpr int SCREEN_WIDTH = EInkDisplay::DISPLAY_WIDTH;
+constexpr int SCREEN_HEIGHT = EInkDisplay::DISPLAY_HEIGHT;
+
+constexpr int BOX_GAP = 16;
+constexpr int BOX_MARGIN = 24;
+constexpr int BOX_WIDTH = (SCREEN_WIDTH - 2 * BOX_MARGIN - 2 * BOX_GAP) / 3;
+constexpr int BOX_HEIGHT = 320;
+constexpr int BOX_TOP = (SCREEN_HEIGHT - BOX_HEIGHT) / 2;
+constexpr int BOX_BORDER = 4;
+constexpr int LABEL_SCALE = 6;
+constexpr int LABEL_OFFSET_Y = 70;
+constexpr int COUNT_SCALE = 8;
+constexpr int COUNT_OFFSET_Y = 190;
+constexpr int ASLEEP_SCALE = 10;
+
+struct Button {
+  const char* label;
+  int8_t pin;
+  bool rawDown;           // the latest reading, which may still be bouncing
+  bool down;              // the debounced state
+  uint32_t rawChangedMs;  // when the raw reading last changed
+  uint32_t pressStartMs;  // when the debounced state last went down
+  uint16_t count;
+};
+
+// In on-screen order, left to right. Pins are filled in by beginButtons().
+Button buttons[] = {
+    {"UP", BoardConfig::PIN_UNASSIGNED, false, false, 0, 0, 0},
+    {"OK", BoardConfig::PIN_UNASSIGNED, false, false, 0, 0, 0},
+    {"DOWN", BoardConfig::PIN_UNASSIGNED, false, false, 0, 0, 0},
+};
+Button& okButton = buttons[1];
 
 // The SDK's begin() takes its wiring from BoardConfig; these arguments are unused.
 EInkDisplay display(BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED);
 
-int8_t okButton = BoardConfig::PIN_UNASSIGNED;
-uint32_t lastActivityMs = 0;
-uint32_t pressStartMs = 0;
-bool pressed = false;
+bool ready = false;
+bool screenDirty = false;
 bool releasedSinceBoot = false;
+int fastRefreshes = 0;
+uint32_t lastActivityMs = 0;
 
 // Framebuffer format: 1 bit per pixel, most significant bit first, 1 = white.
-void setBlackPixel(uint8_t* frame, int x, int y) {
-  frame[y * EInkDisplay::DISPLAY_WIDTH_BYTES + x / 8] &= static_cast<uint8_t>(~(0x80 >> (x % 8)));
+void setPixel(uint8_t* frame, int x, int y, bool black) {
+  uint8_t& byte = frame[y * EInkDisplay::DISPLAY_WIDTH_BYTES + x / 8];
+  const auto mask = static_cast<uint8_t>(0x80 >> (x % 8));
+  if (black) {
+    byte &= static_cast<uint8_t>(~mask);
+  } else {
+    byte |= mask;
+  }
 }
 
-void drawGlyph(uint8_t* frame, const font::Glyph& glyph, int left, int top) {
+void fillRect(uint8_t* frame, int left, int top, int width, int height, bool black) {
+  for (int y = top; y < top + height; y++) {
+    for (int x = left; x < left + width; x++) {
+      setPixel(frame, x, y, black);
+    }
+  }
+}
+
+void drawRectOutline(uint8_t* frame, int left, int top, int width, int height, int thickness) {
+  fillRect(frame, left, top, width, thickness, true);
+  fillRect(frame, left, top + height - thickness, width, thickness, true);
+  fillRect(frame, left, top, thickness, height, true);
+  fillRect(frame, left + width - thickness, top, thickness, height, true);
+}
+
+void drawGlyph(uint8_t* frame, const font::Glyph& glyph, int left, int top, int scale, bool black) {
   for (int row = 0; row < font::GLYPH_HEIGHT; row++) {
     for (int col = 0; col < font::GLYPH_WIDTH; col++) {
       if (!(glyph.rows[row] & (1 << (font::GLYPH_WIDTH - 1 - col)))) continue;
-      for (int dy = 0; dy < TEXT_SCALE; dy++) {
-        for (int dx = 0; dx < TEXT_SCALE; dx++) {
-          setBlackPixel(frame, left + col * TEXT_SCALE + dx, top + row * TEXT_SCALE + dy);
-        }
-      }
+      fillRect(frame, left + col * scale, top + row * scale, scale, scale, black);
     }
   }
 }
 
-void drawMessage(uint8_t* frame) {
-  constexpr int CHARACTERS = sizeof(MESSAGE) - 1;
-  constexpr int ADVANCE = (font::GLYPH_WIDTH + 1) * TEXT_SCALE;
-  constexpr int TEXT_WIDTH = CHARACTERS * ADVANCE - TEXT_SCALE;  // no gap after the last letter
-  constexpr int TEXT_HEIGHT = font::GLYPH_HEIGHT * TEXT_SCALE;
+// Draws text with its horizontal centre at centerX.
+void drawText(uint8_t* frame, const char* text, int centerX, int top, int scale, bool black) {
+  const int advance = (font::GLYPH_WIDTH + 1) * scale;
+  const int characters = static_cast<int>(strlen(text));
+  const int width = characters * advance - scale;  // no gap after the last character
+  const int left = centerX - width / 2;
 
-  const int left = (EInkDisplay::DISPLAY_WIDTH - TEXT_WIDTH) / 2;
-  const int top = (EInkDisplay::DISPLAY_HEIGHT - TEXT_HEIGHT) / 2;
-
-  for (int i = 0; i < CHARACTERS; i++) {
-    if (const font::Glyph* glyph = font::find(MESSAGE[i])) {
-      drawGlyph(frame, *glyph, left + i * ADVANCE, top);
+  for (int i = 0; i < characters; i++) {
+    if (const font::Glyph* glyph = font::find(text[i])) {
+      drawGlyph(frame, *glyph, left + i * advance, top, scale, black);
     }
   }
+}
+
+void drawButtonBox(uint8_t* frame, const Button& button, int left) {
+  if (button.down) {
+    fillRect(frame, left, BOX_TOP, BOX_WIDTH, BOX_HEIGHT, true);
+  } else {
+    drawRectOutline(frame, left, BOX_TOP, BOX_WIDTH, BOX_HEIGHT, BOX_BORDER);
+  }
+
+  const int centerX = left + BOX_WIDTH / 2;
+  const bool textBlack = !button.down;  // white text on a held button's black box
+  drawText(frame, button.label, centerX, BOX_TOP + LABEL_OFFSET_Y, LABEL_SCALE, textBlack);
+
+  char count[6];
+  snprintf(count, sizeof(count), "%u", button.count);
+  drawText(frame, count, centerX, BOX_TOP + COUNT_OFFSET_Y, COUNT_SCALE, textBlack);
+}
+
+void drawScreen() {
+  display.clearScreen(0xFF);
+  uint8_t* frame = display.getFrameBuffer();
+  int left = BOX_MARGIN;
+  for (const Button& button : buttons) {
+    drawButtonBox(frame, button, left);
+    left += BOX_WIDTH + BOX_GAP;
+  }
+}
+
+void beginButtons() {
+  const auto& input = BoardConfig::ACTIVE.input;
+  buttons[0].pin = input.up;
+  buttons[1].pin = input.power;  // OK and power share one pin on the Sticky
+  buttons[2].pin = input.down;
+
+  // Start from the real pin state, so the press that woke the device isn't counted.
+  for (Button& button : buttons) {
+    pinMode(button.pin, INPUT_PULLUP);
+    button.rawDown = digitalRead(button.pin) == LOW;
+    button.down = button.rawDown;
+  }
+}
+
+// Returns true if any button's debounced state changed.
+bool updateButtons(uint32_t now) {
+  bool changed = false;
+  for (Button& button : buttons) {
+    const bool raw = digitalRead(button.pin) == LOW;
+    if (raw != button.rawDown) {
+      button.rawDown = raw;
+      button.rawChangedMs = now;
+    }
+    if (raw == button.down || now - button.rawChangedMs < DEBOUNCE_MS) continue;
+
+    button.down = raw;
+    changed = true;
+    if (raw) {
+      button.pressStartMs = now;
+      button.count = (button.count + 1) % COUNT_LIMIT;
+      Serial.printf("%s pressed, count %u\n", button.label, button.count);
+    }
+  }
+  return changed;
+}
+
+// Returns as soon as the frame is sent, so buttons keep being read while the
+// panel updates itself. The framebuffer is free to redraw straight away.
+void startRefresh() {
+  if (++fastRefreshes >= FAST_REFRESHES_PER_FULL) {
+    fastRefreshes = 0;
+    display.displayBufferAsync(EInkDisplay::FULL_REFRESH);
+  } else {
+    display.displayBufferAsync(EInkDisplay::FAST_REFRESH);
+  }
+}
+
+void showAsleep() {
+  display.clearScreen(0xFF);
+  drawText(display.getFrameBuffer(), "ASLEEP", SCREEN_WIDTH / 2, (SCREEN_HEIGHT - font::GLYPH_HEIGHT * ASLEEP_SCALE) / 2, ASLEEP_SCALE, true);
+
+  // Async even though it waits: after an async refresh the panel's stored
+  // previous frame is out of date, and only this path sends the correct one.
+  display.displayBufferAsync(EInkDisplay::FAST_REFRESH);
+  display.waitRefreshComplete();
 }
 
 [[noreturn]] void goToSleep() {
   Serial.println("Going to sleep. Press OK to wake.");
   Serial.flush();
+
+  // E-ink keeps its last image, so don't leave the OK box black during sleep.
+  showAsleep();
 
   // Panel first, while its power rail is still on.
   display.deepSleep();
@@ -98,45 +239,49 @@ void setup() {
   // reflashing, so this also clears that.
   BoardConfig::releaseSdRail();
 
+  beginButtons();
+
   display.begin();
   if (!display.framebufferReady()) {
     Serial.println("ERROR: no memory for the framebuffer");
     return;
   }
 
-  display.clearScreen(0xFF);
-  drawMessage(display.getFrameBuffer());
-  display.displayBuffer(EInkDisplay::FULL_REFRESH);
-  Serial.println("Hello World is on the screen.");
+  // The first paint after a boot must be a full refresh to clear the old image.
+  drawScreen();
+  display.displayBufferAsync(EInkDisplay::FULL_REFRESH);
+  Serial.println("Button test is on the screen.");
 
-  okButton = BoardConfig::ACTIVE.input.power;
-  pinMode(okButton, INPUT_PULLUP);
   lastActivityMs = millis();
+  ready = true;
 }
 
 void loop() {
-  if (okButton == BoardConfig::PIN_UNASSIGNED) {
+  if (!ready) {
     // Setup failed. Stay awake so the error can still be read over serial.
     delay(1000);
     return;
   }
 
-  const bool isDown = digitalRead(okButton) == LOW;
   const uint32_t now = millis();
 
-  if (isDown && !pressed) {
-    pressStartMs = now;
-    lastActivityMs = now;
-  } else if (!isDown && pressed) {
+  if (updateButtons(now)) {
+    screenDirty = true;
     lastActivityMs = now;
   }
-  pressed = isDown;
+
+  // Changes made during a refresh are combined into the next frame.
+  if (screenDirty && !display.refreshBusy()) {
+    screenDirty = false;
+    drawScreen();
+    startRefresh();
+  }
 
   // The press that woke the device must end before a hold can mean "sleep".
-  if (!isDown) releasedSinceBoot = true;
+  if (!okButton.down) releasedSinceBoot = true;
 
-  if (releasedSinceBoot && isDown && now - pressStartMs >= SLEEP_HOLD_MS) goToSleep();
+  if (releasedSinceBoot && okButton.down && now - okButton.pressStartMs >= SLEEP_HOLD_MS) goToSleep();
   if (now - lastActivityMs >= IDLE_SLEEP_MS) goToSleep();
 
-  delay(10);
+  delay(POLL_MS);
 }

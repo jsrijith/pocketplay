@@ -1,11 +1,11 @@
 # BoardByte
 
 A games firmware for the Seeed reTerminal Sticky, built up one step at a time.
-Right now it draws "HELLO WORLD" and sleeps when you ask it to.
+Right now it shows the three buttons on screen. A box turns black while its button is held, and counts its presses.
 
-- **Hold OK for about half a second:** sleep. The image stays on the screen.
+- **Hold OK for 1 second:** sleep. The screen shows `ASLEEP`.
 - **No button activity for 10 minutes:** sleep.
-- **Press OK while asleep:** the chip restarts and redraws the screen.
+- **Press OK while asleep:** the chip restarts and redraws the screen, with the counts back at 0.
 
 ## The hardware
 
@@ -23,7 +23,7 @@ Right now it draws "HELLO WORLD" and sleeps when you ask it to.
 | `platformio.ini` | Chip, flash layout, compiler flags, libraries |
 | `partitions.csv` | How the 16MB flash is divided |
 | `src/main.cpp` | The firmware |
-| `src/font.h` | Bitmaps for the letters in HELLO WORLD |
+| `src/font.h` | Bitmaps for the characters the firmware draws so far |
 | `freeink-sdk/` | Screen and power libraries, as a git submodule |
 | `scripts/package.sh` | Builds and produces `dist/boardbyte-full.bin` |
 
@@ -101,7 +101,7 @@ To use your own CrossPlay build, flash `.pio/build/gh_release_sticky/firmware.fa
 ## Milestones
 
 - [x] Hello World
-- [ ] Buttons on screen
+- [x] Buttons on screen
 - [ ] Touch input (GT911)
 - [ ] A real font engine
 - [ ] Settings saved to storage
