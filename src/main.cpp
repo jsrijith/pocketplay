@@ -1,8 +1,9 @@
-// BoardByte: shows the Sticky's buttons and touch input on screen.
+// BoardByte: shows the Sticky's buttons and touch input on screen, and keeps them
+// on the SD card as a stand-in for a game in progress.
 //
-// Boot order matters on this board: power latches, then the SD rail, then input
-// and the panel. Waking from deep sleep is a full chip reset, so every wake runs
-// setup() again from the top, and all the counts start over.
+// Boot order matters on this board: power latches, then the SD rail, then input,
+// the card and the panel. Waking from deep sleep is a full chip reset, so every wake
+// runs setup() again from the top, and anything worth keeping is read back from the card.
 
 #include <Arduino.h>
 #include <BoardConfig.h>
@@ -16,6 +17,8 @@
 #include <cstdlib>
 
 #include "graphics.h"
+#include "state.h"
+#include "storage.h"
 #include "text.h"
 
 namespace {
@@ -24,12 +27,13 @@ namespace {
 // than a button bounces means one press can only produce one edge.
 constexpr uint32_t POLL_MS = 15;
 constexpr uint32_t SLEEP_HOLD_MS = 1000;
-constexpr uint32_t IDLE_SLEEP_MS = 10UL * 60UL * 1000UL;
+constexpr uint32_t CLEAR_HOLD_MS = 2000;
 
 // Fast refreshes slowly leave ghosts behind; a full refresh clears them.
 constexpr int FAST_REFRESHES_PER_FULL = 30;
 
-constexpr uint16_t COUNT_LIMIT = 10000;  // wraps to 0, so a count never exceeds 4 digits
+constexpr const char* SETTINGS_FILE = "settings";
+constexpr const char* GAME_FILE = "game";
 
 constexpr int BOX_GAP = 12;
 constexpr int BOX_MARGIN = 12;
@@ -42,7 +46,10 @@ constexpr int BOX_LABEL_HEIGHT = 56;
 constexpr int SAMPLES_TOP = BOX_TOP + BOX_HEIGHT + 8;
 constexpr int SAMPLES_MARGIN = 12;
 
-constexpr int STATUS_TOP = SCREEN_HEIGHT - 150;
+constexpr int CARD_MESSAGE_TOP = SCREEN_HEIGHT - 212;
+constexpr int STATUS_TOP = SCREEN_HEIGHT - 176;
+constexpr int SLEEP_LINE = 3;
+constexpr int SLEEP_TAP_WIDTH = 260;  // narrow, so the bottom corners still move the cross
 
 constexpr int CROSS_ARM = 24;
 constexpr int CROSS_THICKNESS = 4;
@@ -66,15 +73,15 @@ constexpr Sample SAMPLES[] = {
 struct Button {
   const char* label;
   uint8_t index;  // InputManager's BTN_* value
-  uint16_t count;
 };
 
-// In on-screen order, left to right. OK is read as BTN_POWER: setup() turns on the
-// setting that makes it follow the button straight away, so it can count on press.
-Button buttons[] = {
-    {"UP", InputManager::BTN_UP, 0},
-    {"OK", InputManager::BTN_POWER, 0},
-    {"DOWN", InputManager::BTN_DOWN, 0},
+// In on-screen order, left to right, matching GameState::buttonCounts. OK is read as
+// BTN_POWER: setup() turns on the setting that makes it follow the button straight
+// away, so it can count on press.
+constexpr Button BUTTONS[BUTTON_COUNT] = {
+    {"UP", InputManager::BTN_UP},
+    {"OK", InputManager::BTN_POWER},
+    {"DOWN", InputManager::BTN_DOWN},
 };
 
 InputManager input;
@@ -82,20 +89,40 @@ InputManager input;
 // The SDK's begin() takes its wiring from BoardConfig; these arguments are unused.
 EInkDisplay display(BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED);
 
+Settings settings;
+GameState game;
+
+bool settingsChanged = false;
+bool gameChanged = false;
+bool settingsSaveFailed = false;
+bool gameSaveFailed = false;
+
 bool ready = false;
 bool screenDirty = false;
 bool releasedSinceBoot = false;
 int fastRefreshes = 0;
 uint32_t lastActivityMs = 0;
+uint32_t upPressedMs = 0;
+bool upHoldUsed = true;  // only a press seen after boot can clear the save
 
-bool hasTapped = false;
-int tapX = 0;
-int tapY = 0;
-uint16_t tapCount = 0;
-uint16_t swipeCount = 0;
-const char* swipeDirection = "";
+const char* swipeName(Swipe swipe) {
+  switch (swipe) {
+    case Swipe::Left:
+      return "LEFT";
+    case Swipe::Right:
+      return "RIGHT";
+    case Swipe::Up:
+      return "UP";
+    case Swipe::Down:
+      return "DOWN";
+    case Swipe::None:
+      break;
+  }
+  return "";
+}
 
-void drawButtonBox(uint8_t* frame, const Button& button, int left) {
+void drawButtonBox(uint8_t* frame, int index, int left) {
+  const Button& button = BUTTONS[index];
   const bool held = input.isPressed(button.index);
   if (held) {
     fillRect(frame, left, BOX_TOP, BOX_WIDTH, BOX_HEIGHT, true);
@@ -107,7 +134,7 @@ void drawButtonBox(uint8_t* frame, const Button& button, int left) {
   drawTextInBox(frame, Font::Size20, left, BOX_TOP, BOX_WIDTH, BOX_LABEL_HEIGHT, button.label, textBlack);
 
   char count[6];
-  snprintf(count, sizeof(count), "%u", button.count);
+  snprintf(count, sizeof(count), "%u", game.buttonCounts[index]);
   drawTextInBox(frame, Font::Size30, left, BOX_TOP + BOX_LABEL_HEIGHT, BOX_WIDTH, BOX_HEIGHT - BOX_LABEL_HEIGHT, count, textBlack);
 }
 
@@ -135,20 +162,38 @@ void drawTouchStatus(uint8_t* frame) {
   }
 
   char text[32];
-  if (hasTapped) {
-    snprintf(text, sizeof(text), "X %d Y %d", tapX, tapY);
+  if (game.hasTapped) {
+    snprintf(text, sizeof(text), "X %d Y %d", game.tapX, game.tapY);
     drawStatusLine(frame, 0, text);
   }
 
-  snprintf(text, sizeof(text), "TAPS %u", tapCount);
+  snprintf(text, sizeof(text), "TAPS %u", game.tapCount);
   drawStatusLine(frame, 1, text);
 
-  if (swipeCount > 0) {
-    snprintf(text, sizeof(text), "SWIPE %s %u", swipeDirection, swipeCount);
+  if (game.swipe != Swipe::None) {
+    snprintf(text, sizeof(text), "SWIPE %s %u", swipeName(game.swipe), game.swipeCount);
   } else {
-    snprintf(text, sizeof(text), "SWIPE %u", swipeCount);
+    snprintf(text, sizeof(text), "SWIPE %u", game.swipeCount);
   }
   drawStatusLine(frame, 2, text);
+}
+
+void drawSleepLine(uint8_t* frame) {
+  char text[16];
+  snprintf(text, sizeof(text), "SLEEP %u MIN", settings.idleSleepMinutes);
+  drawStatusLine(frame, SLEEP_LINE, text);
+}
+
+void drawCardMessage(uint8_t* frame) {
+  const char* message = nullptr;
+  if (!storage::ready()) {
+    message = "NO CARD";
+  } else if (settingsSaveFailed || gameSaveFailed) {
+    message = "SAVE FAILED";
+  }
+  if (message != nullptr) {
+    drawTextInBox(frame, Font::Size14, 0, CARD_MESSAGE_TOP, SCREEN_WIDTH, lineHeight(Font::Size14), message);
+  }
 }
 
 void drawScreen() {
@@ -158,31 +203,102 @@ void drawScreen() {
   uint8_t* frame = display.getFrameBuffer();
 
   int left = BOX_MARGIN;
-  for (const Button& button : buttons) {
-    drawButtonBox(frame, button, left);
+  for (int i = 0; i < BUTTON_COUNT; i++) {
+    drawButtonBox(frame, i, left);
     left += BOX_WIDTH + BOX_GAP;
   }
 
   drawSamples(frame);
+  drawCardMessage(frame);
   drawTouchStatus(frame);
-  if (hasTapped) drawCross(frame, tapX, tapY);
+  drawSleepLine(frame);
+  if (game.hasTapped) drawCross(frame, game.tapX, game.tapY);
 
   Serial.printf("Screen drawn in %lu us\n", static_cast<unsigned long>(micros() - startUs));
 }
 
-// Returns true if anything on screen needs to change.
-bool handleButtons() {
-  for (Button& button : buttons) {
-    if (!input.wasPressed(button.index)) continue;
-    button.count = (button.count + 1) % COUNT_LIMIT;
-    Serial.printf("%s pressed, count %u\n", button.label, button.count);
+// Writing doesn't happen without a card, so a missing card isn't reported as a failure.
+bool saveFile(const char* name, uint8_t version, const uint8_t* data, size_t size) {
+  if (!storage::ready()) return true;
+
+  const uint32_t startUs = micros();
+  const bool saved = storage::save(name, version, data, size);
+  Serial.printf("Saved %s in %lu us\n", name, static_cast<unsigned long>(micros() - startUs));
+  return saved;
+}
+
+void saveSettings() {
+  uint8_t data[SETTINGS_BYTES];
+  const size_t size = packSettings(settings, data);
+  settingsSaveFailed = !saveFile(SETTINGS_FILE, SETTINGS_VERSION, data, size);
+}
+
+void saveGame() {
+  uint8_t data[GAME_BYTES];
+  const size_t size = packGame(game, data);
+  gameSaveFailed = !saveFile(GAME_FILE, GAME_VERSION, data, size);
+}
+
+// A file that's missing or can't be trusted just leaves the defaults in place.
+void loadSaved() {
+  uint8_t data[storage::MAX_DATA_BYTES];
+  uint8_t version = 0;
+  size_t size = 0;
+
+  if (storage::load(SETTINGS_FILE, version, data, sizeof(data), size) && !unpackSettings(version, data, size, settings)) {
+    Serial.println("Ignoring saved settings");
   }
+  if (storage::load(GAME_FILE, version, data, sizeof(data), size) && !unpackGame(version, data, size, game)) {
+    Serial.println("Ignoring saved game");
+  }
+}
+
+// Stands in for a game ending: its save mustn't outlive it. If erasing fails, the
+// zeroed state gets saved over it on the next retry instead.
+void clearGame() {
+  game = GameState{};
+  gameSaveFailed = storage::ready() && !storage::erase(GAME_FILE);
+  Serial.println("Game cleared");
+}
+
+// Returns true if anything on screen needs to change.
+bool handleButtons(uint32_t now) {
+  for (int i = 0; i < BUTTON_COUNT; i++) {
+    if (!input.wasPressed(BUTTONS[i].index)) continue;
+    game.buttonCounts[i] = (game.buttonCounts[i] + 1) % COUNT_LIMIT;
+    gameChanged = true;
+    Serial.printf("%s pressed, count %u\n", BUTTONS[i].label, game.buttonCounts[i]);
+  }
+
+  if (input.wasPressed(InputManager::BTN_UP)) {
+    upPressedMs = now;
+    upHoldUsed = false;
+  }
+  if (!upHoldUsed && input.isPressed(InputManager::BTN_UP) && now - upPressedMs >= CLEAR_HOLD_MS) {
+    upHoldUsed = true;
+    gameChanged = false;
+    clearGame();
+    return true;
+  }
+
   return input.wasAnyPressed() || input.wasAnyReleased();
 }
 
 // Touch positions arrive as 0..1 in the panel's landscape frame.
 int touchToScreenX(float panelY) { return static_cast<int>((1.0f - panelY) * (SCREEN_WIDTH - 1)); }
 int touchToScreenY(float panelX) { return static_cast<int>(panelX * (SCREEN_HEIGHT - 1)); }
+
+bool isOnSleepLine(int x, int y) {
+  const int height = lineHeight(Font::Size20);
+  const int top = STATUS_TOP + SLEEP_LINE * height;
+  return y >= top && y < top + height && abs(x - SCREEN_WIDTH / 2) <= SLEEP_TAP_WIDTH / 2;
+}
+
+void cycleIdleSleep() {
+  settings.idleSleepMinutes = settings.idleSleepMinutes == 1 ? 5 : settings.idleSleepMinutes == 5 ? 10 : 1;
+  settingsChanged = true;
+  Serial.printf("Idle sleep is now %u minutes\n", settings.idleSleepMinutes);
+}
 
 // Returns true if anything on screen needs to change. A swipe and a tap can't
 // both fire for one touch: a tap has to move less than a swipe's minimum distance.
@@ -192,22 +308,30 @@ bool handleTouch() {
     const int dx = touchToScreenX(endY) - touchToScreenX(startY);
     const int dy = touchToScreenY(endX) - touchToScreenY(startX);
     if (abs(dx) >= abs(dy)) {
-      swipeDirection = dx < 0 ? "LEFT" : "RIGHT";
+      game.swipe = dx < 0 ? Swipe::Left : Swipe::Right;
     } else {
-      swipeDirection = dy < 0 ? "UP" : "DOWN";
+      game.swipe = dy < 0 ? Swipe::Up : Swipe::Down;
     }
-    swipeCount = (swipeCount + 1) % COUNT_LIMIT;
-    Serial.printf("SWIPE %s\n", swipeDirection);
+    game.swipeCount = (game.swipeCount + 1) % COUNT_LIMIT;
+    gameChanged = true;
+    Serial.printf("SWIPE %s\n", swipeName(game.swipe));
     return true;
   }
 
   float x, y;
   if (input.wasTouchTap(x, y)) {
-    tapX = touchToScreenX(y);
-    tapY = touchToScreenY(x);
-    hasTapped = true;
-    tapCount = (tapCount + 1) % COUNT_LIMIT;
-    Serial.printf("TAP %d %d\n", tapX, tapY);
+    const int screenX = touchToScreenX(y);
+    const int screenY = touchToScreenY(x);
+    if (isOnSleepLine(screenX, screenY)) {
+      cycleIdleSleep();
+      return true;
+    }
+    game.tapX = static_cast<int16_t>(screenX);
+    game.tapY = static_cast<int16_t>(screenY);
+    game.hasTapped = true;
+    game.tapCount = (game.tapCount + 1) % COUNT_LIMIT;
+    gameChanged = true;
+    Serial.printf("TAP %d %d\n", screenX, screenY);
     return true;
   }
 
@@ -236,6 +360,10 @@ void showAsleep() {
 }
 
 [[noreturn]] void goToSleep() {
+  // Every change is saved as it happens, so this only retries one that failed.
+  if (settingsSaveFailed) saveSettings();
+  if (gameSaveFailed) saveGame();
+
   Serial.println("Going to sleep. Press OK to wake.");
   Serial.flush();
 
@@ -280,6 +408,8 @@ void setup() {
   // counted, but its box still draws black.
   input.update();
 
+  if (storage::begin()) loadSaved();
+
   display.begin();
   if (!display.framebufferReady()) {
     Serial.println("ERROR: no memory for the framebuffer");
@@ -305,10 +435,20 @@ void loop() {
   input.update();
   const uint32_t now = millis();
 
-  const bool buttonsChanged = handleButtons();
+  const bool buttonsChanged = handleButtons(now);
   const bool touchChanged = handleTouch();
   if (buttonsChanged || touchChanged) screenDirty = true;
   if (buttonsChanged || input.wasTouchActivity()) lastActivityMs = now;
+
+  // Before the redraw, so the screen can report a save that failed.
+  if (settingsChanged) {
+    settingsChanged = false;
+    saveSettings();
+  }
+  if (gameChanged) {
+    gameChanged = false;
+    saveGame();
+  }
 
   // Changes made during a refresh are combined into the next frame.
   if (screenDirty && !display.refreshBusy()) {
@@ -322,7 +462,7 @@ void loop() {
   if (!okDown) releasedSinceBoot = true;
 
   if (releasedSinceBoot && okDown && input.getPowerButtonHeldTime() >= SLEEP_HOLD_MS) goToSleep();
-  if (now - lastActivityMs >= IDLE_SLEEP_MS) goToSleep();
+  if (now - lastActivityMs >= settings.idleSleepMinutes * 60UL * 1000UL) goToSleep();
 
   delay(POLL_MS);
 }

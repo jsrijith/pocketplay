@@ -28,7 +28,7 @@ Use `python`, because this machine has no `py` launcher. Always flash the merged
 
 ## Architecture
 
-`src/main.cpp` is an Arduino `setup()`/`loop()` program, with drawing in `src/graphics.cpp` and text in `src/text.cpp`. It runs on top of four `freeink-sdk` libraries (BoardConfig, EInkDisplay, InputManager, PowerManager), which are symlinked through `lib_deps` in `platformio.ini`. `-DFREEINK_DEVICE_STICKY=1` makes the SDK's `BoardConfig::ACTIVE` resolve to the Sticky's pins and panel settings, so take pins from `ACTIVE` rather than hardcoding them. To use another SDK library (touch, input, sensors), add it to `lib_deps`. Its API is in `freeink-sdk/libs/*/*/include/`.
+`src/main.cpp` is an Arduino `setup()`/`loop()` program, with drawing in `src/graphics.cpp`, text in `src/text.cpp`, save files in `src/storage.cpp`, and saved values in `src/state.cpp`. It runs on top of five `freeink-sdk` libraries (BoardConfig, EInkDisplay, InputManager, PowerManager, SDCardManager), which are symlinked through `lib_deps` in `platformio.ini`. `-DFREEINK_DEVICE_STICKY=1` makes the SDK's `BoardConfig::ACTIVE` resolve to the Sticky's pins and panel settings, so take pins from `ACTIVE` rather than hardcoding them. To use another SDK library (touch, input, sensors), add it to `lib_deps`. Its API is in `freeink-sdk/libs/*/*/include/`.
 
 `freeink-sdk/` is a submodule pinned to the commit CrossPlay builds against. Don't edit it.
 
@@ -42,12 +42,24 @@ Use `python`, because this machine has no `py` launcher. Always flash the merged
 
 **Input:** buttons and touch both go through the SDK's `InputManager`. Call `update()` once per loop, then read its events; they only last until the next `update()`. On this board it doesn't debounce buttons, so the 15 ms loop is the debounce: polling much faster can count one press twice. OK is read as `BTN_POWER`, because `setSharedConfirmPowerShortPressEmitsPower(true)` makes it follow the button straight away instead of reporting `BTN_CONFIRM` on release. Touch positions arrive as 0..1 in the panel's landscape frame.
 
+**Storage:** saves live on the SD card in `/.boardbyte/`, one file per name. `storage.cpp` knows about files and nothing about games, and `state.cpp` turns values into bytes and nothing else, so it can be tested off the device. Follow these rules for anything new that gets saved:
+
+- Save on every change, not only before sleep, because a crash or flat battery never reaches the sleep path.
+- Pack values byte by byte instead of copying a struct, and raise the version when the layout changes.
+- Have `unpack` reject out-of-range values, and fall back to defaults rather than a half-restored game.
+- Erase a game's save when the game ends, or it gets offered for resume.
+
+`storage::save()` writes a temp file, reads it back, then replaces the old save, and `load()` falls back to a valid temp file. Don't shortcut this: a power cut can come at any step, and opening a file for writing empties it.
+
+**One task only:** the card and panel share an SPI bus, with nothing guarding it. That's safe because everything runs in `loop()` and a refresh only watches the busy pin. A second task that touches the card or panel needs a lock first.
+
 ## Hardware rules
 
 These cause silent failures, and the build won't catch them:
 
-- **Boot order in `setup()` matters.** `BoardConfig::holdPowerRails()` runs first, then `BoardConfig::releaseSdRail()`, then `display.begin()`. The SD card shares the panel's SPI bus, and an unpowered card clamps the bus so the panel never hears a command.
+- **Boot order in `setup()` matters.** `BoardConfig::holdPowerRails()` runs first, then `BoardConfig::releaseSdRail()`, then input, then `storage::begin()`, then `display.begin()`. The SD card shares the panel's SPI bus, and an unpowered card clamps the bus so the panel never hears a command.
 - **`gpio_hold_en` survives resets and reflashing.** A held pin silently ignores writes, so call `gpio_hold_dis` before driving any pin that a sleep path, including another firmware's, may have held.
+- **Sleep cuts the card's power.** The SDK's `shutdown()` does nothing on this board, so a save has to finish before the rails go down. `storage::save()` reads its file back, which makes the card finish first.
 - **Sleep order in `goToSleep()` matters.** `display.deepSleep()` runs first while the panel still has power, then the latches on GPIO45/46 are held HIGH, then the rails are cut, then the chip sleeps.
 - **Waking is a full chip reset.** Every wake runs `setup()` again. Only the OK button (GPIO4) can wake the device, since touch power is cut during sleep. OK must be released once after boot before a hold counts as sleep.
 - **USB-C reaches UART0 through a CH343 chip, not native USB.** That's why `ARDUINO_USB_CDC_ON_BOOT=0` is set, which differs from CrossPlay. Opening the serial port resets the device.
