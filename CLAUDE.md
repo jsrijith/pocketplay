@@ -28,15 +28,17 @@ Use `python`, because this machine has no `py` launcher. Always flash the merged
 
 ## Architecture
 
-`src/main.cpp` is an Arduino `setup()`/`loop()` program on top of three `freeink-sdk` libraries, which are symlinked through `lib_deps` in `platformio.ini`. `-DFREEINK_DEVICE_STICKY=1` makes the SDK's `BoardConfig::ACTIVE` resolve to the Sticky's pins and panel settings, so take pins from `ACTIVE` rather than hardcoding them. To use another SDK library (touch, input, sensors), add it to `lib_deps`. Its API is in `freeink-sdk/libs/*/*/include/`.
+`src/main.cpp` is an Arduino `setup()`/`loop()` program on top of four `freeink-sdk` libraries (BoardConfig, EInkDisplay, InputManager, PowerManager), which are symlinked through `lib_deps` in `platformio.ini`. `-DFREEINK_DEVICE_STICKY=1` makes the SDK's `BoardConfig::ACTIVE` resolve to the Sticky's pins and panel settings, so take pins from `ACTIVE` rather than hardcoding them. To use another SDK library (touch, input, sensors), add it to `lib_deps`. Its API is in `freeink-sdk/libs/*/*/include/`.
 
 `freeink-sdk/` is a submodule pinned to the commit CrossPlay builds against. Don't edit it.
 
 **Drawing:** code writes into the framebuffer from `display.getFrameBuffer()`, then `displayBufferAsync()` sends it to the panel. The framebuffer is 48,000 bytes in native 800x480 landscape: 1 bit per pixel, MSB first, 1 = white. There is no graphics library; `src/font.h` holds only the characters the firmware draws so far.
 
+**Orientation:** the firmware draws in portrait, 480 wide by 800 tall, held with the USB edge on the right. `setPixel()` is the only drawing code that knows the panel's native landscape layout, and `touchToScreenX()` and `touchToScreenY()` do the same for touch.
+
 **Refreshing:** `displayBufferAsync()` returns once the frame is sent, so `loop()` keeps reading buttons while the panel updates. It allocates one 48 KB shadow frame on first use and keeps it. Once async refreshes have started, don't call a blocking `displayBuffer(FAST_REFRESH)`: in single-buffer mode it compares against the panel's stored previous frame, which async refreshes leave out of date. To wait for a frame, call `displayBufferAsync()` and then `waitRefreshComplete()`.
 
-**Buttons:** `updateButtons()` in `src/main.cpp` is the only code that reads the pins. Drawing and sleep use the `Button` state, which keeps a later switch to the SDK's `InputManager` small.
+**Input:** buttons and touch both go through the SDK's `InputManager`. Call `update()` once per loop, then read its events; they only last until the next `update()`. On this board it doesn't debounce buttons, so the 15 ms loop is the debounce: polling much faster can count one press twice. OK is read as `BTN_POWER`, because `setSharedConfirmPowerShortPressEmitsPower(true)` makes it follow the button straight away instead of reporting `BTN_CONFIRM` on release. Touch positions arrive as 0..1 in the panel's landscape frame.
 
 ## Hardware rules
 

@@ -1,25 +1,28 @@
-// BoardByte: shows the Sticky's three buttons on screen, with a press count for each.
+// BoardByte: shows the Sticky's buttons and touch input on screen.
 //
-// Boot order matters on this board: power latches, then the SD rail, then the
-// panel. Waking from deep sleep is a full chip reset, so every wake runs setup()
-// again from the top, and the press counts start over.
+// Boot order matters on this board: power latches, then the SD rail, then input
+// and the panel. Waking from deep sleep is a full chip reset, so every wake runs
+// setup() again from the top, and all the counts start over.
 
 #include <Arduino.h>
 #include <BoardConfig.h>
 #include <EInkDisplay.h>
+#include <InputManager.h>
 #include <PowerManager.h>
 #include <driver/gpio.h>
 #include <esp_sleep.h>
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 #include "font.h"
 
 namespace {
 
-constexpr uint32_t POLL_MS = 5;
-constexpr uint32_t DEBOUNCE_MS = 20;
+// InputManager doesn't debounce buttons on this board. Sampling further apart
+// than a button bounces means one press can only produce one edge.
+constexpr uint32_t POLL_MS = 15;
 constexpr uint32_t SLEEP_HOLD_MS = 1000;
 constexpr uint32_t IDLE_SLEEP_MS = 10UL * 60UL * 1000UL;
 
@@ -28,38 +31,45 @@ constexpr int FAST_REFRESHES_PER_FULL = 30;
 
 constexpr uint16_t COUNT_LIMIT = 10000;  // wraps to 0, so a count never exceeds 4 digits
 
-constexpr int SCREEN_WIDTH = EInkDisplay::DISPLAY_WIDTH;
-constexpr int SCREEN_HEIGHT = EInkDisplay::DISPLAY_HEIGHT;
+// The panel is natively landscape. The firmware draws in portrait, held with the
+// USB edge on the right. setPixel() and the touch helpers convert between the two.
+constexpr int SCREEN_WIDTH = EInkDisplay::DISPLAY_HEIGHT;
+constexpr int SCREEN_HEIGHT = EInkDisplay::DISPLAY_WIDTH;
 
-constexpr int BOX_GAP = 16;
-constexpr int BOX_MARGIN = 24;
+constexpr int TEXT_SCALE = 4;
+
+constexpr int BOX_GAP = 12;
+constexpr int BOX_MARGIN = 12;
 constexpr int BOX_WIDTH = (SCREEN_WIDTH - 2 * BOX_MARGIN - 2 * BOX_GAP) / 3;
-constexpr int BOX_HEIGHT = 320;
-constexpr int BOX_TOP = (SCREEN_HEIGHT - BOX_HEIGHT) / 2;
+constexpr int BOX_HEIGHT = 130;
+constexpr int BOX_TOP = 24;
 constexpr int BOX_BORDER = 4;
-constexpr int LABEL_SCALE = 6;
-constexpr int LABEL_OFFSET_Y = 70;
-constexpr int COUNT_SCALE = 8;
-constexpr int COUNT_OFFSET_Y = 190;
+constexpr int BOX_LABEL_OFFSET = 24;
+constexpr int BOX_COUNT_OFFSET = 74;
+
+constexpr int STATUS_TOP = SCREEN_HEIGHT - 170;
+constexpr int STATUS_LINE_HEIGHT = 50;
+
+constexpr int CROSS_ARM = 24;
+constexpr int CROSS_THICKNESS = 4;
+
 constexpr int ASLEEP_SCALE = 10;
 
 struct Button {
   const char* label;
-  int8_t pin;
-  bool rawDown;           // the latest reading, which may still be bouncing
-  bool down;              // the debounced state
-  uint32_t rawChangedMs;  // when the raw reading last changed
-  uint32_t pressStartMs;  // when the debounced state last went down
+  uint8_t index;  // InputManager's BTN_* value
   uint16_t count;
 };
 
-// In on-screen order, left to right. Pins are filled in by beginButtons().
+// In on-screen order, left to right. OK is read as BTN_POWER: setup() turns on the
+// setting that makes it follow the button straight away, so it can count on press.
 Button buttons[] = {
-    {"UP", BoardConfig::PIN_UNASSIGNED, false, false, 0, 0, 0},
-    {"OK", BoardConfig::PIN_UNASSIGNED, false, false, 0, 0, 0},
-    {"DOWN", BoardConfig::PIN_UNASSIGNED, false, false, 0, 0, 0},
+    {"UP", InputManager::BTN_UP, 0},
+    {"OK", InputManager::BTN_POWER, 0},
+    {"DOWN", InputManager::BTN_DOWN, 0},
 };
-Button& okButton = buttons[1];
+
+InputManager input;
 
 // The SDK's begin() takes its wiring from BoardConfig; these arguments are unused.
 EInkDisplay display(BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED);
@@ -70,10 +80,22 @@ bool releasedSinceBoot = false;
 int fastRefreshes = 0;
 uint32_t lastActivityMs = 0;
 
+bool hasTapped = false;
+int tapX = 0;
+int tapY = 0;
+uint16_t tapCount = 0;
+uint16_t swipeCount = 0;
+const char* swipeDirection = "";
+
 // Framebuffer format: 1 bit per pixel, most significant bit first, 1 = white.
+// Touch can put the cross at a screen edge, so anything outside the screen is skipped.
 void setPixel(uint8_t* frame, int x, int y, bool black) {
-  uint8_t& byte = frame[y * EInkDisplay::DISPLAY_WIDTH_BYTES + x / 8];
-  const auto mask = static_cast<uint8_t>(0x80 >> (x % 8));
+  if (x < 0 || x >= SCREEN_WIDTH || y < 0 || y >= SCREEN_HEIGHT) return;
+
+  const int panelX = y;
+  const int panelY = SCREEN_WIDTH - 1 - x;
+  uint8_t& byte = frame[panelY * EInkDisplay::DISPLAY_WIDTH_BYTES + panelX / 8];
+  const auto mask = static_cast<uint8_t>(0x80 >> (panelX % 8));
   if (black) {
     byte &= static_cast<uint8_t>(~mask);
   } else {
@@ -105,7 +127,8 @@ void drawGlyph(uint8_t* frame, const font::Glyph& glyph, int left, int top, int 
   }
 }
 
-// Draws text with its horizontal centre at centerX.
+// Draws text with its horizontal centre at centerX. Spaces have no glyph, so they
+// just leave a gap.
 void drawText(uint8_t* frame, const char* text, int centerX, int top, int scale, bool black) {
   const int advance = (font::GLYPH_WIDTH + 1) * scale;
   const int characters = static_cast<int>(strlen(text));
@@ -120,68 +143,111 @@ void drawText(uint8_t* frame, const char* text, int centerX, int top, int scale,
 }
 
 void drawButtonBox(uint8_t* frame, const Button& button, int left) {
-  if (button.down) {
+  const bool held = input.isPressed(button.index);
+  if (held) {
     fillRect(frame, left, BOX_TOP, BOX_WIDTH, BOX_HEIGHT, true);
   } else {
     drawRectOutline(frame, left, BOX_TOP, BOX_WIDTH, BOX_HEIGHT, BOX_BORDER);
   }
 
   const int centerX = left + BOX_WIDTH / 2;
-  const bool textBlack = !button.down;  // white text on a held button's black box
-  drawText(frame, button.label, centerX, BOX_TOP + LABEL_OFFSET_Y, LABEL_SCALE, textBlack);
+  const bool textBlack = !held;  // white text on a held button's black box
+  drawText(frame, button.label, centerX, BOX_TOP + BOX_LABEL_OFFSET, TEXT_SCALE, textBlack);
 
   char count[6];
   snprintf(count, sizeof(count), "%u", button.count);
-  drawText(frame, count, centerX, BOX_TOP + COUNT_OFFSET_Y, COUNT_SCALE, textBlack);
+  drawText(frame, count, centerX, BOX_TOP + BOX_COUNT_OFFSET, TEXT_SCALE, textBlack);
+}
+
+void drawCross(uint8_t* frame, int x, int y) {
+  fillRect(frame, x - CROSS_ARM, y - CROSS_THICKNESS / 2, CROSS_ARM * 2, CROSS_THICKNESS, true);
+  fillRect(frame, x - CROSS_THICKNESS / 2, y - CROSS_ARM, CROSS_THICKNESS, CROSS_ARM * 2, true);
+}
+
+void drawTouchStatus(uint8_t* frame) {
+  const int centerX = SCREEN_WIDTH / 2;
+
+  if (!input.hasTouch()) {
+    drawText(frame, "NO TOUCH", centerX, STATUS_TOP, TEXT_SCALE, true);
+    return;
+  }
+
+  char text[32];
+  if (hasTapped) {
+    snprintf(text, sizeof(text), "X %d Y %d", tapX, tapY);
+    drawText(frame, text, centerX, STATUS_TOP, TEXT_SCALE, true);
+  }
+
+  snprintf(text, sizeof(text), "TAPS %u", tapCount);
+  drawText(frame, text, centerX, STATUS_TOP + STATUS_LINE_HEIGHT, TEXT_SCALE, true);
+
+  if (swipeCount > 0) {
+    snprintf(text, sizeof(text), "SWIPE %s %u", swipeDirection, swipeCount);
+  } else {
+    snprintf(text, sizeof(text), "SWIPE %u", swipeCount);
+  }
+  drawText(frame, text, centerX, STATUS_TOP + 2 * STATUS_LINE_HEIGHT, TEXT_SCALE, true);
 }
 
 void drawScreen() {
   display.clearScreen(0xFF);
   uint8_t* frame = display.getFrameBuffer();
+
   int left = BOX_MARGIN;
   for (const Button& button : buttons) {
     drawButtonBox(frame, button, left);
     left += BOX_WIDTH + BOX_GAP;
   }
+
+  drawTouchStatus(frame);
+  if (hasTapped) drawCross(frame, tapX, tapY);
 }
 
-void beginButtons() {
-  const auto& input = BoardConfig::ACTIVE.input;
-  buttons[0].pin = input.up;
-  buttons[1].pin = input.power;  // OK and power share one pin on the Sticky
-  buttons[2].pin = input.down;
-
-  // Start from the real pin state, so the press that woke the device isn't counted.
+// Returns true if anything on screen needs to change.
+bool handleButtons() {
   for (Button& button : buttons) {
-    pinMode(button.pin, INPUT_PULLUP);
-    button.rawDown = digitalRead(button.pin) == LOW;
-    button.down = button.rawDown;
+    if (!input.wasPressed(button.index)) continue;
+    button.count = (button.count + 1) % COUNT_LIMIT;
+    Serial.printf("%s pressed, count %u\n", button.label, button.count);
   }
+  return input.wasAnyPressed() || input.wasAnyReleased();
 }
 
-// Returns true if any button's debounced state changed.
-bool updateButtons(uint32_t now) {
-  bool changed = false;
-  for (Button& button : buttons) {
-    const bool raw = digitalRead(button.pin) == LOW;
-    if (raw != button.rawDown) {
-      button.rawDown = raw;
-      button.rawChangedMs = now;
-    }
-    if (raw == button.down || now - button.rawChangedMs < DEBOUNCE_MS) continue;
+// Touch positions arrive as 0..1 in the panel's landscape frame.
+int touchToScreenX(float panelY) { return static_cast<int>((1.0f - panelY) * (SCREEN_WIDTH - 1)); }
+int touchToScreenY(float panelX) { return static_cast<int>(panelX * (SCREEN_HEIGHT - 1)); }
 
-    button.down = raw;
-    changed = true;
-    if (raw) {
-      button.pressStartMs = now;
-      button.count = (button.count + 1) % COUNT_LIMIT;
-      Serial.printf("%s pressed, count %u\n", button.label, button.count);
+// Returns true if anything on screen needs to change. A swipe and a tap can't
+// both fire for one touch: a tap has to move less than a swipe's minimum distance.
+bool handleTouch() {
+  float startX, startY, endX, endY;
+  if (input.wasSwipe(startX, startY, endX, endY)) {
+    const int dx = touchToScreenX(endY) - touchToScreenX(startY);
+    const int dy = touchToScreenY(endX) - touchToScreenY(startX);
+    if (abs(dx) >= abs(dy)) {
+      swipeDirection = dx < 0 ? "LEFT" : "RIGHT";
+    } else {
+      swipeDirection = dy < 0 ? "UP" : "DOWN";
     }
+    swipeCount = (swipeCount + 1) % COUNT_LIMIT;
+    Serial.printf("SWIPE %s\n", swipeDirection);
+    return true;
   }
-  return changed;
+
+  float x, y;
+  if (input.wasTouchTap(x, y)) {
+    tapX = touchToScreenX(y);
+    tapY = touchToScreenY(x);
+    hasTapped = true;
+    tapCount = (tapCount + 1) % COUNT_LIMIT;
+    Serial.printf("TAP %d %d\n", tapX, tapY);
+    return true;
+  }
+
+  return false;
 }
 
-// Returns as soon as the frame is sent, so buttons keep being read while the
+// Returns as soon as the frame is sent, so input keeps being read while the
 // panel updates itself. The framebuffer is free to redraw straight away.
 void startRefresh() {
   if (++fastRefreshes >= FAST_REFRESHES_PER_FULL) {
@@ -239,7 +305,13 @@ void setup() {
   // reflashing, so this also clears that.
   BoardConfig::releaseSdRail();
 
-  beginButtons();
+  InputManager::setSharedConfirmPowerShortPressEmitsPower(true);
+  input.begin();
+  if (!input.hasTouch()) Serial.println("ERROR: the touch controller did not answer");
+
+  // Absorbs any button already held, so the press that woke the device isn't
+  // counted, but its box still draws black.
+  input.update();
 
   display.begin();
   if (!display.framebufferReady()) {
@@ -250,7 +322,7 @@ void setup() {
   // The first paint after a boot must be a full refresh to clear the old image.
   drawScreen();
   display.displayBufferAsync(EInkDisplay::FULL_REFRESH);
-  Serial.println("Button test is on the screen.");
+  Serial.println("Input test is on the screen.");
 
   lastActivityMs = millis();
   ready = true;
@@ -263,12 +335,13 @@ void loop() {
     return;
   }
 
+  input.update();
   const uint32_t now = millis();
 
-  if (updateButtons(now)) {
-    screenDirty = true;
-    lastActivityMs = now;
-  }
+  const bool buttonsChanged = handleButtons();
+  const bool touchChanged = handleTouch();
+  if (buttonsChanged || touchChanged) screenDirty = true;
+  if (buttonsChanged || input.wasTouchActivity()) lastActivityMs = now;
 
   // Changes made during a refresh are combined into the next frame.
   if (screenDirty && !display.refreshBusy()) {
@@ -278,9 +351,10 @@ void loop() {
   }
 
   // The press that woke the device must end before a hold can mean "sleep".
-  if (!okButton.down) releasedSinceBoot = true;
+  const bool okDown = input.isPressed(InputManager::BTN_POWER);
+  if (!okDown) releasedSinceBoot = true;
 
-  if (releasedSinceBoot && okButton.down && now - okButton.pressStartMs >= SLEEP_HOLD_MS) goToSleep();
+  if (releasedSinceBoot && okDown && input.getPowerButtonHeldTime() >= SLEEP_HOLD_MS) goToSleep();
   if (now - lastActivityMs >= IDLE_SLEEP_MS) goToSleep();
 
   delay(POLL_MS);

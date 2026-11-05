@@ -1,7 +1,7 @@
 # BoardByte
 
 A games firmware for the Seeed reTerminal Sticky, built up one step at a time.
-Right now it shows the three buttons on screen. A box turns black while its button is held, and counts its presses.
+Right now it shows the buttons and touch input on screen. A box turns black while its button is held, and counts its presses. Tapping the screen moves a cross to your finger and prints its position, and swipes show their direction.
 
 - **Hold OK for 1 second:** sleep. The screen shows `ASLEEP`.
 - **No button activity for 10 minutes:** sleep.
@@ -15,6 +15,7 @@ Right now it shows the three buttons on screen. A box turns black while its butt
 | Screen | 3.97" 800x480 black and white e-ink, SSD1677 controller, SPI |
 | USB-C | Goes through a CH343 USB-serial chip to UART0, not the S3's native USB |
 | Buttons | OK/Power on GPIO4, Up on GPIO5, Down on GPIO6, all active low |
+| Touch | GT911 over I2C: SDA GPIO3, SCL GPIO2, INT GPIO21, RST GPIO41, power enable GPIO42 |
 
 ## Files
 
@@ -102,7 +103,7 @@ To use your own CrossPlay build, flash `.pio/build/gh_release_sticky/firmware.fa
 
 - [x] Hello World
 - [x] Buttons on screen
-- [ ] Touch input (GT911)
+- [x] Touch input (GT911)
 - [ ] A real font engine
 - [ ] Settings saved to storage
 - [ ] Wi-Fi connection
