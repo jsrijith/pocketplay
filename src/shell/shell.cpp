@@ -208,6 +208,7 @@ Redraw onUpPressed() {
   if (screen == Screen::Home) return homeScreen::onUpPressed() ? Redraw::Fast : Redraw::None;
   if (screen == Screen::Wifi) return wifiScreen::onUpPressed() ? Redraw::Fast : Redraw::None;
   if (screen == Screen::TimeZone) return timezoneScreen::onUpPressed() ? Redraw::Fast : Redraw::None;
+  if (screen == Screen::Playing) return applyGameResult(currentGame->onUpPressed());
   return Redraw::None;
 }
 
@@ -215,6 +216,7 @@ Redraw onDownPressed() {
   if (screen == Screen::Home) return homeScreen::onDownPressed() ? Redraw::Fast : Redraw::None;
   if (screen == Screen::Wifi) return wifiScreen::onDownPressed() ? Redraw::Fast : Redraw::None;
   if (screen == Screen::TimeZone) return timezoneScreen::onDownPressed() ? Redraw::Fast : Redraw::None;
+  if (screen == Screen::Playing) return applyGameResult(currentGame->onDownPressed());
   return Redraw::None;
 }
 

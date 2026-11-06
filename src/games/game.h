@@ -60,6 +60,11 @@ class Game {
   // before the onTap a lift gives.
   virtual TapResult onRelease() { return TapResult::Nothing; }
 
+  // The Up and Down buttons, while the game is open, such as for turning pages. A
+  // game that doesn't use them ignores them.
+  virtual TapResult onUpPressed() { return TapResult::Nothing; }
+  virtual TapResult onDownPressed() { return TapResult::Nothing; }
+
  protected:
   ~Game() = default;
 };

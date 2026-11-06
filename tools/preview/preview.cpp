@@ -103,6 +103,8 @@ int main(int argc, char** argv) {
       printf("update -> %s after %d pass%s\n", redraw ? "Redraw" : "Nothing", passes, passes == 1 ? "" : "es");
     } else if (command == "release") {
       printf("release -> %s\n", resultName(game.onRelease()));
+    } else if (command == "up" || command == "down") {
+      printf("%s -> %s\n", command.c_str(), resultName(command == "up" ? game.onUpPressed() : game.onDownPressed()));
     } else if (command.rfind("tap:", 0) == 0) {
       int x = 0;
       int y = 0;
