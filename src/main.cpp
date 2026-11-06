@@ -89,7 +89,8 @@ void startRefresh(shell::Redraw redraw) {
 
 void showAsleep() {
   display.clearScreen(0xFF);
-  drawTextInBox(display.getFrameBuffer(), Font::Size64, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, "ASLEEP");
+  // Size44, not Size64: at 64 the name is about 644 px wide, past the 480 px screen.
+  drawTextInBox(display.getFrameBuffer(), Font::Size44, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, "POCKETPLAY");
 
   // Async even though it waits: after an async refresh the panel's stored
   // previous frame is out of date, and only this path sends the correct one.
