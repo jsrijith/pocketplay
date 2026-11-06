@@ -2,14 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-BoardByte is a games-only firmware for the Seeed reTerminal Sticky (ESP32-S3), built up one step at a time so its owner can learn how ESP32 firmware works. Keep each step small, and explain the hardware reasoning.
+PocketPlay is a games-only firmware for the Seeed reTerminal Sticky (ESP32-S3), built up one step at a time so its owner can learn how ESP32 firmware works. Keep each step small, and explain the hardware reasoning.
 
 ## Commands
 
 Run these from WSL. PlatformIO isn't on PATH.
 
 ```bash
-./scripts/package.sh                      # build and write dist/boardbyte-full.bin
+./scripts/package.sh                      # build and write dist/pocketplay-full.bin
 ~/.platformio/penv/bin/pio run -e sticky  # build only
 ```
 
@@ -20,14 +20,14 @@ tests/tictactoe/run.sh    # Tic Tac Toe's rules
 tests/settings/run.sh     # settings packing, including files from older firmware
 ```
 
-Every firmware build runs `scripts/check.sh` first and stops if it fails (`scripts/pre_build_gate.py`). To add a test, put `test_<name>.cpp` in `tests/<folder>/` and compile and run it from that folder's `run.sh`. The check fails if `run.sh` doesn't mention a test file.
+Every firmware build runs `scripts/check.sh` first and stops if it fails (`scripts/pre_build_gate.py`). Tests compile with AddressSanitizer and UBSan, so a memory error stops them. To add a test, put `test_<name>.cpp` in `tests/<folder>/`, then compile and run it from that folder's `run.sh`, which takes its flags from `tests/flags.sh`. The check fails if `run.sh` doesn't mention a test file.
 
 There are no linters. These tests cover code with no hardware in it, and a build only proves the rest compiles, so behaviour has to be confirmed on the device.
 
 **Flashing is done by the user, from Windows.** WSL has no USB access to the device. Give the user commands to run in PowerShell, after they copy the image to `C:\Users\Srijith\Downloads`:
 
 ```powershell
-python -m esptool --chip esp32s3 --port COM8 --baud 460800 write-flash 0x0 boardbyte-full.bin
+python -m esptool --chip esp32s3 --port COM8 --baud 460800 write-flash 0x0 pocketplay-full.bin
 python -m serial.tools.miniterm COM8 115200
 ```
 
@@ -66,7 +66,7 @@ It runs on top of seven `freeink-sdk` libraries (BoardConfig, EInkDisplay, Input
 
 **Games:** each game lives in `src/games/<name>/`, implements `Game` from `src/games/game.h` as a static object, and has one line in `src/games/game_list.inc`. Keep rules and save packing free of screen and card code, so they can be tested off the device, as `tictactoe_rules.h` and `tictactoe_save.cpp` are. A tap that changes nothing must return `TapResult::Nothing`, because a blink that changes nothing looks like a bug. Use `RedrawFull` when a game starts or ends, and `Redraw` for a move. A game that needs Wi-Fi returns `TapResult::OpenWifi`, and `onWifiClosed()` runs when the Wi-Fi screen closes, which happens by itself once it joins. A game with work between taps overrides `update()`, and `busy()` if a sleep would throw that work away. `shell.cpp` keeps the open game's name in `session.sav`, so a wake reopens it. Don't change a game's `name()` casually, and never store a position in the list instead of the name.
 
-**Storage:** saves live on the SD card in `/.boardbyte/`, one file per name. `storage.cpp` knows about files and nothing about games, and `state.cpp` turns values into bytes and nothing else, so it can be tested off the device. Follow these rules for anything new that gets saved:
+**Storage:** saves live on the SD card in `/.pocketplay/`, one file per name. `storage.cpp` knows about files and nothing about games, and `state.cpp` turns values into bytes and nothing else, so it can be tested off the device. Follow these rules for anything new that gets saved:
 
 - Save on every change, not only before sleep, because a crash or flat battery never reaches the sleep path.
 - Pack values byte by byte instead of copying a struct, and raise the version when the layout changes.
@@ -77,7 +77,7 @@ It runs on top of seven `freeink-sdk` libraries (BoardConfig, EInkDisplay, Input
 
 **One task for the bus:** the card and panel share an SPI bus, with nothing guarding it. That's safe because everything that uses them runs in `loop()` and a refresh only watches the busy pin. The Wi-Fi stack runs its own tasks, but they never touch the card or panel. Keep all `WiFi` calls in `loop()` too. A second task that touches the card or panel needs a lock first.
 
-**Downloads:** `core/download.cpp` is the one exception to everything running in `loop()`, because TLS would otherwise stop input for a minute. Its task uses the network and hands bytes to a sink, which must only store them in memory. `loop()` writes them to the card after the download has ended. Don't turn the radio off while one is running: call `requestCancel()` and wait for `state()` to change. HTTPS uses wolfSSL, and `scripts/patch_wolfssl.py` patches its settings when the library is present, so a fresh checkout needs one build to install the library and a second, clean one to use the patch. Certificates aren't checked, so never send anything private this way.
+**Downloads:** `core/download.cpp` is the one exception to everything running in `loop()`, because TLS would otherwise stop input for a minute. Its task uses the network and hands bytes to a sink, which must only store them in memory. `loop()` writes them to the card after the download has ended. Don't turn the radio off while one is running: call `requestCancel()` and wait for `state()` to change. HTTPS uses wolfSSL, and `scripts/patch_wolfssl.py` patches its settings before each build. Certificates aren't checked, so never send anything private this way.
 
 **Clock:** the system clock and the PCF8563 clock chip both keep UTC, and `localtime_r()` applies the zone chosen in Settings. Use `localtime_r()` for anything the player sees as a date. `core/clock.cpp` sets the system clock from the chip at boot, and sets the chip when a time server answers. Never call `configTime()`, which replaces the zone. The zone list is saved by position, so only add to its end.
 
@@ -108,3 +108,10 @@ These cause silent failures, and the build won't catch them:
 ## Reference
 
 `/home/srijith/mycrossplay` is a working full firmware for this device, built on the same SDK. Read it to see how something is done on the Sticky, but don't modify it or copy its structure wholesale. Its `CLAUDE.md` describes that project and doesn't apply here.
+
+**Copying a game from CrossPlay:** its games are in `src/apps_local/<name>/`, and `src/games/wordle/` shows the result.
+
+- Copy the rules (`<Name>Core.h/.cpp`) and their test from `host-tests/<name>/` unchanged apart from includes, and keep the MIT licence beside them. The test goes in `tests/<name>/`.
+- Rewrite the screens and activity on `core/` and `ui/`, because CrossPlay's Activity system, FreeInkUI and Toybox aren't here. Keep the features and behaviour the same.
+- List every difference from CrossPlay for the user before building, and again in the game's `README.md`, including anything PocketPlay does that CrossPlay doesn't.
+- Before calling reported behaviour a bug, compare it with CrossPlay. If the two match, tell the user that rather than changing the rule.

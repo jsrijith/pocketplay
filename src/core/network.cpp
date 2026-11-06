@@ -22,7 +22,7 @@ constexpr uint32_t INTERNET_TIMEOUT_MS = 15000;
 // than this is about something else.
 constexpr uint32_t MIN_JOIN_MS = 1000;
 
-constexpr const char* HOSTNAME = "BoardByte";
+constexpr const char* HOSTNAME = "PocketPlay";
 
 State currentState = State::Off;
 Internet currentInternet = Internet::Waiting;

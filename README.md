@@ -1,4 +1,4 @@
-# BoardByte
+# PocketPlay
 
 Games firmware for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. It replaces the device's firmware with a simple home page of games, and everything is played by tapping the screen.
 
@@ -33,15 +33,15 @@ python3 get-platformio.py
 Get the code and build it:
 
 ```bash
-git clone --recurse-submodules https://github.com/jsrijith/boardbyte.git
-cd boardbyte
+git clone --recurse-submodules https://github.com/jsrijith/pocketplay.git
+cd pocketplay
 ./scripts/package.sh
 ```
 
-When it finishes, it prints `Ready to flash` and the image is at `dist/boardbyte-full.bin`. Copy it somewhere Windows can reach, replacing `<you>` with your Windows user name:
+When it finishes, it prints `Ready to flash` and the image is at `dist/pocketplay-full.bin`. Copy it somewhere Windows can reach, replacing `<you>` with your Windows user name:
 
 ```bash
-cp dist/boardbyte-full.bin /mnt/c/Users/<you>/Downloads/
+cp dist/pocketplay-full.bin /mnt/c/Users/<you>/Downloads/
 ```
 
 ### 2. Set up flashing (in Windows PowerShell)
@@ -66,13 +66,13 @@ python -m esptool --chip esp32s3 --port COM8 --baud 230400 read-flash 0 0x100000
 
 The first command only checks the connection. If it fails, press OK to wake the device and try again.
 
-### 4. Flash BoardByte
+### 4. Flash PocketPlay
 
 ```powershell
-python -m esptool --chip esp32s3 --port COM8 --baud 460800 write-flash 0x0 boardbyte-full.bin
+python -m esptool --chip esp32s3 --port COM8 --baud 460800 write-flash 0x0 pocketplay-full.bin
 ```
 
-The device restarts into the BoardByte home page. Always flash at `0x0`, because this one file includes everything the device needs to start.
+The device restarts into the PocketPlay home page. Always flash at `0x0`, because this one file includes everything the device needs to start.
 
 ### 5. First-time setup
 
@@ -102,7 +102,7 @@ The device restarts into the BoardByte home page. Always flash at `0x0`, because
 - **Wi-Fi:** it joins 2.4 GHz networks only, not 5 GHz, enterprise or hidden ones. The radio is only on while it's needed, and sleep always turns it off. Up to 4 networks are remembered.
 - **Passwords:** Wi-Fi passwords are saved on the SD card scrambled with the chip's MAC address. **This isn't encryption:** anyone with both the card and this code can undo it, so don't lend out a card you've used on a private network.
 - **Downloads:** Wordle's downloads don't verify the server's certificate. The device sends no personal data with them, but a network attacker could feed it wrong puzzles.
-- **Saves:** they live in `/.boardbyte/` on the card, and your other files are left alone. Without a card the screen shows `NO CARD`, and everything else works but nothing survives sleep.
+- **Saves:** they live in `/.pocketplay/` on the card, and your other files are left alone. Without a card the screen shows `NO CARD`, and everything else works but nothing survives sleep.
 
 ## Troubleshooting
 
@@ -172,7 +172,7 @@ Deep sleep turns almost everything off, so waking runs all of this from the star
 
 ## Credits
 
-BoardByte builds on other people's work, each under its own licence:
+PocketPlay builds on other people's work, each under its own licence:
 
 - [CrossPlay](https://github.com/ma-r-s/crossplay): the game rules, Wordle's design and the font headers (MIT, copied alongside the code)
 - [FreeInk SDK](https://github.com/ma-r-s/freeink-sdk): hardware libraries (MIT)

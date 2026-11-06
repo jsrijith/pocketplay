@@ -18,7 +18,7 @@ int rowTop(int index) { return ui::CONTENT_TOP + index * (ROW_HEIGHT + ui::GAP);
 }  // namespace
 
 void draw(uint8_t* frame) {
-  drawTextInBox(frame, Font::Size30, 0, ui::HEADER_TOP, SCREEN_WIDTH, ui::HEADER_BUTTON_HEIGHT, "BOARDBYTE");
+  drawTextInBox(frame, Font::Size30, 0, ui::HEADER_TOP, SCREEN_WIDTH, ui::HEADER_BUTTON_HEIGHT, "POCKETPLAY");
 
   for (int i = 0; i < games::count(); i++) {
     ui::drawButton(frame, ui::MARGIN, rowTop(i), ROW_WIDTH, ROW_HEIGHT, games::at(i).name());

@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 #   0xe000   boot_app0.bin  selects app0, in case an earlier firmware last ran from app1
 #   0x10000  firmware.bin
 mkdir -p dist
-cp .pio/build/sticky/firmware.factory.bin dist/boardbyte-full.bin
+cp .pio/build/sticky/firmware.factory.bin dist/pocketplay-full.bin
 
 echo
-echo "Ready to flash: $(pwd)/dist/boardbyte-full.bin"
+echo "Ready to flash: $(pwd)/dist/pocketplay-full.bin"

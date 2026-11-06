@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <memory>
 
-// Small save files on the SD card, one per name, in /.boardbyte/. A power cut at
+// Small save files on the SD card, one per name, in /.pocketplay/. A power cut at
 // any moment leaves either the old save or the new one, never a damaged one.
 namespace storage {
 

@@ -1,4 +1,4 @@
-// BoardByte: a games firmware for the Seeed reTerminal Sticky. This file runs the
+// PocketPlay: a games firmware for the Seeed reTerminal Sticky. This file runs the
 // hardware: boot, input, the panel and sleep. shell/shell.cpp decides what's on screen.
 //
 // Boot order matters on this board: power latches, then the SD rail, then input,
@@ -128,7 +128,7 @@ void setup() {
   BoardConfig::holdPowerRails();
 
   Serial.begin(115200);
-  Serial.printf("\nBoardByte starting, wake cause %d\n", static_cast<int>(esp_sleep_get_wakeup_cause()));
+  Serial.printf("\nPocketPlay starting, wake cause %d\n", static_cast<int>(esp_sleep_get_wakeup_cause()));
 
   // The SD card shares the panel's SPI bus. Unpowered, it clamps the bus and the
   // panel never hears a command. An earlier firmware's off-hold can survive

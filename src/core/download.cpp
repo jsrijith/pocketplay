@@ -20,7 +20,7 @@ constexpr uint32_t TASK_STACK_BYTES = 16384;
 constexpr UBaseType_t TASK_PRIORITY = 1;
 constexpr int TIMEOUT_MS = 60000;
 constexpr uint32_t STOP_WAIT_MS = 5000;
-constexpr const char* USER_AGENT = "BoardByte";
+constexpr const char* USER_AGENT = "PocketPlay";
 
 std::atomic<State> currentState{State::Idle};
 std::atomic<bool> cancelRequested{false};

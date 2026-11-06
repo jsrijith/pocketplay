@@ -10,7 +10,7 @@
 namespace storage {
 namespace {
 
-constexpr const char* DIRECTORY = "/.boardbyte";
+constexpr const char* DIRECTORY = "/.pocketplay";
 constexpr size_t PATH_BYTES = 48;
 
 // 'B', 'B', format, data version, 16-bit length, 32-bit checksum, least significant

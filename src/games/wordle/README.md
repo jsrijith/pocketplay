@@ -7,7 +7,7 @@ Six guesses for one five-letter word, the same word as the New York Times' Wordl
 - **Marks:** solid black is the right letter in the right spot, a heavy border and a dot is the right letter in the wrong spot, and grey isn't in the word.
 - **"Today"** is the device's local date, in the time zone chosen in Settings. With no clock, the newest puzzle on the card stands in.
 
-**Saves:** all of these are in `/.boardbyte/`.
+**Saves:** all of these are in `/.pocketplay/`.
 
 | Name | Kind | Holds |
 |---|---|---|
