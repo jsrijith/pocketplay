@@ -5,3 +5,4 @@
 GAME(ticTacToe)
 GAME(wordleGame)
 GAME(dungeonGame)
+GAME(connectionsGame)

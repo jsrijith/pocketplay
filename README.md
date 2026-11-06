@@ -7,6 +7,7 @@ Games firmware for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), 
 - **Wordle:** the daily puzzle and every past day, with a calendar archive, your record and a chart of your guesses. [How it plays](src/games/wordle/README.md)
 - **Tic Tac Toe:** two players on one device.
 - **D&Diagrams:** 64 dungeon logic puzzles: place walls so the numbers, monsters and treasure all fit. [How it plays](src/games/dungeon/README.md)
+- **Connections:** sixteen words in four hidden groups, the daily puzzle and every past one, with a calendar archive and your record. [How it plays](src/games/connections/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 
@@ -14,7 +15,7 @@ A game in progress is saved on every move, so it's still there after the device 
 
 - A Seeed reTerminal Sticky
 - A USB-C **data** cable (charge-only cables don't show up on the computer)
-- A microSD card formatted as FAT32 or exFAT, to keep your saves and Wordle puzzles
+- A microSD card formatted as FAT32 or exFAT, to keep your saves and downloaded puzzles
 - A computer with Python 3. The steps below use Windows with WSL (Ubuntu), which is the only setup that's been tested
 
 There's no ready-made download yet, so you build the firmware once yourself. The first build downloads its tools and takes several minutes.
@@ -79,7 +80,7 @@ The device restarts into the PocketPlay home page. Always flash at `0x0`, becaus
 
 1. Put in the SD card and restart the device. A card put in later is only seen after a restart.
 2. Open **Settings** and choose your **TIME ZONE**, so Wordle's "today" matches your date.
-3. Open **Wordle** and tap **GET PUZZLES**. It joins Wi-Fi if needed, downloads the puzzles, then turns the radio off. After that, playing needs no network until you want new puzzles.
+3. Open **Wordle** and tap **GET PUZZLES**. It joins Wi-Fi if needed, downloads the puzzles, then turns the radio off. After that, playing needs no network until you want new puzzles. **Connections** has its own **GET PUZZLES**, which works the same way.
 
 ## Using it
 
@@ -102,7 +103,7 @@ The device restarts into the PocketPlay home page. Always flash at `0x0`, becaus
 
 - **Wi-Fi:** it joins 2.4 GHz networks only, not 5 GHz, enterprise or hidden ones. The radio is only on while it's needed, and sleep always turns it off. Up to 4 networks are remembered.
 - **Passwords:** Wi-Fi passwords are saved on the SD card scrambled with the chip's MAC address. **This isn't encryption:** anyone with both the card and this code can undo it, so don't lend out a card you've used on a private network.
-- **Downloads:** Wordle's downloads don't verify the server's certificate. The device sends no personal data with them, but a network attacker could feed it wrong puzzles.
+- **Downloads:** Wordle's and Connections' downloads don't verify the server's certificate. The device sends no personal data with them, but a network attacker could feed it wrong puzzles.
 - **Saves:** they live in `/.pocketplay/` on the card, and your other files are left alone. Without a card the screen shows `NO CARD`, and everything else works but nothing survives sleep.
 
 ## Troubleshooting
@@ -175,10 +176,10 @@ Deep sleep turns almost everything off, so waking runs all of this from the star
 
 PocketPlay builds on other people's work, each under its own licence:
 
-- [CrossPlay](https://github.com/ma-r-s/crossplay): the game rules, Wordle's design and the font headers (MIT, copied alongside the code)
+- [CrossPlay](https://github.com/ma-r-s/crossplay): the game rules, the games' designs and the font headers (MIT, copied alongside the code)
 - [FreeInk SDK](https://github.com/ma-r-s/freeink-sdk): hardware libraries (MIT)
 - [wolfSSL](https://www.wolfssl.com/): HTTPS (GPLv2 or later, or commercial)
 - [SdFat](https://github.com/greiman/SdFat): SD card access (MIT)
 - Jersey 25: the font (SIL Open Font License)
 
-Wordle is a trademark of The New York Times Company, and this project isn't affiliated with it. The firmware ships no puzzles: the device downloads them when you ask, from [mfilej/wrdl](https://github.com/mfilej/wrdl) and the New York Times.
+Wordle and Connections are trademarks of The New York Times Company, and this project isn't affiliated with it. The firmware ships no puzzles: the device downloads them when you ask, from [mfilej/wrdl](https://github.com/mfilej/wrdl), the New York Times and [Eyefyre/NYT-Connections-Answers](https://github.com/Eyefyre/NYT-Connections-Answers). The Connections test fixture in `tests/connections/` holds a copy of that archive, copied from CrossPlay, and is never built into the firmware.
