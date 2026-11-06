@@ -24,6 +24,7 @@ tests/connections/run.sh  # Connections: rules, pack, import, record, save packi
 tests/solitaire/run.sh    # Solitaire: rules, save packing with the undo history, and the record
 tests/minesweeper/run.sh  # Minesweeper: rules, flow and save packing
 tests/sudoku/run.sh       # Sudoku: generator, solver, game and save packing
+tests/knucklebones/run.sh # Knucklebones: rules, opponent, flow and save packing
 ```
 
 Every firmware build runs `scripts/check.sh` first and stops if it fails (`scripts/pre_build_gate.py`). Tests compile with AddressSanitizer and UBSan, so a memory error stops them. To add a test, put `test_<name>.cpp` in `tests/<folder>/`, then compile and run it from that folder's `run.sh`, which takes its flags from `tests/flags.sh`. The check fails if `run.sh` doesn't mention a test file.
