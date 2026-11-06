@@ -9,7 +9,11 @@ games/
   games.h/.cpp     looks games up from the list; no game-specific code
   tictactoe/       the example to copy
   wordle/          a larger example: several views, downloads and big saves
+  dungeon/         a port from CrossPlay, with a layout struct for taps
+  DESIGN.md        how a game's screens look
 ```
+
+Read `DESIGN.md` before drawing anything, and use `tools/preview/run.sh` to see the screens on the PC.
 
 ## Adding a game
 
