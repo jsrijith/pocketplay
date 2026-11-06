@@ -6,6 +6,7 @@ Games firmware for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), 
 
 - **Wordle:** the daily puzzle and every past day, with a calendar archive, your record and a chart of your guesses. [How it plays](src/games/wordle/README.md)
 - **Tic Tac Toe:** two players on one device.
+- **D&Diagrams:** 64 dungeon logic puzzles: place walls so the numbers, monsters and treasure all fit. [How it plays](src/games/dungeon/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 

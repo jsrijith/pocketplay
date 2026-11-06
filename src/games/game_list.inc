@@ -4,3 +4,4 @@
 // so two branches can each add a game without a conflict.
 GAME(ticTacToe)
 GAME(wordleGame)
+GAME(dungeonGame)
