@@ -123,8 +123,8 @@ Redraw tapTimeZone(int x, int y) {
   return changed ? Redraw::Fast : Redraw::None;
 }
 
-Redraw tapGame(int x, int y) {
-  switch (currentGame->onTap(x, y)) {
+Redraw applyGameResult(Game::TapResult result) {
+  switch (result) {
     case Game::TapResult::Nothing:
       return Redraw::None;
     case Game::TapResult::Redraw:
@@ -143,6 +143,8 @@ Redraw tapGame(int x, int y) {
   }
   return Redraw::None;
 }
+
+Redraw tapGame(int x, int y) { return applyGameResult(currentGame->onTap(x, y)); }
 
 const char* warningText() {
   if (!hasTouch) return "NO TOUCH";
@@ -195,6 +197,12 @@ Redraw onTap(int x, int y) {
   }
   return Redraw::None;
 }
+
+bool usesHold() { return screen == Screen::Playing && currentGame->usesHold(); }
+
+Redraw onPress(int x, int y) { return usesHold() ? applyGameResult(currentGame->onPress(x, y)) : Redraw::None; }
+Redraw onHold(int x, int y) { return usesHold() ? applyGameResult(currentGame->onHold(x, y)) : Redraw::None; }
+Redraw onRelease() { return usesHold() ? applyGameResult(currentGame->onRelease()) : Redraw::None; }
 
 Redraw onUpPressed() {
   if (screen == Screen::Home) return homeScreen::onUpPressed() ? Redraw::Fast : Redraw::None;

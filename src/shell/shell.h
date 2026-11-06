@@ -15,6 +15,12 @@ void begin(bool touchWorks);
 Redraw update();
 
 Redraw onTap(int x, int y);
+
+// A held finger, for a game whose usesHold() is true. See games/game.h.
+bool usesHold();
+Redraw onPress(int x, int y);
+Redraw onHold(int x, int y);
+Redraw onRelease();
 Redraw onUpPressed();
 Redraw onDownPressed();
 

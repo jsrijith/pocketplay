@@ -46,6 +46,20 @@ class Game {
   // else, including the Wi-Fi screen and the sleep screen.
   virtual bool landscape() const { return false; }
 
+  // For a game that acts on a held finger, such as planting a flag. True sends it
+  // the three calls below, and a hold then swallows its own lift, so the onTap a
+  // short press would have given never comes. Other games only ever get onTap, so
+  // a slow tap still taps. Positions are screen positions, as onTap's.
+  virtual bool usesHold() const { return false; }
+  // A finger went down, before anything is known about it. For showing what's
+  // under it while a hold builds.
+  virtual TapResult onPress(int /*x*/, int /*y*/) { return TapResult::Nothing; }
+  // The finger stayed still for HOLD_MS (main.cpp), at the place it went down.
+  virtual TapResult onHold(int /*x*/, int /*y*/) { return TapResult::Nothing; }
+  // The press is over: lifted, moved too far to be a tap or a hold, or held. Comes
+  // before the onTap a lift gives.
+  virtual TapResult onRelease() { return TapResult::Nothing; }
+
  protected:
   ~Game() = default;
 };

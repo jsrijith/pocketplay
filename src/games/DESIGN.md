@@ -65,6 +65,7 @@ The only grey is dither: one dot in four (`x % 2 == 0 && y % 2 == 0`). Type can'
 - **Lists are rows.** `ui::drawRow`: 62 tall with a 4 px gap, a hairline outline, and a Size20 label.
 - **A button is a region, not a screen.** Only the drawn shape answers. "Tap anywhere to continue" throws away a finished game the player was still reading.
 - **Hit areas use the geometry that drew.** Have the draw code fill in a layout struct that the tap code reads, as `dungeonui::Layout` and `PickerLayout` do, so the two can't drift apart.
+- **A hold is a second verb, for a board cell only.** A game that needs one (Minesweeper's flag) sets `usesHold()`, marks the cell under the finger from `onPress` so the hold can be seen building, and clears it in `onRelease`. Keep a button for the same action, because nothing on screen says a hold exists.
 - **Touch points; buttons step.** A cell or card is chosen by touch. The Up and Down keys only step through pages. There's no on-screen cursor.
 - **A control that can't act dims; it doesn't disappear.** That way the layout never jumps.
 - **Size a control to its widest label, once.** That way it doesn't grow and shrink as its text changes.

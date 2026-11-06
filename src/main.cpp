@@ -26,6 +26,11 @@ namespace {
 constexpr uint32_t POLL_MS = 15;
 constexpr uint32_t SLEEP_HOLD_MS = 1000;
 
+// How long a finger rests on the screen before it's a hold, for a game that uses
+// holds. CrossPlay's Minesweeper plants a flag at 400 ms: long enough that a
+// deliberate tap never trips it, short enough not to feel broken on this panel.
+constexpr unsigned long HOLD_MS = 400;
+
 InputManager input;
 
 // The SDK's begin() takes its wiring from BoardConfig; these arguments are unused.
@@ -34,6 +39,9 @@ EInkDisplay display(BoardConfig::PIN_UNASSIGNED, BoardConfig::PIN_UNASSIGNED, Bo
 bool ready = false;
 bool releasedSinceBoot = false;
 int fastRefreshes = 0;
+// A press sent to the shell and not yet released, and whether it has become a hold.
+bool pressOpen = false;
+bool holdFired = false;
 uint32_t lastActivityMs = 0;
 
 // What the next refresh must be. Changes made during a refresh are combined into the
@@ -66,11 +74,38 @@ int touchToScreenY(float panelX, float panelY) {
   return static_cast<int>(panelX * (SCREEN_HEIGHT - 1));
 }
 
+// Press, hold and release, for a game that uses holds. A press stays open while
+// the SDK still counts it as a tap: down, and not moved past its tap slop.
+void handleHold() {
+  float x, y;
+  if (input.wasTouchPressedAt(x, y)) {
+    pressOpen = true;
+    holdFired = false;
+    requestRedraw(shell::onPress(touchToScreenX(x, y), touchToScreenY(x, y)));
+  }
+  if (!pressOpen) return;
+
+  unsigned long heldMs = 0;
+  if (input.isTouchTapCandidate(x, y, heldMs)) {
+    if (holdFired || heldMs < HOLD_MS) return;
+    holdFired = true;
+    requestRedraw(shell::onHold(touchToScreenX(x, y), touchToScreenY(x, y)));
+    // Always, even when the game did nothing with the hold, so the lift can't also
+    // tap. CrossPlay found a finger that rolls between two cells can otherwise
+    // hold one and tap the other.
+    input.suppressTouchContact();
+  }
+  // Lifted, moved off, or swallowed by the hold just now.
+  pressOpen = false;
+  requestRedraw(shell::onRelease());
+}
+
 void handleInput() {
   if (input.wasPressed(InputManager::BTN_UP)) requestRedraw(shell::onUpPressed());
   if (input.wasPressed(InputManager::BTN_DOWN)) requestRedraw(shell::onDownPressed());
 
   float x, y;
+  if (shell::usesHold()) handleHold();
   if (input.wasTouchTap(x, y)) requestRedraw(shell::onTap(touchToScreenX(x, y), touchToScreenY(x, y)));
 }
 

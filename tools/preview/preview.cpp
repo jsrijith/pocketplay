@@ -6,6 +6,8 @@
 //   shot:NAME   draws the game into NAME.pgm
 //   row:NAME    draws the game's home-page row into NAME.pgm, to check its name and icon
 //   warning:NAME  draws the game with the shell's longest warning over it, to check it clears
+//   press:X,Y   a finger down, hold:X,Y the same finger held, release its lift: the calls a
+//               game whose usesHold() is true gets. A hold's lift taps nothing, as on the device.
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -76,7 +78,22 @@ int main(int argc, char** argv) {
 
   for (int i = 2; i < argc; i++) {
     const std::string command = argv[i];
-    if (command.rfind("tap:", 0) == 0) {
+    if (command.rfind("press:", 0) == 0 || command.rfind("hold:", 0) == 0) {
+      const bool hold = command[0] == 'h';
+      int x = 0;
+      int y = 0;
+      if (sscanf(command.c_str() + command.find(':') + 1, "%d,%d", &x, &y) != 2) {
+        fprintf(stderr, "bad %s\n", command.c_str());
+        return 2;
+      }
+      if (!game.usesHold()) {
+        fprintf(stderr, "%s: this game doesn't use holds\n", command.c_str());
+        return 2;
+      }
+      printf("%s -> %s\n", command.c_str(), resultName(hold ? game.onHold(x, y) : game.onPress(x, y)));
+    } else if (command == "release") {
+      printf("release -> %s\n", resultName(game.onRelease()));
+    } else if (command.rfind("tap:", 0) == 0) {
       int x = 0;
       int y = 0;
       if (sscanf(command.c_str() + 4, "%d,%d", &x, &y) != 2) {
