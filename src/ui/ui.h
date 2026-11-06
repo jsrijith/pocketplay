@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "core/text.h"
+
 // The parts every screen shares, so they all line up and behave the same.
 namespace ui {
 
@@ -27,5 +29,33 @@ void drawHeader(uint8_t* frame, const char* title, bool hasRightButton = false);
 bool isOnBack(int x, int y);
 
 void drawWarning(uint8_t* frame, const char* text);
+
+// CrossPlay's Toybox look, for screens moved over to it. Values from its
+// ToyboxMetrics.h.
+constexpr int HAIRLINE = 1;
+constexpr int RULE = 3;
+constexpr int FRAME = 4;
+constexpr int BOARD_FRAME = 9;
+constexpr int ROW_HEIGHT = 62;
+constexpr int ROW_GAP = 4;
+constexpr int PILL_HEIGHT = 52;
+constexpr int PILL_RADIUS = 20;
+constexpr int ICON_SIZE = 32;  // a game's home-page icon: 4 bytes a row
+
+// The solid black header, then a white gap and a rule. It ends above WARNING_TOP,
+// so the warning line and CONTENT_TOP are where they always are. The title is the
+// largest cut that fits, never shortened. rightLabel, such as "2/3", can be null.
+// With hasBack, BACK sits where isOnBack() looks.
+constexpr int BAND_HEIGHT = 66;
+void drawBand(uint8_t* frame, const char* title, const char* rightLabel, bool hasBack);
+
+// A rounded button. A filled one is black with white type.
+void drawPill(uint8_t* frame, int left, int top, int width, const char* label, bool filled);
+
+// A list row: the label on the left and a 32 px icon (or none) on the right.
+void drawRow(uint8_t* frame, int top, const char* label, const uint8_t* icon);
+
+// Left-aligned text with its capitals centred in a box of the given height.
+void drawTextLeft(uint8_t* frame, Font font, int left, int top, int height, const char* text, bool black = true);
 
 }  // namespace ui
