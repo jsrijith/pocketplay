@@ -41,6 +41,11 @@ class Game {
   // Back from OpenWifi. network::state() says whether it joined.
   virtual void onWifiClosed() {}
 
+  // True draws the game in landscape, 800 wide by 480 tall (core/graphics.h), and
+  // taps arrive in the same frame. The shell turns the screen back for everything
+  // else, including the Wi-Fi screen and the sleep screen.
+  virtual bool landscape() const { return false; }
+
  protected:
   ~Game() = default;
 };

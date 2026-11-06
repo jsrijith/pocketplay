@@ -2,7 +2,7 @@
 // device is flashed. Built by run.sh, which names the game with -DPREVIEW_GAME.
 //
 // Commands, run in order:
-//   tap:X,Y     a tap at a screen position (portrait, 480 x 800); prints what it returned
+//   tap:X,Y     a tap at a screen position (480 x 800, or 800 x 480 for a landscape game); prints what it returned
 //   shot:NAME   draws the game into NAME.pgm
 //   row:NAME    draws the game's home-page row into NAME.pgm, to check its name and icon
 #include <cstdio>
@@ -21,16 +21,19 @@ namespace {
 
 uint8_t frame[EInkDisplay::DISPLAY_WIDTH_BYTES * EInkDisplay::DISPLAY_HEIGHT];
 
-// The framebuffer is landscape, so each portrait pixel is read back the way
-// setPixel() wrote it.
+// The framebuffer is landscape, so each pixel is read back the way setPixel()
+// wrote it in the current orientation.
 bool writePgm(const std::string& path) {
   FILE* file = fopen(path.c_str(), "wb");
   if (file == nullptr) return false;
-  fprintf(file, "P5 %d %d 255\n", SCREEN_WIDTH, SCREEN_HEIGHT);
-  for (int y = 0; y < SCREEN_HEIGHT; y++) {
-    for (int x = 0; x < SCREEN_WIDTH; x++) {
-      const int panelX = y;
-      const int panelY = SCREEN_WIDTH - 1 - x;
+  const bool landscape = orientation() == Orientation::Landscape;
+  const int width = screenWidth();
+  const int height = screenHeight();
+  fprintf(file, "P5 %d %d 255\n", width, height);
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      const int panelX = landscape ? x : y;
+      const int panelY = landscape ? y : SCREEN_WIDTH - 1 - x;
       const bool white = (frame[panelY * EInkDisplay::DISPLAY_WIDTH_BYTES + panelX / 8] & (0x80 >> (panelX % 8))) != 0;
       fputc(white ? 255 : 0, file);
     }
@@ -66,6 +69,9 @@ int main(int argc, char** argv) {
   storage::begin();
   Game& game = PREVIEW_GAME();
   game.open();
+  // As the shell does: the game's own orientation for its taps and screens.
+  const Orientation gameOrientation = game.landscape() ? Orientation::Landscape : Orientation::Portrait;
+  setOrientation(gameOrientation);
 
   for (int i = 2; i < argc; i++) {
     const std::string command = argv[i];
@@ -82,11 +88,14 @@ int main(int argc, char** argv) {
       const std::string name = command.substr(row ? 4 : 5);
       memset(frame, 0xFF, sizeof(frame));
       if (row) {
+        setOrientation(Orientation::Portrait);  // the home page is always portrait
         ui::drawRow(frame, ui::CONTENT_TOP, game.name(), game.icon());
       } else {
         game.draw(frame);
       }
-      if (!writePgm(outDir + "/" + name + ".pgm")) {
+      const bool written = writePgm(outDir + "/" + name + ".pgm");
+      setOrientation(gameOrientation);
+      if (!written) {
         fprintf(stderr, "can't write %s\n", name.c_str());
         return 1;
       }

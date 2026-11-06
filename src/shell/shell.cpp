@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "core/download.h"
+#include "core/graphics.h"
 #include "core/network.h"
 #include "core/storage.h"
 #include "games/games.h"
@@ -209,7 +210,10 @@ Redraw onDownPressed() {
   return Redraw::None;
 }
 
+bool landscape() { return screen == Screen::Playing && currentGame->landscape(); }
+
 void draw(uint8_t* frame) {
+  setOrientation(landscape() ? Orientation::Landscape : Orientation::Portrait);
   switch (screen) {
     case Screen::Home:
       homeScreen::draw(frame);

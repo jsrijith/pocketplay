@@ -19,14 +19,28 @@ bool insideRounded(int x, int y, int left, int top, int width, int height, int r
   return dx * dx + dy * dy <= radius * radius;
 }
 
+Orientation current = Orientation::Portrait;
+
 }  // namespace
+
+void setOrientation(Orientation value) { current = value; }
+Orientation orientation() { return current; }
+int screenWidth() { return current == Orientation::Landscape ? LANDSCAPE_WIDTH : SCREEN_WIDTH; }
+int screenHeight() { return current == Orientation::Landscape ? LANDSCAPE_HEIGHT : SCREEN_HEIGHT; }
 
 // Framebuffer format: 1 bit per pixel, most significant bit first, 1 = white.
 void setPixel(uint8_t* frame, int x, int y, bool black) {
-  if (x < 0 || x >= SCREEN_WIDTH || y < 0 || y >= SCREEN_HEIGHT) return;
-
-  const int panelX = y;
-  const int panelY = SCREEN_WIDTH - 1 - x;
+  int panelX = 0;
+  int panelY = 0;
+  if (current == Orientation::Landscape) {
+    if (x < 0 || x >= LANDSCAPE_WIDTH || y < 0 || y >= LANDSCAPE_HEIGHT) return;
+    panelX = x;
+    panelY = y;
+  } else {
+    if (x < 0 || x >= SCREEN_WIDTH || y < 0 || y >= SCREEN_HEIGHT) return;
+    panelX = y;
+    panelY = SCREEN_WIDTH - 1 - x;
+  }
   uint8_t& byte = frame[panelY * EInkDisplay::DISPLAY_WIDTH_BYTES + panelX / 8];
   const auto mask = static_cast<uint8_t>(0x80 >> (panelX % 8));
   if (black) {

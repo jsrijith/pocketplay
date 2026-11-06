@@ -18,6 +18,18 @@ The side margin is 16 px, and the gap between blocks is 12. `ui::MARGIN` (12) is
 
 **Anchor layouts; don't float them.** Put the board under the header and the buttons at the bottom margin, so the screen reads as a page with a footer. Any spare space then becomes one deliberate gap.
 
+## Landscape
+
+A game whose `landscape()` returns true is drawn 800 x 480, with the USB edge at the top. Use it only when the game needs the width, as Solitaire's seven columns do.
+
+| y | What |
+|---|---|
+| 0–56 | The band, `ui::drawBand()` as in portrait, but 56 tall (`ui::LANDSCAPE_BAND_HEIGHT`), with `BACK` centred in it. |
+| 59–62 | The rule under the band. |
+| 62 (`ui::LANDSCAPE_CONTENT_TOP`) | Content can start, after a gutter. |
+
+There's no warning line under the band. The shell draws its warning in the band, between x 428 and 572 (`ui::LANDSCAPE_WARNING_LEFT`), so `drawBand` keeps the title left of that, and a game's own band buttons go to its right.
+
 ## Type
 
 Jersey 25 only (`core/text.h`), in these roles:

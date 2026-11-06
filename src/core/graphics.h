@@ -5,9 +5,23 @@
 #include <cstdint>
 
 // The panel is natively landscape. The firmware draws in portrait, held with the
-// USB edge on the right. setPixel() converts between the two.
+// USB edge on the right, and setPixel() converts between the two. These are the
+// portrait sizes, which every screen but a landscape game's uses.
 constexpr int SCREEN_WIDTH = EInkDisplay::DISPLAY_HEIGHT;
 constexpr int SCREEN_HEIGHT = EInkDisplay::DISPLAY_WIDTH;
+
+// Landscape is the panel's own layout: the device turned a quarter-turn
+// anticlockwise from portrait, so the USB edge is at the top. Only a game that asks
+// for it (Game::landscape()) is drawn this way, and the shell sets it before each
+// draw, so nothing else needs to change it.
+constexpr int LANDSCAPE_WIDTH = EInkDisplay::DISPLAY_WIDTH;
+constexpr int LANDSCAPE_HEIGHT = EInkDisplay::DISPLAY_HEIGHT;
+
+enum class Orientation { Portrait, Landscape };
+void setOrientation(Orientation value);
+Orientation orientation();
+int screenWidth();   // in the current orientation
+int screenHeight();
 
 // Anything outside the screen is skipped, so callers can draw across an edge.
 void setPixel(uint8_t* frame, int x, int y, bool black);

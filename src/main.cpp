@@ -55,16 +55,23 @@ void drawScreen() {
   Serial.printf("Screen drawn in %lu us\n", static_cast<unsigned long>(micros() - startUs));
 }
 
-// Touch positions arrive as 0..1 in the panel's landscape frame.
-int touchToScreenX(float panelY) { return static_cast<int>((1.0f - panelY) * (SCREEN_WIDTH - 1)); }
-int touchToScreenY(float panelX) { return static_cast<int>(panelX * (SCREEN_HEIGHT - 1)); }
+// Touch positions arrive as 0..1 in the panel's landscape frame. A landscape game
+// is drawn in that frame, so its taps pass straight through.
+int touchToScreenX(float panelX, float panelY) {
+  if (shell::landscape()) return static_cast<int>(panelX * (LANDSCAPE_WIDTH - 1));
+  return static_cast<int>((1.0f - panelY) * (SCREEN_WIDTH - 1));
+}
+int touchToScreenY(float panelX, float panelY) {
+  if (shell::landscape()) return static_cast<int>(panelY * (LANDSCAPE_HEIGHT - 1));
+  return static_cast<int>(panelX * (SCREEN_HEIGHT - 1));
+}
 
 void handleInput() {
   if (input.wasPressed(InputManager::BTN_UP)) requestRedraw(shell::onUpPressed());
   if (input.wasPressed(InputManager::BTN_DOWN)) requestRedraw(shell::onDownPressed());
 
   float x, y;
-  if (input.wasTouchTap(x, y)) requestRedraw(shell::onTap(touchToScreenX(y), touchToScreenY(x)));
+  if (input.wasTouchTap(x, y)) requestRedraw(shell::onTap(touchToScreenX(x, y), touchToScreenY(x, y)));
 }
 
 // Returns as soon as the frame is sent, so input keeps being read while the
@@ -89,6 +96,8 @@ void startRefresh(shell::Redraw redraw) {
 
 void showAsleep() {
   display.clearScreen(0xFF);
+  // Always portrait, even from a landscape game: a wake starts there.
+  setOrientation(Orientation::Portrait);
   // Size44, not Size64: at 64 the name is about 644 px wide, past the 480 px screen.
   drawTextInBox(display.getFrameBuffer(), Font::Size44, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, "POCKETPLAY");
 

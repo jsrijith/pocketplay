@@ -25,15 +25,23 @@ void drawHeader(uint8_t* frame, const char* title, bool hasRightButton) {
   drawTextInBox(frame, Font::Size20, left, HEADER_TOP, right - left, HEADER_BUTTON_HEIGHT, title);
 }
 
-bool isOnBack(int x, int y) { return isInBox(x, y, MARGIN, HEADER_TOP, HEADER_BUTTON_WIDTH, HEADER_BUTTON_HEIGHT); }
+bool isOnBack(int x, int y) {
+  if (orientation() == Orientation::Landscape) return isInBox(x, y, MARGIN, 0, HEADER_BUTTON_WIDTH, LANDSCAPE_BAND_HEIGHT);
+  return isInBox(x, y, MARGIN, HEADER_TOP, HEADER_BUTTON_WIDTH, HEADER_BUTTON_HEIGHT);
+}
 
-void drawWarning(uint8_t* frame, const char* text) { drawTextInBox(frame, Font::Size14, 0, WARNING_TOP, SCREEN_WIDTH, lineHeight(Font::Size14), text); }
+void drawWarning(uint8_t* frame, const char* text) {
+  if (orientation() == Orientation::Landscape) {
+    // White on the band, which drawBand() left black here.
+    drawTextInBox(frame, Font::Size14, LANDSCAPE_WARNING_LEFT, 0, LANDSCAPE_WARNING_WIDTH, LANDSCAPE_BAND_HEIGHT, text, false);
+    return;
+  }
+  drawTextInBox(frame, Font::Size14, 0, WARNING_TOP, SCREEN_WIDTH, lineHeight(Font::Size14), text);
+}
 
 namespace {
 
 constexpr int ROW_WIDTH = SCREEN_WIDTH - 2 * MARGIN;
-constexpr int BAND_RULE_GAP = 3;
-constexpr int BACK_TOP = 10;
 constexpr int BACK_HEIGHT = 46;
 constexpr int ROW_TEXT_INSET = 14;
 
@@ -55,24 +63,29 @@ void drawTextLeft(uint8_t* frame, Font font, int left, int top, int height, cons
 }
 
 void drawBand(uint8_t* frame, const char* title, const char* rightLabel, bool hasBack, Font labelFont) {
-  fillRect(frame, 0, 0, SCREEN_WIDTH, BAND_HEIGHT, true);
-  fillRect(frame, 0, BAND_HEIGHT + BAND_RULE_GAP, SCREEN_WIDTH, RULE, true);
+  const bool landscape = orientation() == Orientation::Landscape;
+  const int width = screenWidth();
+  const int height = landscape ? LANDSCAPE_BAND_HEIGHT : BAND_HEIGHT;
+  fillRect(frame, 0, 0, width, height, true);
+  fillRect(frame, 0, height + BAND_RULE_GAP, width, RULE, true);
 
   int left = MARGIN + 4;
   if (hasBack) {
-    drawRoundRectOutline(frame, MARGIN, BACK_TOP, HEADER_BUTTON_WIDTH, BACK_HEIGHT, PILL_RADIUS, RULE, false);
-    drawTextInBox(frame, Font::Size20, MARGIN, BACK_TOP, HEADER_BUTTON_WIDTH, BACK_HEIGHT, "BACK", false);
+    const int backTop = (height - BACK_HEIGHT) / 2;
+    drawRoundRectOutline(frame, MARGIN, backTop, HEADER_BUTTON_WIDTH, BACK_HEIGHT, PILL_RADIUS, RULE, false);
+    drawTextInBox(frame, Font::Size20, MARGIN, backTop, HEADER_BUTTON_WIDTH, BACK_HEIGHT, "BACK", false);
     left = MARGIN + HEADER_BUTTON_WIDTH + GAP;
   }
 
-  int right = SCREEN_WIDTH - MARGIN - 4;
+  int right = width - MARGIN - 4;
   if (rightLabel != nullptr && rightLabel[0] != '\0') {
-    const int baseline = (BAND_HEIGHT + capHeight(labelFont)) / 2;
+    const int baseline = (height + capHeight(labelFont)) / 2;
     drawText(frame, labelFont, right, baseline, rightLabel, Align::Right, false);
     right -= textWidth(labelFont, rightLabel) + GAP;
   }
+  if (landscape && right > LANDSCAPE_WARNING_LEFT - GAP) right = LANDSCAPE_WARNING_LEFT - GAP;
 
-  drawTextLeft(frame, largestFitting(title, right - left), left, 0, BAND_HEIGHT, title, false);
+  drawTextLeft(frame, largestFitting(title, right - left), left, 0, height, title, false);
 }
 
 // Labels are Size14, the cut CrossPlay's buttons use, stepping down only if one

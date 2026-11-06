@@ -18,7 +18,11 @@ Redraw onTap(int x, int y);
 Redraw onUpPressed();
 Redraw onDownPressed();
 
+// Sets the orientation for what's on screen, then draws it.
 void draw(uint8_t* frame);
+
+// True while a landscape game is open, so taps are read in its frame.
+bool landscape();
 
 // True while a game is doing work that a sleep would throw away.
 bool busy();

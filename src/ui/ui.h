@@ -47,7 +47,19 @@ constexpr int ICON_SIZE = 32;  // a game's home-page icon: 4 bytes a row
 // largest cut that fits, never shortened. rightLabel, such as "2/3", can be null.
 // With hasBack, BACK sits where isOnBack() looks.
 constexpr int BAND_HEIGHT = 66;
+constexpr int BAND_RULE_GAP = 3;
 void drawBand(uint8_t* frame, const char* title, const char* rightLabel, bool hasBack, Font labelFont = Font::Size30);
+
+// In landscape the band is slimmer, as CrossPlay's Solitaire has it, because 480 px
+// is the height the cards need. Its content starts at LANDSCAPE_CONTENT_TOP.
+constexpr int LANDSCAPE_BAND_HEIGHT = 56;
+constexpr int LANDSCAPE_CONTENT_TOP = LANDSCAPE_BAND_HEIGHT + BAND_RULE_GAP + RULE;
+
+// Landscape has no free line under the band, so the shell's warning is drawn in the
+// band itself, in this slot. drawBand() keeps the title left of it, and a game's own
+// band buttons go to its right.
+constexpr int LANDSCAPE_WARNING_LEFT = 428;
+constexpr int LANDSCAPE_WARNING_WIDTH = 144;
 
 // A rounded button. A filled one is black with white type.
 void drawPill(uint8_t* frame, int left, int top, int width, const char* label, bool filled, int height = PILL_HEIGHT);
