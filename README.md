@@ -12,6 +12,7 @@ Games firmware for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), 
 - **Minesweeper:** eight by ten with ten mines. Tap to dig, hold to flag, and the first dig is always safe. [How it plays](src/games/minesweeper/README.md)
 - **Sudoku:** puzzles made on the device at four levels, graded by the hardest technique they need, with pencil marks, undo and hints. [How it plays](src/games/sudoku/README.md)
 - **Knucklebones:** a dice game against the computer: drop each roll into a column, where matching dice multiply and knock out the opponent's. [How it plays](src/games/knucklebones/README.md)
+- **Connect Four:** drop discs against the computer to get four in a line, across, up or on a diagonal. [How it plays](src/games/connectfour/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 
