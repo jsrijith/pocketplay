@@ -14,6 +14,7 @@ tools/preview/run.sh dungeon dungeonGame /tmp/shots shot:menu tap:240,758 shot:b
 | `tap:X,Y` | Taps at a screen position (0..479, 0..799 in portrait, or 0..799, 0..479 for a game whose `landscape()` is true), and prints the `TapResult`. Use it to check that a tap changing nothing returns `Nothing`. |
 | `shot:NAME` | Draws the game into `OUT_DIR/NAME.png`. |
 | `row:NAME` | Draws the game's home-page row, to check its name and icon. |
+| `warning:NAME` | Draws the game with the shell's longest warning, `SAVE FAILED`, where the shell puts it, to check nothing is drawn under it. |
 
 CrossPlay's own screenshots are in `/home/srijith/mycrossplay/site/assets/shots/`, at the same 480 x 800 (800 x 480 for a landscape game). A landscape game's screens come out landscape, and its `row:` stays portrait, as the home page is.
 
@@ -27,5 +28,6 @@ CrossPlay's own screenshots are in `/home/srijith/mycrossplay/site/assets/shots/
   ```
 
   The file has to be in the blob's own format. For Connections that's a 4-byte index length, then `tests/connections/archive.idx`, then `archive.dat`.
+- A save can be put there the same way, to preview a game part-way through: `PREVIEW_SAVE_<name>=<file>` loads the file as the save `<name>`, and the file's first byte is the save's version.
 - A preview shows pixels, not the panel. Ghosting, refresh timing, touch accuracy and sleep still have to be checked on the device.
 - It runs under AddressSanitizer and UBSan, so a memory error in drawing code stops it.

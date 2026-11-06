@@ -5,6 +5,7 @@
 //   tap:X,Y     a tap at a screen position (480 x 800, or 800 x 480 for a landscape game); prints what it returned
 //   shot:NAME   draws the game into NAME.pgm
 //   row:NAME    draws the game's home-page row into NAME.pgm, to check its name and icon
+//   warning:NAME  draws the game with the shell's longest warning over it, to check it clears
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -83,15 +84,17 @@ int main(int argc, char** argv) {
         return 2;
       }
       printf("%s -> %s\n", command.c_str(), resultName(game.onTap(x, y)));
-    } else if (command.rfind("shot:", 0) == 0 || command.rfind("row:", 0) == 0) {
+    } else if (command.rfind("shot:", 0) == 0 || command.rfind("row:", 0) == 0 || command.rfind("warning:", 0) == 0) {
       const bool row = command[0] == 'r';
-      const std::string name = command.substr(row ? 4 : 5);
+      const bool warning = command[0] == 'w';
+      const std::string name = command.substr(command.find(':') + 1);
       memset(frame, 0xFF, sizeof(frame));
       if (row) {
         setOrientation(Orientation::Portrait);  // the home page is always portrait
         ui::drawRow(frame, ui::CONTENT_TOP, game.name(), game.icon());
       } else {
         game.draw(frame);
+        if (warning) ui::drawWarning(frame, "SAVE FAILED");
       }
       const bool written = writePgm(outDir + "/" + name + ".pgm");
       setOrientation(gameOrientation);
