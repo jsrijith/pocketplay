@@ -28,7 +28,7 @@ tests/knucklebones/run.sh # Knucklebones: rules, opponent, flow and save packing
 tests/connectfour/run.sh  # Connect Four: rules, opponent, flow and save packing
 ```
 
-Every firmware build runs `scripts/check.sh` first and stops if it fails (`scripts/pre_build_gate.py`). Tests compile with AddressSanitizer and UBSan, so a memory error stops them. To add a test, put `test_<name>.cpp` in `tests/<folder>/`, then compile and run it from that folder's `run.sh`, which takes its flags from `tests/flags.sh`. The check fails if `run.sh` doesn't mention a test file.
+Every firmware build runs `scripts/check.sh` first and stops if it fails (`scripts/pre_build_gate.py`). Tests compile with AddressSanitizer and UBSan, so a memory error stops them. To add a test, put `test_<name>.cpp` in `tests/<folder>/`, then compile and run it from that folder's `run.sh`, which takes its flags from `tests/flags.sh`. The check fails if `run.sh` doesn't mention a test file. The suites run at the same time, one per core, so a `run.sh` builds in its own `mktemp -d` folder and writes nothing outside it.
 
 `tools/preview/run.sh` draws a game's screens on the PC as PNGs, to compare with CrossPlay's screenshots before flashing (`tools/preview/README.md`).
 

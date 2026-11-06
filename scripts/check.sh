@@ -24,11 +24,35 @@ for test_file in tests/*/test_*.cpp; do
   fi
 done
 
+# The suites run at the same time, as many as there are cores, because the slowest
+# ones (CrossPlay's own tests under the sanitizers) take most of a minute each. Each
+# one writes to its own log, printed in order once all are done, so the output reads
+# as if they ran one after another. Each run.sh builds in its own temporary folder.
+logs="$(mktemp -d)"
+trap 'rm -rf "$logs"' EXIT
+max_jobs="$(nproc 2>/dev/null || echo 4)"
+runs=()
 for run in tests/*/run.sh; do
   [ -e "$run" ] || continue
+  index=${#runs[@]}
+  runs+=("$run")
+  while [ "$(jobs -rp | wc -l)" -ge "$max_jobs" ]; do
+    wait -n
+  done
+  # The status file is written only once the suite has finished, so a suite that
+  # was killed leaves none and counts as failed.
+  (
+    bash "$run" >"$logs/$index.log" 2>&1
+    echo $? >"$logs/$index.status"
+  ) &
+done
+wait
+
+for index in "${!runs[@]}"; do
   suites=$((suites + 1))
-  if ! bash "$run"; then
-    fail "$run"
+  cat "$logs/$index.log"
+  if [ "$(cat "$logs/$index.status" 2>/dev/null)" != "0" ]; then
+    fail "${runs[$index]}"
   fi
 done
 
