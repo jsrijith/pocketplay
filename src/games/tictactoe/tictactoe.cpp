@@ -16,20 +16,25 @@ namespace {
 
 constexpr const char* SAVE_FILE = "tictactoe";
 
+// CrossPlay's layout: the status in a capsule under the header, the board, the rules,
+// and NEW GAME along the bottom.
+constexpr int MARGIN = 16;
+constexpr int INNER_WIDTH = SCREEN_WIDTH - 2 * MARGIN;
 constexpr int STATUS_TOP = ui::CONTENT_TOP;
-constexpr int STATUS_HEIGHT = 48;
-constexpr int BOARD_LEFT = ui::MARGIN;
-constexpr int BOARD_TOP = STATUS_TOP + STATUS_HEIGHT + 4;
-constexpr int CELL_SIZE = (SCREEN_WIDTH - 2 * ui::MARGIN) / ttt::kSize;
+constexpr int STATUS_HEIGHT = ui::PILL_HEIGHT;
+constexpr int STATUS_BORDER = 2;
+constexpr int BOARD_LEFT = MARGIN;
+constexpr int BOARD_TOP = STATUS_TOP + STATUS_HEIGHT + 12;
+constexpr int CELL_SIZE = INNER_WIDTH / ttt::kSize;
 constexpr int BOARD_SIZE = CELL_SIZE * ttt::kSize;
 constexpr int GRID_WEIGHT = 4;
 constexpr int MARK_WEIGHT = CELL_SIZE / 11;
 constexpr int O_RADIUS = CELL_SIZE * 3 / 10;
 constexpr int X_REACH = O_RADIUS * 4 / 5;
 
-constexpr int RULES_TOP = BOARD_TOP + BOARD_SIZE + 4;
-constexpr int BUTTON_TOP = 712;
-constexpr int BUTTON_HEIGHT = 76;
+constexpr int RULES_TOP = BOARD_TOP + BOARD_SIZE + 8;
+constexpr int BUTTON_HEIGHT = ui::PILL_HEIGHT;
+constexpr int BUTTON_TOP = SCREEN_HEIGHT - MARGIN - BUTTON_HEIGHT;
 
 constexpr const char* RULES[] = {
     "X GOES FIRST. TAP AN EMPTY SQUARE.",
@@ -112,7 +117,7 @@ class TicTacToe final : public Game {
   TapResult onTap(int x, int y) override {
     if (ui::isOnBack(x, y)) return TapResult::Leave;
 
-    if (ui::isInBox(x, y, ui::MARGIN, BUTTON_TOP, SCREEN_WIDTH - 2 * ui::MARGIN, BUTTON_HEIGHT)) {
+    if (ui::isInBox(x, y, MARGIN, BUTTON_TOP, INNER_WIDTH, BUTTON_HEIGHT)) {
       if (boardIsEmpty(game_)) return TapResult::Nothing;
       ttt::start(game_);
       persist();
@@ -129,8 +134,17 @@ class TicTacToe final : public Game {
   }
 
   void draw(uint8_t* frame) override {
-    ui::drawHeader(frame, name());
-    drawTextInBox(frame, Font::Size30, 0, STATUS_TOP, SCREEN_WIDTH, STATUS_HEIGHT, statusText(game_));
+    ui::drawBand(frame, name(), nullptr, true);
+
+    // Outlined while the game runs, and solid once it's over: a fill that appears
+    // once, with the full refresh, is the payoff rather than a cost.
+    const bool over = ttt::over(game_);
+    if (over) {
+      fillRect(frame, MARGIN, STATUS_TOP, INNER_WIDTH, STATUS_HEIGHT, true);
+    } else {
+      drawRectOutline(frame, MARGIN, STATUS_TOP, INNER_WIDTH, STATUS_HEIGHT, STATUS_BORDER);
+    }
+    drawTextInBox(frame, Font::Size30, MARGIN, STATUS_TOP, INNER_WIDTH, STATUS_HEIGHT, statusText(game_), !over);
 
     int line[ttt::kLine] = {-1, -1, -1};
     if (game_.outcome == ttt::Outcome::XWins) ttt::winningLine(game_, ttt::kX, line);
@@ -144,11 +158,11 @@ class TicTacToe final : public Game {
 
     int top = RULES_TOP;
     for (const char* rule : RULES) {
-      drawTextInBox(frame, Font::Size14, 0, top, SCREEN_WIDTH, lineHeight(Font::Size14), rule);
+      ui::drawTextLeft(frame, Font::Size14, MARGIN, top, lineHeight(Font::Size14), rule);
       top += lineHeight(Font::Size14);
     }
 
-    ui::drawButton(frame, ui::MARGIN, BUTTON_TOP, SCREEN_WIDTH - 2 * ui::MARGIN, BUTTON_HEIGHT, "NEW GAME");
+    ui::drawPill(frame, MARGIN, BUTTON_TOP, INNER_WIDTH, "NEW GAME", true);
   }
 
   bool saveFailed() const override { return saveFailed_; }

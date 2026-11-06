@@ -24,9 +24,6 @@ constexpr int HAIRLINE = 1;
 constexpr int RULE = 3;
 constexpr int FRAME = 4;
 
-// The title and right label share the header with BACK.
-constexpr int TITLE_LEFT = ui::MARGIN + ui::HEADER_BUTTON_WIDTH + ui::GAP;
-
 // The game.
 constexpr int MESSAGE_HEIGHT = 22;
 constexpr int TILE = 60;
@@ -44,7 +41,7 @@ constexpr int WIDE_KEY_WIDTH = KEY_WIDTH * 3 / 2 + KEY_GAP / 2;
 constexpr const char* KEY_ROWS[3] = {"QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"};
 constexpr int KEY_ROW_LENGTHS[3] = {10, 9, 7};
 
-constexpr int FOOTER_HEIGHT = 56;
+constexpr int FOOTER_HEIGHT = ui::PILL_HEIGHT;
 constexpr int FOOTER_TOP = SCREEN_HEIGHT - MARGIN - FOOTER_HEIGHT;
 constexpr int FOOTER_BUTTON_WIDTH = (INNER_WIDTH - 12) / 2;
 constexpr int FOOTER_NEXT_LEFT = SCREEN_WIDTH - MARGIN - FOOTER_BUTTON_WIDTH;
@@ -71,7 +68,7 @@ constexpr int STEPPER_BUTTON_WIDTH = 52;
 constexpr int STEPPER_VALUE_WIDTH = 196;  // fits SEPTEMBER
 constexpr int STEPPER_PLUS_LEFT = CALENDAR_MARGIN + CALENDAR_WIDTH - 12 - STEPPER_BUTTON_WIDTH;
 constexpr int STEPPER_MINUS_LEFT = STEPPER_PLUS_LEFT - 12 - STEPPER_VALUE_WIDTH - STEPPER_BUTTON_WIDTH;
-constexpr int PILL_HEIGHT = 52;
+constexpr int PILL_HEIGHT = ui::PILL_HEIGHT;
 constexpr int PILL_TOP = SCREEN_HEIGHT - MARGIN - PILL_HEIGHT;
 constexpr int CELL_COLUMNS = 7;
 constexpr int CELL_ROWS = 6;
@@ -168,19 +165,9 @@ void drawLeftText(uint8_t* frame, Font font, int left, int top, int height, cons
   drawText(frame, font, left, top + (height + capHeight(font)) / 2, text, Align::Left, black);
 }
 
-void drawChrome(uint8_t* frame, const char* title, const char* rightLabel) {
-  ui::drawHeader(frame, "");
-  const int labelWidth = rightLabel != nullptr ? textWidth(Font::Size14, rightLabel) + ui::GAP : 0;
-  const int titleWidth = SCREEN_WIDTH - ui::MARGIN - labelWidth - TITLE_LEFT;
-
-  // Longer titles drop a size, so that they don't run into the label or off the screen.
-  const Font font = textWidth(DISPLAY_FONT, title) <= titleWidth ? DISPLAY_FONT : BODY_FONT;
-  drawTextInBox(frame, font, TITLE_LEFT, ui::HEADER_TOP, titleWidth, ui::HEADER_BUTTON_HEIGHT, title);
-  if (rightLabel != nullptr) {
-    const int baseline = ui::HEADER_TOP + (ui::HEADER_BUTTON_HEIGHT + capHeight(Font::Size14)) / 2;
-    drawText(frame, Font::Size14, SCREEN_WIDTH - ui::MARGIN, baseline, rightLabel, Align::Right);
-  }
-}
+// CrossPlay's black band, with BACK, the title, and a small label such as the date on
+// the right. A long title drops a size rather than run into the label.
+void drawChrome(uint8_t* frame, const char* title, const char* rightLabel) { ui::drawBand(frame, title, rightLabel, true, Font::Size14); }
 
 // One tile or key. Right place: solid black. In the word: a heavy border and a dot. Not
 // in the word: grey. Empty: a thin border. Typed: a firmer one.
@@ -252,8 +239,11 @@ void drawKeyboard(uint8_t* frame, const wordle::Game& game) {
 }
 
 void drawFooterButton(uint8_t* frame, int left, const char* label, bool enabled) {
-  if (!enabled) fillGrey(frame, left, FOOTER_TOP, FOOTER_BUTTON_WIDTH, FOOTER_HEIGHT);
-  ui::drawButton(frame, left, FOOTER_TOP, FOOTER_BUTTON_WIDTH, FOOTER_HEIGHT, label);
+  if (enabled) {
+    ui::drawPill(frame, left, FOOTER_TOP, FOOTER_BUTTON_WIDTH, label, true, FOOTER_HEIGHT);
+  } else {
+    ui::drawDimmedPill(frame, left, FOOTER_TOP, FOOTER_BUTTON_WIDTH, label, FOOTER_HEIGHT);
+  }
 }
 
 void drawFinished(uint8_t* frame, const wordle::Game& game, bool canNext) {
@@ -272,8 +262,9 @@ void drawFinished(uint8_t* frame, const wordle::Game& game, bool canNext) {
 
 void drawMenuRow(uint8_t* frame, int index, const char* label, const char* value, bool enabled) {
   const int top = MENU_ROWS_TOP + index * MENU_ROW_STEP;
+  // A hairline row, like the home page's. A spent one is greyed, not removed.
   if (!enabled) fillGrey(frame, MARGIN, top, INNER_WIDTH, MENU_ROW_HEIGHT);
-  drawRectOutline(frame, MARGIN, top, INNER_WIDTH, MENU_ROW_HEIGHT, enabled ? 3 : 1);
+  drawRectOutline(frame, MARGIN, top, INNER_WIDTH, MENU_ROW_HEIGHT, HAIRLINE);
   drawLeftText(frame, BODY_FONT, MARGIN + 12, top, MENU_ROW_HEIGHT, label);
   if (value[0] != '\0') {
     drawText(frame, BODY_FONT, SCREEN_WIDTH - MARGIN - 12, top + (MENU_ROW_HEIGHT + capHeight(BODY_FONT)) / 2, value, Align::Right);
@@ -492,7 +483,7 @@ void drawCalendar(uint8_t* frame, const CalendarModel& model) {
     drawCalendarCell(frame, left, top, day, i == model.todayCell);
   }
 
-  ui::drawButton(frame, MARGIN, PILL_TOP, INNER_WIDTH, PILL_HEIGHT, "TODAY");
+  ui::drawPill(frame, MARGIN, PILL_TOP, INNER_WIDTH, "TODAY", true, PILL_HEIGHT);
 }
 
 CalendarTap calendarTapAt(int x, int y, int& cell) {
@@ -521,8 +512,11 @@ void drawImport(uint8_t* frame, const ImportModel& model) {
   drawChrome(frame, "GET PUZZLES", nullptr);
 
   const bool working = !model.done && !model.failed;
-  if (working) fillGrey(frame, MARGIN, PILL_TOP, INNER_WIDTH, PILL_HEIGHT);
-  ui::drawButton(frame, MARGIN, PILL_TOP, INNER_WIDTH, PILL_HEIGHT, model.done ? "PLAY" : model.failed ? "BACK" : "WORKING");
+  if (working) {
+    ui::drawDimmedPill(frame, MARGIN, PILL_TOP, INNER_WIDTH, "WORKING", PILL_HEIGHT);
+  } else {
+    ui::drawPill(frame, MARGIN, PILL_TOP, INNER_WIDTH, model.done ? "PLAY" : "BACK", true, PILL_HEIGHT);
+  }
 
   // An outline while it's working, and solid black once finished: the inversion says
   // "done", and it costs nothing because a finished panel never repaints.

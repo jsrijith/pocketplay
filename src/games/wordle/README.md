@@ -21,6 +21,6 @@ Six guesses for one five-letter word, the same word as the New York Times' Wordl
 
 **Copied code:** `wordle_rules.h` and `wordle_rules.cpp` are CrossPlay's `src/apps_local/wordle/WordleCore.h` and `.cpp`, changed only in one include and one comment, and `tests/wordle/test_wordle.cpp` is its test. The screens and game logic are ported from `WordleScreens.cpp`, `WordleActivity.cpp` and the calendar in `ConnectionsScreens.cpp`, redrawn without CrossPlay's UI toolkit. All of it matched CrossPlay commit `fbeac762` when last compared, and it's under the MIT licence, in `LICENSE-CrossPlay.txt`.
 
-**Differences from CrossPlay:** the calendar and download screens use Jersey 25, because this firmware has no serif font. The download runs in the background, so `BACK` can stop it. A half-typed row survives sleep. Progress isn't imported from a CrossPlay card.
+**Differences from CrossPlay:** the calendar and download screens use Jersey 25, because this firmware has no serif font. The download runs in the background, so `BACK` can stop it. A half-typed row survives sleep. Progress isn't imported from a CrossPlay card. The header carries a `BACK` button, because PocketPlay has no edge swipe, so a long title drops a size sooner.
 
 **Icon:** `wordle_home_icon.h` is CrossPlay's home-page icon for this game, drawn from the Lucide `spell-check` icon (ISC licence).
