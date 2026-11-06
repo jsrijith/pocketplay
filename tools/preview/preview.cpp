@@ -6,6 +6,7 @@
 //   shot:NAME   draws the game into NAME.pgm
 //   row:NAME    draws the game's home-page row into NAME.pgm, to check its name and icon
 //   warning:NAME  draws the game with the shell's longest warning over it, to check it clears
+//   update      runs the game's update() as the loop would, until it's no longer busy()
 //   press:X,Y   a finger down, hold:X,Y the same finger held, release its lift: the calls a
 //               game whose usesHold() is true gets. A hold's lift taps nothing, as on the device.
 #include <cstdio>
@@ -91,6 +92,15 @@ int main(int argc, char** argv) {
         return 2;
       }
       printf("%s -> %s\n", command.c_str(), resultName(hold ? game.onHold(x, y) : game.onPress(x, y)));
+    } else if (command == "update") {
+      // At least once, then for as long as the game says it has work going.
+      bool redraw = false;
+      int passes = 0;
+      do {
+        redraw = game.update() || redraw;
+        passes++;
+      } while (game.busy() && passes < 100000);
+      printf("update -> %s after %d pass%s\n", redraw ? "Redraw" : "Nothing", passes, passes == 1 ? "" : "es");
     } else if (command == "release") {
       printf("release -> %s\n", resultName(game.onRelease()));
     } else if (command.rfind("tap:", 0) == 0) {

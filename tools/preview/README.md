@@ -14,6 +14,7 @@ tools/preview/run.sh dungeon dungeonGame /tmp/shots shot:menu tap:240,758 shot:b
 | `tap:X,Y` | Taps at a screen position (0..479, 0..799 in portrait, or 0..799, 0..479 for a game whose `landscape()` is true), and prints the `TapResult`. Use it to check that a tap changing nothing returns `Nothing`. |
 | `shot:NAME` | Draws the game into `OUT_DIR/NAME.png`. |
 | `row:NAME` | Draws the game's home-page row, to check its name and icon. |
+| `update` | Runs the game's `update()` as the loop does, at least once and then while `busy()` is true, and prints whether it asked for a redraw. For a game with work between taps, such as Sudoku making a puzzle. |
 | `press:X,Y`, `hold:X,Y`, `release` | For a game whose `usesHold()` is true: a finger going down, the same finger held for 400 ms, and the press ending. On the device a hold ends its own press, so follow `hold:` with `release` and no `tap:`. |
 | `warning:NAME` | Draws the game with the shell's longest warning, `SAVE FAILED`, where the shell puts it, to check nothing is drawn under it. |
 
