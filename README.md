@@ -9,6 +9,7 @@ Games firmware for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), 
 - **D&Diagrams:** 64 dungeon logic puzzles: place walls so the numbers, monsters and treasure all fit. [How it plays](src/games/dungeon/README.md)
 - **Connections:** sixteen words in four hidden groups, the daily puzzle and every past one, with a calendar archive and your record. [How it plays](src/games/connections/README.md)
 - **Solitaire:** Klondike, drawing one or three, with undo and your record. It plays in landscape, with the USB edge at the top. [How it plays](src/games/solitaire/README.md)
+- **Minesweeper:** eight by ten with ten mines. Tap to dig, hold to flag, and the first dig is always safe. [How it plays](src/games/minesweeper/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 

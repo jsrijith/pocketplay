@@ -12,6 +12,7 @@ games/
   dungeon/         a port from CrossPlay, with a layout struct for taps
   connections/     a port with a download parsed as it arrives, and a layout tested on every board
   solitaire/       a port drawn in landscape
+  minesweeper/     a port that acts on a held finger (Game::usesHold)
   DESIGN.md        how a game's screens look
 ```
 
@@ -42,6 +43,6 @@ Small games don't need every file, but keep rules and save packing free of scree
 - **Don't include another game's files.** If two games need the same code, move it to `ui/` or `core/` in a change of its own.
 - **Keep everything inside the folder private.** Use a namespace named after the game for the rules and save code, and an unnamed namespace in `<name>.cpp`.
 - **Keep game code out of the shared files.** A game shouldn't need changes to `shell/`, `ui/` or `core/`. If it does, make that change on its own first, because that's the part that can conflict with other branches.
-- **Name save files after the folder:** `tictactoe`, or `tictactoe-stats` for a second one. `session`, `settings`, `networks` and `home` are already taken, as are each game's own (`tictactoe`, `wordle*`, `dungeon`, `connections*`, `solitaire*`), and all saves share `/.pocketplay/`.
+- **Name save files after the folder:** `tictactoe`, or `tictactoe-stats` for a second one. `session`, `settings`, `networks` and `home` are already taken, as are each game's own (`tictactoe`, `wordle*`, `dungeon`, `connections*`, `solitaire*`, `minesweeper*`), and all saves share `/.pocketplay/`.
 
 The save rules are in `CLAUDE.md`, under Storage.
