@@ -58,6 +58,11 @@ class ConnectFour final : public Game {
     return TapResult::Nothing;
   }
 
+  // How to play also turns with the buttons, as CrossPlay's does: Down forward and
+  // Up back, wrapping round. Nowhere else uses them.
+  TapResult onUpPressed() override { return stepHowTo(-1); }
+  TapResult onDownPressed() override { return stepHowTo(1); }
+
   // The opponent's disc, one per call, as CrossPlay plays it once per pass, so
   // your disc is drawn before it thinks. The game settling moves to the result on
   // the call after, so the last disc is seen landing first.
@@ -145,6 +150,13 @@ class ConnectFour final : public Game {
         return TapResult::Redraw;
     }
     return TapResult::Nothing;
+  }
+
+  TapResult stepHowTo(int step) {
+    if (screen_ != c4::Screen::HowTo) return TapResult::Nothing;
+    const int pages = c4ui::howToPages();
+    howToPage_ = (howToPage_ + step + pages) % pages;
+    return TapResult::Redraw;
   }
 
   TapResult tapHowTo(int x, int y) {

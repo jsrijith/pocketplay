@@ -3,6 +3,7 @@
 Seven columns, six rows, against the computer. Tap a column and your disc falls to the lowest free place in it. Four of yours in a line, across, up or on either diagonal, wins, and a full board with no line is a draw. You play the outlined discs and always go first. The computer plays the solid ones, searching seven moves ahead.
 
 - **Board:** the slots across the top of the frame hold the disc you're about to drop, one in each column with room, and go grey while it's the computer's turn or once a column is full. The last disc is marked with a dot. Under the board, the discs each side has left. The computer drops its disc straight after yours, and the result follows the disc that settles the game.
+- **How to play:** three pages. `NEXT` turns them and `GOT IT` returns to the menu. The Down button also steps forward and Up back, wrapping round, as in CrossPlay.
 - **Result:** the final board, with the winning four struck through, then `PLAY AGAIN` or `DONE`.
 - **Menu:** games played and won, the last game's final board with its four marked, and `PLAY`, or `RESUME` and `NEW GAME` while a game is unfinished.
 
@@ -24,7 +25,6 @@ CrossPlay's test plays many whole games with the seven-move search, so it's the 
 - **Saving:** the game is saved after every disc, packed byte by byte, so it survives sleep and is offered as `RESUME`. CrossPlay keeps no game, and leaving one loses it.
 - **The record** is packed byte by byte too, where CrossPlay writes a line of text. It's written the moment a disc settles the game, so leaving before the result still counts it.
 - **The board** has CrossPlay's sizes, but starts under PocketPlay's warning line, 10 px lower.
-- **How to play** turns its pages with `NEXT` only. CrossPlay also steps them with the Up and Down buttons, and PocketPlay's games use touch alone.
 - A tap that changes nothing draws nothing: a full column, any tap on the computer's turn, and anywhere off the board and controls.
 - Starting or resuming a game is a full refresh, as starting a game is everywhere in PocketPlay, and each disc is a fast one. The result arrives between taps, after the last disc is drawn, so it's a fast refresh too.
 - The menu's rows are PocketPlay's, 62 tall with a 4 px gap, and the first reads selected, as CrossPlay's does.
