@@ -11,6 +11,7 @@
 #include "core/network.h"
 #include "core/storage.h"
 #include "ui/ui.h"
+#include "wordle_home_icon.h"
 #include "wordle_import.h"
 #include "wordle_rules.h"
 #include "wordle_save.h"
@@ -76,6 +77,7 @@ bool isListed(void* context, const char* word) {
 class WordleGame final : public Game {
  public:
   const char* name() const override { return "WORDLE"; }
+  const uint8_t* icon() const override { return wordleHomeIcon::ICON; }
 
   void open() override {
     readBlob(ANSWERS_BLOB, answers_);

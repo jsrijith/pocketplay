@@ -63,6 +63,7 @@ void loadSession() {
 Redraw tapHome(int x, int y) {
   const int tapped = homeScreen::onTap(x, y);
   if (tapped == homeScreen::TAP_NOTHING) return Redraw::None;
+  if (tapped == homeScreen::TAP_PAGE) return Redraw::Fast;
 
   if (tapped == homeScreen::TAP_SETTINGS) {
     screen = Screen::Settings;
@@ -147,7 +148,7 @@ const char* warningText() {
   if (!storage::ready()) return "NO CARD";
 
   const bool gameFailed = currentGame != nullptr && currentGame->saveFailed();
-  if (gameFailed || settingsScreen::saveFailed() || sessionSaveFailed) return "SAVE FAILED";
+  if (gameFailed || settingsScreen::saveFailed() || sessionSaveFailed || homeScreen::saveFailed()) return "SAVE FAILED";
   return nullptr;
 }
 
@@ -157,6 +158,7 @@ void begin(bool touchWorks) {
   hasTouch = touchWorks;
   settingsScreen::begin();
   wifiScreen::begin();
+  homeScreen::begin();
   loadSession();
 }
 
@@ -194,12 +196,14 @@ Redraw onTap(int x, int y) {
 }
 
 Redraw onUpPressed() {
+  if (screen == Screen::Home) return homeScreen::onUpPressed() ? Redraw::Fast : Redraw::None;
   if (screen == Screen::Wifi) return wifiScreen::onUpPressed() ? Redraw::Fast : Redraw::None;
   if (screen == Screen::TimeZone) return timezoneScreen::onUpPressed() ? Redraw::Fast : Redraw::None;
   return Redraw::None;
 }
 
 Redraw onDownPressed() {
+  if (screen == Screen::Home) return homeScreen::onDownPressed() ? Redraw::Fast : Redraw::None;
   if (screen == Screen::Wifi) return wifiScreen::onDownPressed() ? Redraw::Fast : Redraw::None;
   if (screen == Screen::TimeZone) return timezoneScreen::onDownPressed() ? Redraw::Fast : Redraw::None;
   return Redraw::None;

@@ -38,7 +38,7 @@ constexpr int BACK_HEIGHT = 46;
 constexpr int ROW_TEXT_INSET = 14;
 
 // The cuts a title tries, largest first.
-constexpr Font TITLE_CUTS[] = {Font::Size44, Font::Size30, Font::Size20, Font::Size14};
+constexpr Font TITLE_CUTS[] = {Font::Size30, Font::Size20, Font::Size14};
 
 Font largestFitting(const char* text, int width) {
   for (const Font cut : TITLE_CUTS) {
@@ -87,7 +87,7 @@ void drawPill(uint8_t* frame, int left, int top, int width, const char* label, b
 
 void drawRow(uint8_t* frame, int top, const char* label, const uint8_t* icon) {
   drawRectOutline(frame, MARGIN, top, ROW_WIDTH, ROW_HEIGHT, HAIRLINE);
-  drawTextLeft(frame, Font::Size30, MARGIN + ROW_TEXT_INSET, top, ROW_HEIGHT, label);
+  drawTextLeft(frame, Font::Size20, MARGIN + ROW_TEXT_INSET, top, ROW_HEIGHT, label);
   if (icon != nullptr) {
     drawIcon(frame, icon, ICON_SIZE, ICON_SIZE, MARGIN + ROW_WIDTH - ROW_TEXT_INSET - ICON_SIZE, top + (ROW_HEIGHT - ICON_SIZE) / 2);
   }

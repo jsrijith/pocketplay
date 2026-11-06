@@ -5,6 +5,7 @@
 #include "core/graphics.h"
 #include "core/storage.h"
 #include "core/text.h"
+#include "tictactoe_icon.h"
 #include "tictactoe_rules.h"
 #include "tictactoe_save.h"
 #include "ui/ui.h"
@@ -94,6 +95,7 @@ bool boardIsEmpty(const ttt::Game& game) {
 class TicTacToe final : public Game {
  public:
   const char* name() const override { return "TIC TAC TOE"; }
+  const uint8_t* icon() const override { return tictactoeIcon::ICON; }
 
   // Memory is the truth once loaded, so a game also survives leaving and coming back
   // without a card. A finished game doesn't: coming back starts a new one.

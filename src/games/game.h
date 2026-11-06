@@ -18,6 +18,10 @@ class Game {
   // it means a game that was open at sleep wakes on the home page once instead.
   virtual const char* name() const = 0;
 
+  // The home page's icon for this game: 32 x 32 in ui::ICON_SIZE's format, or
+  // nullptr for none.
+  virtual const uint8_t* icon() const { return nullptr; }
+
   // Called each time the game is entered. Picks up its save, or starts fresh.
   virtual void open() = 0;
 
