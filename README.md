@@ -8,6 +8,7 @@ Games firmware for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), 
 - **Tic Tac Toe:** two players on one device.
 - **D&Diagrams:** 64 dungeon logic puzzles: place walls so the numbers, monsters and treasure all fit. [How it plays](src/games/dungeon/README.md)
 - **Connections:** sixteen words in four hidden groups, the daily puzzle and every past one, with a calendar archive and your record. [How it plays](src/games/connections/README.md)
+- **Solitaire:** Klondike, drawing one or three, with undo and your record. It plays in landscape, with the USB edge at the top. [How it plays](src/games/solitaire/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 
@@ -181,5 +182,6 @@ PocketPlay builds on other people's work, each under its own licence:
 - [wolfSSL](https://www.wolfssl.com/): HTTPS (GPLv2 or later, or commercial)
 - [SdFat](https://github.com/greiman/SdFat): SD card access (MIT)
 - Jersey 25: the font (SIL Open Font License)
+- Noto Sans Symbols 2: Solitaire's suit marks, drawn from its card-suit glyphs (SIL Open Font License, in `src/games/solitaire/OFL-Noto.txt`)
 
 Wordle and Connections are trademarks of The New York Times Company, and this project isn't affiliated with it. The firmware ships no puzzles: the device downloads them when you ask, from [mfilej/wrdl](https://github.com/mfilej/wrdl), the New York Times and [Eyefyre/NYT-Connections-Answers](https://github.com/Eyefyre/NYT-Connections-Answers). The Connections test fixture in `tests/connections/` holds a copy of that archive, copied from CrossPlay, and is never built into the firmware.
