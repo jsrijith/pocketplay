@@ -54,7 +54,7 @@ void drawTextLeft(uint8_t* frame, Font font, int left, int top, int height, cons
   drawText(frame, font, left, top + (height - cap) / 2 + cap, text, Align::Left, black);
 }
 
-void drawBand(uint8_t* frame, const char* title, const char* rightLabel, bool hasBack) {
+void drawBand(uint8_t* frame, const char* title, const char* rightLabel, bool hasBack, Font labelFont) {
   fillRect(frame, 0, 0, SCREEN_WIDTH, BAND_HEIGHT, true);
   fillRect(frame, 0, BAND_HEIGHT + BAND_RULE_GAP, SCREEN_WIDTH, RULE, true);
 
@@ -67,22 +67,24 @@ void drawBand(uint8_t* frame, const char* title, const char* rightLabel, bool ha
 
   int right = SCREEN_WIDTH - MARGIN - 4;
   if (rightLabel != nullptr && rightLabel[0] != '\0') {
-    const int baseline = (BAND_HEIGHT + capHeight(Font::Size30)) / 2;
-    drawText(frame, Font::Size30, right, baseline, rightLabel, Align::Right, false);
-    right -= textWidth(Font::Size30, rightLabel) + GAP;
+    const int baseline = (BAND_HEIGHT + capHeight(labelFont)) / 2;
+    drawText(frame, labelFont, right, baseline, rightLabel, Align::Right, false);
+    right -= textWidth(labelFont, rightLabel) + GAP;
   }
 
   drawTextLeft(frame, largestFitting(title, right - left), left, 0, BAND_HEIGHT, title, false);
 }
 
-void drawPill(uint8_t* frame, int left, int top, int width, const char* label, bool filled) {
+// Labels are Size14, the cut CrossPlay's buttons use, stepping down only if one
+// doesn't fit.
+void drawPill(uint8_t* frame, int left, int top, int width, const char* label, bool filled, int height) {
   if (filled) {
-    fillRoundRect(frame, left, top, width, PILL_HEIGHT, PILL_RADIUS, true);
+    fillRoundRect(frame, left, top, width, height, PILL_RADIUS, true);
   } else {
-    drawRoundRectOutline(frame, left, top, width, PILL_HEIGHT, PILL_RADIUS, RULE);
+    drawRoundRectOutline(frame, left, top, width, height, PILL_RADIUS, RULE);
   }
-  const Font font = textWidth(Font::Size20, label) <= width - 2 * PILL_RADIUS ? Font::Size20 : Font::Size14;
-  drawTextInBox(frame, font, left, top, width, PILL_HEIGHT, label, !filled);
+  const Font font = textWidth(Font::Size14, label) <= width - 2 * PILL_RADIUS ? Font::Size14 : Font::Size10;
+  drawTextInBox(frame, font, left, top, width, height, label, !filled);
 }
 
 void drawRow(uint8_t* frame, int top, const char* label, const uint8_t* icon) {

@@ -27,3 +27,7 @@ void fitText(Font font, const char* text, int maxWidth, char* out, size_t outSiz
 // Wraps at spaces and '\n'. A word wider than the box breaks between characters.
 // Returns the height used, so the next thing can be drawn below it.
 int drawWrapped(uint8_t* frame, Font font, int left, int top, int width, const char* text, Align align = Align::Left, bool black = true);
+
+// The height drawWrapped() would use, without drawing. It breaks lines the same
+// way, so a size chosen with it is the size that gets drawn.
+int wrappedHeight(Font font, int width, const char* text);

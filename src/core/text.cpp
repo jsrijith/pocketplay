@@ -199,3 +199,14 @@ int drawWrapped(uint8_t* frame, Font font, int left, int top, int width, const c
   }
   return lines * data.advanceY;
 }
+
+int wrappedHeight(Font font, int width, const char* text) {
+  const EpdFontData& data = dataFor(font);
+  int lines = 0;
+  while (*text != '\0') {
+    int length = 0;
+    text += measureLine(data, text, width, length);
+    lines++;
+  }
+  return lines * data.advanceY;
+}

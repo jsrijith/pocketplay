@@ -47,10 +47,10 @@ constexpr int ICON_SIZE = 32;  // a game's home-page icon: 4 bytes a row
 // largest cut that fits, never shortened. rightLabel, such as "2/3", can be null.
 // With hasBack, BACK sits where isOnBack() looks.
 constexpr int BAND_HEIGHT = 66;
-void drawBand(uint8_t* frame, const char* title, const char* rightLabel, bool hasBack);
+void drawBand(uint8_t* frame, const char* title, const char* rightLabel, bool hasBack, Font labelFont = Font::Size30);
 
 // A rounded button. A filled one is black with white type.
-void drawPill(uint8_t* frame, int left, int top, int width, const char* label, bool filled);
+void drawPill(uint8_t* frame, int left, int top, int width, const char* label, bool filled, int height = PILL_HEIGHT);
 
 // A list row: the label on the left and a 32 px icon (or none) on the right.
 void drawRow(uint8_t* frame, int top, const char* label, const uint8_t* icon);
