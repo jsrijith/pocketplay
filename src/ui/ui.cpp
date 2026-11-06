@@ -87,6 +87,26 @@ void drawPill(uint8_t* frame, int left, int top, int width, const char* label, b
   drawTextInBox(frame, font, left, top, width, height, label, !filled);
 }
 
+void drawDimmedPill(uint8_t* frame, int left, int top, int width, const char* label, int height) {
+  constexpr int R = PILL_RADIUS;
+  // One dot in four, inside the rounded corners.
+  for (int y = top; y < top + height; y++) {
+    for (int x = left; x < left + width; x++) {
+      if (x % 2 != 0 || y % 2 != 0) continue;
+      int dx = 0;
+      int dy = 0;
+      if (x < left + R) dx = left + R - x;
+      if (x >= left + width - R) dx = x - (left + width - R - 1);
+      if (y < top + R) dy = top + R - y;
+      if (y >= top + height - R) dy = y - (top + height - R - 1);
+      if (dx * dx + dy * dy <= R * R) setPixel(frame, x, y, true);
+    }
+  }
+  drawRoundRectOutline(frame, left, top, width, height, R, HAIRLINE);
+  const Font font = textWidth(Font::Size14, label) <= width - 2 * R ? Font::Size14 : Font::Size10;
+  drawTextInBox(frame, font, left, top, width, height, label);
+}
+
 void drawRow(uint8_t* frame, int top, const char* label, const uint8_t* icon) {
   drawRectOutline(frame, MARGIN, top, ROW_WIDTH, ROW_HEIGHT, HAIRLINE);
   drawTextLeft(frame, Font::Size20, MARGIN + ROW_TEXT_INSET, top, ROW_HEIGHT, label);

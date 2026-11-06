@@ -52,6 +52,11 @@ void drawBand(uint8_t* frame, const char* title, const char* rightLabel, bool ha
 // A rounded button. A filled one is black with white type.
 void drawPill(uint8_t* frame, int left, int top, int width, const char* label, bool filled, int height = PILL_HEIGHT);
 
+// A button that can't act: dimmed, never removed, so the layout doesn't jump and it
+// still says what it would do. A light grey fill inside a thin outline, with the
+// label still black, because type can't be drawn grey.
+void drawDimmedPill(uint8_t* frame, int left, int top, int width, const char* label, int height = PILL_HEIGHT);
+
 // A list row: the label on the left and a 32 px icon (or none) on the right.
 void drawRow(uint8_t* frame, int top, const char* label, const uint8_t* icon);
 

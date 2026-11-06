@@ -229,26 +229,6 @@ Button actionAt(int x, int y, Button left, Button right) {
   return Button::None;
 }
 
-// A button that can't act is dimmed, never removed: a grey fill inside its outline,
-// with the label still black so it still says what it would do.
-void drawDimmedPill(uint8_t* frame, const Rect& box, const char* label) {
-  constexpr int R = ui::PILL_RADIUS;
-  for (int y = box.y; y < box.y + box.height; y++) {
-    for (int x = box.x; x < box.x + box.width; x++) {
-      if (x % 2 != 0 || y % 2 != 0) continue;
-      int dx = 0;
-      int dy = 0;
-      if (x < box.x + R) dx = box.x + R - x;
-      if (x >= box.x + box.width - R) dx = x - (box.x + box.width - R - 1);
-      if (y < box.y + R) dy = box.y + R - y;
-      if (y >= box.y + box.height - R) dy = y - (box.y + box.height - R - 1);
-      if (dx * dx + dy * dy <= R * R) setPixel(frame, x, y, true);
-    }
-  }
-  drawRoundRectOutline(frame, box.x, box.y, box.width, box.height, R, ui::HAIRLINE);
-  drawTextInBox(frame, Font::Size14, box.x, box.y, box.width, box.height, label);
-}
-
 // A dungeon on the campaign map: its own monster, in a room filled once cleared.
 void drawMapCell(uint8_t* frame, const Rect& box, int index, bool done, bool current) {
   if (done) {
@@ -423,7 +403,7 @@ void drawWin(uint8_t* frame, const WinModel& model) {
   if (model.moreToPlay) {
     ui::drawPill(frame, actionRect(0).x, ACTIONS_TOP, ACTION_WIDTH, "NEXT", true);
   } else {
-    drawDimmedPill(frame, actionRect(0), "NEXT");
+    ui::drawDimmedPill(frame, actionRect(0).x, ACTIONS_TOP, ACTION_WIDTH, "NEXT");
   }
   ui::drawPill(frame, actionRect(1).x, ACTIONS_TOP, ACTION_WIDTH, "DUNGEONS", true);
 }
