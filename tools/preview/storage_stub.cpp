@@ -1,4 +1,8 @@
 // The card, kept in memory for one run, so a game's saves work while it's previewed.
+// A blob can be put on it before the game opens: PREVIEW_BLOB_<name>=<file> loads
+// that file as the blob <name>, with any '_' in the name read as '-'.
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <map>
 #include <string>
@@ -20,7 +24,32 @@ std::map<std::string, std::vector<uint8_t>> blobs;
 
 }  // namespace
 
-bool begin() { return true; }
+extern "C" char** environ;
+
+bool begin() {
+  static const char PREFIX[] = "PREVIEW_BLOB_";
+  for (char** entry = environ; *entry != nullptr; entry++) {
+    if (strncmp(*entry, PREFIX, sizeof(PREFIX) - 1) != 0) continue;
+    const char* rest = *entry + sizeof(PREFIX) - 1;
+    const char* equals = strchr(rest, '=');
+    if (equals == nullptr) continue;
+    std::string name(rest, equals);
+    for (char& c : name) {
+      if (c == '_') c = '-';
+    }
+    FILE* file = fopen(equals + 1, "rb");
+    if (file == nullptr) {
+      fprintf(stderr, "can't read %s for blob %s\n", equals + 1, name.c_str());
+      continue;
+    }
+    std::vector<uint8_t> data;
+    int c = 0;
+    while ((c = fgetc(file)) != EOF) data.push_back(static_cast<uint8_t>(c));
+    fclose(file);
+    blobs[name] = data;
+  }
+  return true;
+}
 bool ready() { return true; }
 
 bool save(const char* name, uint8_t version, const uint8_t* data, size_t size) {

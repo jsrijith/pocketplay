@@ -11,6 +11,7 @@
 #include <string>
 
 #include "core/graphics.h"
+#include "core/storage.h"
 #include "games/game.h"
 #include "ui/ui.h"
 
@@ -62,6 +63,7 @@ int main(int argc, char** argv) {
     return 2;
   }
   const std::string outDir = argv[1];
+  storage::begin();
   Game& game = PREVIEW_GAME();
   game.open();
 

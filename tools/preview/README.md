@@ -18,6 +18,13 @@ tools/preview/run.sh dungeon dungeonGame /tmp/shots shot:menu tap:240,758 shot:b
 CrossPlay's own screenshots are in `/home/srijith/mycrossplay/site/assets/shots/`, at the same 480 x 800.
 
 **Limits:**
-- It only links `core/graphics`, `core/text`, `ui/` and the game's folder. A game that uses the network, downloads or the clock (Wordle) won't link. Preview its screen functions with a small harness instead, or add stubs here.
+- It links `core/graphics`, `core/text`, `ui/` and the game's folder. `net_stub.cpp` stands in for `core/network` and `core/download`: Wi-Fi is never connected, so a download stops at its Wi-Fi step. The clock is the PC's.
+- A game's downloaded data can be put on the in-memory card before the game opens. `PREVIEW_BLOB_<name>=<file>` loads a file as the blob `<name>`, with `_` in the name read as `-`:
+
+  ```bash
+  PREVIEW_BLOB_connections_idx=tests/connections/archive.idx \
+  PREVIEW_BLOB_connections_dat=tests/connections/archive.dat \
+    tools/preview/run.sh connections connectionsGame /tmp/shots shot:menu
+  ```
 - A preview shows pixels, not the panel. Ghosting, refresh timing, touch accuracy and sleep still have to be checked on the device.
 - It runs under AddressSanitizer and UBSan, so a memory error in drawing code stops it.
