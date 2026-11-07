@@ -4,7 +4,7 @@ Two dice for a roll-and-write game played on paper, where each turn everyone dra
 
 ## The dice
 
-Each die has six symbols: **triangle**, **X**, **circle**, **hash**, **three lines** and **slash**. Every roll throws both dice together, at random, so any of the 36 pairs can come up.
+Each die has six symbols: **triangle**, **cross** (drawn as an X), **circle**, **hash**, **three lines** and **slash**. Every roll throws both dice together, at random, so any of the 36 pairs can come up.
 
 ## Playing
 

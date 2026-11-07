@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-// Symbol Dice's home-page icon: two dice, one showing an X and one a circle. 4 bytes a row,
+// Symbol Dice's home-page icon: two dice, one showing a cross and one a circle. 4 bytes a row,
 // MSB first, 0 = ink.
 namespace symboldiceIcon {
 

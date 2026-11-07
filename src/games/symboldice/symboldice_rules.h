@@ -13,7 +13,7 @@ constexpr int kSymbols = 6;
 constexpr int kDice = 2;
 constexpr int kTurns = 12;
 
-constexpr const char* kNames[kSymbols] = {"TRIANGLE", "X", "CIRCLE", "HASH", "THREE LINES", "SLASH"};
+constexpr const char* kNames[kSymbols] = {"TRIANGLE", "CROSS", "CIRCLE", "HASH", "THREE LINES", "SLASH"};
 
 struct Game {
   uint8_t turn = 0;  // turns taken: 0 before the first roll, kTurns once the game is over
