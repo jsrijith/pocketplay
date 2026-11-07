@@ -220,6 +220,11 @@ Redraw onDownPressed() {
   return Redraw::None;
 }
 
+Redraw onSwipe(int fromX, int fromY, int toX, int toY) {
+  if (screen != Screen::Playing) return Redraw::None;
+  return applyGameResult(currentGame->onSwipe(fromX, fromY, toX, toY));
+}
+
 bool landscape() { return screen == Screen::Playing && currentGame->landscape(); }
 
 void draw(uint8_t* frame) {

@@ -65,6 +65,11 @@ class Game {
   virtual TapResult onUpPressed() { return TapResult::Nothing; }
   virtual TapResult onDownPressed() { return TapResult::Nothing; }
 
+  // A finger drawn across the screen: the SDK's swipe, at least 60 px within 700 ms,
+  // from where it went down to where it lifted, in screen positions as onTap's. A
+  // swipe is never also a tap. A game that doesn't use swipes ignores them.
+  virtual TapResult onSwipe(int /*fromX*/, int /*fromY*/, int /*toX*/, int /*toY*/) { return TapResult::Nothing; }
+
  protected:
   ~Game() = default;
 };

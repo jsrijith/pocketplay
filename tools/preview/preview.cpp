@@ -9,6 +9,7 @@
 //   update      runs the game's update() as the loop would, until it's no longer busy()
 //   press:X,Y   a finger down, hold:X,Y the same finger held, release its lift: the calls a
 //               game whose usesHold() is true gets. A hold's lift taps nothing, as on the device.
+//   swipe:X1,Y1,X2,Y2  a finger drawn from one screen position to another; prints what it returned
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -105,6 +106,14 @@ int main(int argc, char** argv) {
       printf("release -> %s\n", resultName(game.onRelease()));
     } else if (command == "up" || command == "down") {
       printf("%s -> %s\n", command.c_str(), resultName(command == "up" ? game.onUpPressed() : game.onDownPressed()));
+    } else if (command.rfind("swipe:", 0) == 0) {
+      int from[2] = {};
+      int to[2] = {};
+      if (sscanf(command.c_str() + 6, "%d,%d,%d,%d", &from[0], &from[1], &to[0], &to[1]) != 4) {
+        fprintf(stderr, "bad swipe: %s\n", command.c_str());
+        return 2;
+      }
+      printf("%s -> %s\n", command.c_str(), resultName(game.onSwipe(from[0], from[1], to[0], to[1])));
     } else if (command.rfind("tap:", 0) == 0) {
       int x = 0;
       int y = 0;

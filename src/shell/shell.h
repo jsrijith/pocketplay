@@ -23,6 +23,8 @@ Redraw onHold(int x, int y);
 Redraw onRelease();
 Redraw onUpPressed();
 Redraw onDownPressed();
+// Only an open game gets swipes; every other screen ignores them.
+Redraw onSwipe(int fromX, int fromY, int toX, int toY);
 
 // Sets the orientation for what's on screen, then draws it.
 void draw(uint8_t* frame);

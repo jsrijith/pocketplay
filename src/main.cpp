@@ -107,6 +107,12 @@ void handleInput() {
   float x, y;
   if (shell::usesHold()) handleHold();
   if (input.wasTouchTap(x, y)) requestRedraw(shell::onTap(touchToScreenX(x, y), touchToScreenY(x, y)));
+
+  // The SDK never reports one contact as both a tap and a swipe.
+  float endX, endY;
+  if (input.wasSwipe(x, y, endX, endY)) {
+    requestRedraw(shell::onSwipe(touchToScreenX(x, y), touchToScreenY(x, y), touchToScreenX(endX, endY), touchToScreenY(endX, endY)));
+  }
 }
 
 // Returns as soon as the frame is sent, so input keeps being read while the
