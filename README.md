@@ -21,6 +21,7 @@ Games firmware for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), 
 - **Symbol Dice:** two dice of six symbols for a 12-turn roll-and-write game played on paper, with a turn counter. [How it plays](src/games/symboldice/README.md)
 - **Peg Solitaire:** jump pegs until as few as possible are left, on the 33-hole English board or the 15-hole triangle, with undo and your best per board. [How it plays](src/games/pegsolitaire/README.md)
 - **Text Adventures:** classic interactive fiction, with Zork I, II and III built in and any `.z3`, `.z5` or `.z8` story file you copy to the card. Tap directions and the game's own words instead of typing. [How it plays](src/games/textadv/README.md)
+- **Word Ladder:** a new ladder every day: change one word into another a letter at a time, every step a word, with par, hints and earlier days. [How it plays](src/games/wordladder/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 
