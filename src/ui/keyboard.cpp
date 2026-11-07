@@ -53,6 +53,10 @@ constexpr int CONTROLS_LEFT = 1;
 char typed[MAX_LENGTH + 1] = "";
 int typedLength = 0;
 char titleText[64] = "";
+char actionText[16] = "JOIN";
+char hintText[64] = "";
+int minLength = MIN_LENGTH;
+int maxLength = MAX_LENGTH;
 bool shift = false;
 bool symbols = false;
 
@@ -63,10 +67,10 @@ const char* const* currentRows() {
 
 int rowLeft(int keys) { return (SCREEN_WIDTH - (keys * KEY_WIDTH + (keys - 1) * KEY_GAP)) / 2; }
 
-bool canJoin() { return typedLength >= MIN_LENGTH; }
+bool canJoin() { return typedLength >= minLength; }
 
 void addCharacter(char character) {
-  if (typedLength >= MAX_LENGTH) return;
+  if (typedLength >= maxLength) return;
   typed[typedLength++] = character;
   typed[typedLength] = '\0';
 }
@@ -140,7 +144,7 @@ void drawControlKeys(uint8_t* frame) {
   int left = CONTROLS_LEFT;
   for (const ControlKey& key : CONTROLS) {
     const bool on = (key.control == Control::Shift && shift) || (key.control == Control::Symbols && symbols);
-    const char* label = key.control == Control::Symbols && symbols ? "ABC" : key.label;
+    const char* label = key.control == Control::Symbols && symbols ? "ABC" : key.control == Control::Join ? actionText : key.label;
     // A thin border and no effect on tap until there are enough characters.
     const int border = key.control == Control::Join && !canJoin() ? 1 : BORDER + 1;
     drawKey(frame, Font::Size14, left, CONTROL_TOP, key.width, label, on, border);
@@ -150,10 +154,14 @@ void drawControlKeys(uint8_t* frame) {
 
 }  // namespace
 
-void begin(const char* title) {
+void begin(const char* title, const Options& options) {
   snprintf(titleText, sizeof(titleText), "%s", title);
-  typed[0] = '\0';
-  typedLength = 0;
+  snprintf(actionText, sizeof(actionText), "%s", options.action);
+  snprintf(hintText, sizeof(hintText), "%s", options.hint ? options.hint : "");
+  minLength = options.minLength;
+  maxLength = options.maxLength < MAX_LENGTH ? options.maxLength : MAX_LENGTH;
+  snprintf(typed, static_cast<size_t>(maxLength) + 1, "%s", options.initial ? options.initial : "");
+  typedLength = static_cast<int>(strlen(typed));
   shift = false;
   symbols = false;
 }
@@ -180,7 +188,7 @@ void draw(uint8_t* frame) {
   snprintf(shown, sizeof(shown), "%s_", typed);
   drawWrapped(frame, Font::Size20, MARGIN, TYPED_TOP, SCREEN_WIDTH - 2 * MARGIN, shown);
 
-  if (!canJoin()) drawTextInBox(frame, Font::Size14, 0, HINT_TOP, SCREEN_WIDTH, lineHeight(Font::Size14), "PASSWORD: AT LEAST 8 CHARACTERS");
+  if (!canJoin() && hintText[0]) drawTextInBox(frame, Font::Size14, 0, HINT_TOP, SCREEN_WIDTH, lineHeight(Font::Size14), hintText);
 
   drawCharacterKeys(frame);
   drawControlKeys(frame);
