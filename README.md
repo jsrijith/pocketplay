@@ -18,6 +18,7 @@ Games firmware for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), 
 - **Suguru:** 800 logic puzzles from 5x5 to 8x8 in four banks. Fill each outlined region with 1 up to its size, and never let touching squares match. [How it plays](src/games/suguru/README.md)
 - **Sokoban:** push every box onto a goal, in 385 levels from five classic packs. Swipe or tap beside the player to move, with undo and your best per level. [How it plays](src/games/sokoban/README.md)
 - **Queens:** 1200 logic puzzles: one queen (or, in Star Battle, two stars) in every row, column and outlined region, none touching. Six sizes from 6x6 to 10x10, with hints. [How it plays](src/games/queens/README.md)
+- **Symbol Dice:** two dice of six symbols for a 12-turn roll-and-write game played on paper, with a turn counter. [How it plays](src/games/symboldice/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 
