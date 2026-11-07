@@ -8,6 +8,7 @@
 #include "core/storage.h"
 #include "games/games.h"
 #include "home_screen.h"
+#include "settings/about_screen.h"
 #include "settings/settings_screen.h"
 #include "settings/timezone_screen.h"
 #include "settings/wifi_screen.h"
@@ -23,7 +24,7 @@ constexpr const char* SESSION_FILE = "session";
 constexpr uint8_t SESSION_VERSION = 1;
 constexpr size_t MAX_NAME_BYTES = 32;
 
-enum class Screen { Home, Settings, Wifi, TimeZone, Playing };
+enum class Screen { Home, Settings, Wifi, TimeZone, About, Playing };
 
 Screen screen = Screen::Home;
 Game* currentGame = nullptr;
@@ -95,6 +96,9 @@ Redraw tapSettings(int x, int y) {
       timezoneScreen::open();
       screen = Screen::TimeZone;
       return Redraw::Fast;
+    case settingsScreen::Tap::OpenAbout:
+      screen = Screen::About;
+      return Redraw::Fast;
   }
   return Redraw::None;
 }
@@ -121,6 +125,12 @@ Redraw tapTimeZone(int x, int y) {
   const bool changed = timezoneScreen::onTap(x, y);
   if (!timezoneScreen::isOpen()) screen = Screen::Settings;
   return changed ? Redraw::Fast : Redraw::None;
+}
+
+Redraw tapAbout(int x, int y) {
+  if (!aboutScreen::onTap(x, y)) return Redraw::None;
+  screen = Screen::Settings;
+  return Redraw::Fast;
 }
 
 Redraw applyGameResult(Game::TapResult result) {
@@ -192,6 +202,8 @@ Redraw onTap(int x, int y) {
       return tapWifi(x, y);
     case Screen::TimeZone:
       return tapTimeZone(x, y);
+    case Screen::About:
+      return tapAbout(x, y);
     case Screen::Playing:
       return tapGame(x, y);
   }
@@ -241,6 +253,9 @@ void draw(uint8_t* frame) {
       return;  // it reports its own problems, and its keyboard fills this space
     case Screen::TimeZone:
       timezoneScreen::draw(frame);
+      break;
+    case Screen::About:
+      aboutScreen::draw(frame, games::count());
       break;
     case Screen::Playing:
       currentGame->draw(frame);

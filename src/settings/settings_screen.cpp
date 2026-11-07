@@ -23,6 +23,7 @@ constexpr int WIFI_ROW_TOP = ui::CONTENT_TOP;
 constexpr int SLEEP_ROW_TOP = WIFI_ROW_TOP + ROW_HEIGHT + ui::GAP;
 constexpr int ZONE_ROW_TOP = SLEEP_ROW_TOP + ROW_HEIGHT + ui::GAP;
 constexpr int REFRESH_ROW_TOP = ZONE_ROW_TOP + ROW_HEIGHT + ui::GAP;
+constexpr int ABOUT_ROW_TOP = REFRESH_ROW_TOP + ROW_HEIGHT + ui::GAP;
 constexpr int ROW_TEXT_WIDTH = ROW_WIDTH - 2 * ui::GAP;
 
 Settings settings;
@@ -90,6 +91,7 @@ Tap onTap(int x, int y) {
     cycleRefresh();
     return Tap::Changed;
   }
+  if (ui::isInBox(x, y, ui::MARGIN, ABOUT_ROW_TOP, ROW_WIDTH, ROW_HEIGHT)) return Tap::OpenAbout;
   return Tap::Nothing;
 }
 
@@ -114,6 +116,8 @@ void draw(uint8_t* frame) {
     snprintf(text, sizeof(text), "REFRESH EVERY %d", updatesPerCleanup());
   }
   ui::drawButton(frame, ui::MARGIN, REFRESH_ROW_TOP, ROW_WIDTH, ROW_HEIGHT, text);
+
+  ui::drawButton(frame, ui::MARGIN, ABOUT_ROW_TOP, ROW_WIDTH, ROW_HEIGHT, "ABOUT");
 }
 
 bool saveFailed() { return failed; }

@@ -5,7 +5,7 @@
 // The settings page, and the saved settings behind it.
 namespace settingsScreen {
 
-enum class Tap { Nothing, Changed, Back, OpenWifi, OpenTimeZone };
+enum class Tap { Nothing, Changed, Back, OpenWifi, OpenTimeZone, OpenAbout };
 
 // Reads the saved settings. Call after storage::begin().
 void begin();

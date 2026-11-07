@@ -107,6 +107,8 @@ The device restarts into the PocketPlay home page. Always flash at `0x0`, becaus
 | Sleep | Hold OK for 1 second, or leave it idle for the sleep time |
 | Wake | Press OK. A game that was open comes back; otherwise you return to the home page |
 
+The boot and sleep screens show the logo, with the version and build along the bottom, such as `VERSION 0.1.0  BUILD 57 (A1B2C3D)`. Quote that when reporting a problem.
+
 **Settings:**
 
 | Row | What it does |
@@ -115,6 +117,7 @@ The device restarts into the PocketPlay home page. Always flash at `0x0`, becaus
 | Sleep | Idle time before sleeping: 1, 5 or 10 minutes |
 | Time zone | Your local time zone |
 | Refresh | How many screen updates pass before a half refresh clears ghost images: 5, 10, 15 or 30 (the default), or never |
+| About | The version and build, how many games there are, and where the code lives |
 
 **Good to know:**
 
@@ -157,14 +160,16 @@ scripts/check.sh    # every test; only "CHECK-VERDICT: green" is a pass
 
 To add a game, follow [src/games/README.md](src/games/README.md). A game is one folder and one line in `game_list.inc`.
 
+**Versions:** `VERSION` holds the number, which you raise by hand for a release. Each build adds the build number (the commit count) and the commit, with a `+` if it had uncommitted changes.
+
 | Path | Purpose |
 |---|---|
 | `src/main.cpp` | Boot, input, refreshing the panel, sleep |
 | `src/shell/` | Which screen is open, where taps go, and the home page |
 | `src/games/` | One folder per game, plus what they share |
 | `src/apps/` | One folder per app, when there are some. [The plan](src/apps/README.md) |
-| `src/settings/` | The Settings, Wi-Fi and time zone screens, and their saved values |
-| `src/ui/` | The buttons, header and keyboard that screens share |
+| `src/settings/` | The Settings, Wi-Fi, time zone and About screens, and their saved values |
+| `src/ui/` | The buttons, header, keyboard and logo that screens share |
 | `src/core/` | Drawing, text and fonts, save files, the radio, downloads and the clock |
 | `tests/` | Tests that run on a PC |
 | `freeink-sdk/` | Screen, input and power libraries, as a git submodule |
@@ -185,7 +190,7 @@ To add a game, follow [src/games/README.md](src/games/README.md). A game is one 
 1. The ROM bootloader, built into the chip, loads the second-stage bootloader from flash at `0x0`.
 2. That reads the partition table at `0x8000`, then `otadata` at `0xe000` to pick an app slot.
 3. The app starts from `0x10000`. Arduino starts FreeRTOS, then calls `setup()` once and `loop()` repeatedly.
-4. `setup()` holds the power latches, powers the SD rail, starts input, loads the saves from the card, starts the panel and draws.
+4. `setup()` holds the power latches, powers the SD rail, starts input, loads the saves from the card, starts the panel, shows the boot screen, and draws.
 
 Deep sleep turns almost everything off, so waking runs all of this from the start.
 

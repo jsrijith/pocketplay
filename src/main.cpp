@@ -16,8 +16,9 @@
 #include "core/clock.h"
 #include "core/graphics.h"
 #include "core/storage.h"
-#include "core/text.h"
+#include "core/version.h"
 #include "shell/shell.h"
+#include "ui/logo.h"
 
 namespace {
 
@@ -30,6 +31,9 @@ constexpr uint32_t SLEEP_HOLD_MS = 1000;
 // holds. CrossPlay's Minesweeper plants a flag at 400 ms: long enough that a
 // deliberate tap never trips it, short enough not to feel broken on this panel.
 constexpr unsigned long HOLD_MS = 400;
+
+// How long the boot screen stays once it's on the panel, so it can be read.
+constexpr uint32_t SPLASH_MS = 1500;
 
 InputManager input;
 
@@ -135,16 +139,21 @@ void startRefresh(shell::Redraw redraw) {
   }
 }
 
-void showAsleep() {
+// The logo, the name, `line` and the version, in portrait whatever was open.
+void drawSplash(const char* line) {
   display.clearScreen(0xFF);
-  // Always portrait, even from a landscape game: a wake starts there.
   setOrientation(Orientation::Portrait);
-  // Size44, not Size64: at 64 the name is about 644 px wide, past the 480 px screen.
-  drawTextInBox(display.getFrameBuffer(), Font::Size44, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, "POCKETPLAY");
+  ui::drawSplash(display.getFrameBuffer(), line);
+}
+
+void showAsleep() {
+  // Always portrait, even from a landscape game: a wake starts there.
+  drawSplash("PRESS OK TO WAKE");
 
   // Async even though it waits: after an async refresh the panel's stored
-  // previous frame is out of date, and only this path sends the correct one.
-  display.displayBufferAsync(EInkDisplay::FAST_REFRESH);
+  // previous frame is out of date, and only this path sends the correct one. A full
+  // refresh, because this image stays on the panel for as long as the device sleeps.
+  display.displayBufferAsync(EInkDisplay::FULL_REFRESH);
   display.waitRefreshComplete();
 }
 
@@ -203,7 +212,13 @@ void setup() {
     return;
   }
 
-  // The first paint after a boot must be a full refresh to clear the old image.
+  // The boot screen first, then the screen the shell has open. Both are full refreshes:
+  // the first paint after a boot must clear the old image, and the second clears the logo.
+  Serial.printf("PocketPlay %s, build %d (%s)\n", version::NUMBER, version::BUILD, version::COMMIT);
+  drawSplash("GAMES IN YOUR POCKET");
+  display.displayBufferAsync(EInkDisplay::FULL_REFRESH);
+  display.waitRefreshComplete();
+  delay(SPLASH_MS);
   drawScreen();
   display.displayBufferAsync(EInkDisplay::FULL_REFRESH);
   Serial.println("Ready.");

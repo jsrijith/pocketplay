@@ -42,6 +42,8 @@ Every firmware build runs `scripts/check.sh` first and stops if it fails (`scrip
 
 `tools/preview/run.sh` draws a game's screens on the PC as PNGs, to compare with CrossPlay's screenshots before flashing (`tools/preview/README.md`).
 
+**Versions:** `VERSION` holds the version number, such as `0.1.0`; raise it by hand for a release. `scripts/version.py` runs before each build and adds the build (git's commit count) and the commit, with a `+` if there were uncommitted changes, as defines that `core/version.h` reads. The boot screen, the sleep screen and Settings' About page show them, and the serial log prints them at boot. The PC tests and the preview don't run the script, so they show `DEV`.
+
 There are no linters. These tests cover code with no hardware in it, and a build only proves the rest compiles, so behaviour has to be confirmed on the device.
 
 **Flashing is done by the user, from Windows.** WSL has no USB access to the device. Give the user commands to run in PowerShell, after they copy the image to `C:\Users\Srijith\Downloads`:
@@ -64,8 +66,8 @@ Use `python`, because this machine has no `py` launcher. Always flash the merged
 | `src/shell/` | Which screen is open, where taps go, and the home page | Everything below |
 | `src/games/<name>/` | One game | `core/`, `ui/`, `games/game.h` |
 | `src/apps/<name>/` | One app (none yet) | `core/`, `ui/`, its contract |
-| `src/settings/` | The Settings and Wi-Fi screens, and their saved values | `core/`, `ui/` |
-| `src/ui/` | Shared buttons, header and keyboard | `core/` |
+| `src/settings/` | The Settings, Wi-Fi, time zone and About screens, and their saved values | `core/`, `ui/` |
+| `src/ui/` | Shared buttons, header, keyboard and logo | `core/` |
 | `src/core/` | Drawing, text and fonts, save files, the radio, downloads and the clock | The SDK only |
 
 Never include a file from another game or app, or from a higher row. Include a file in the same folder by its bare name, and anything else by its path from `src/`, such as `core/text.h`, never with `../`. Shared files are where branches conflict, so a game's change should stay in its own folder: `src/games/README.md` has the steps and rules.
@@ -79,6 +81,8 @@ It runs on top of seven `freeink-sdk` libraries (BoardConfig, EInkDisplay, Input
 **Text:** `src/core/text.cpp` draws Jersey 25 from the headers in `src/core/fonts/`, which are copied unchanged from CrossPlay. Read `src/core/fonts/README.md` before replacing one, because regenerating them with newer tools moves text on every screen. Keep fonts 1-bit: this panel draws pure black and white, and a pixel font has no grey edges to lose. Take line height and capital height from `text.h`, never as numbers copied from a font, and centre labels with `drawTextInBox()`, because centring on the line box makes capitals hang low. Text is ASCII, and any other byte draws as an outlined box. The font headers define `static` data, so include them only from `text.cpp`, or each file that includes them gets its own copy.
 
 **Orientation:** the firmware draws in portrait, 480 wide by 800 tall, held with the USB edge on the right. `setPixel()` is the only drawing code that knows the panel's native landscape layout, and `touchToScreenX()` and `touchToScreenY()` do the same for touch. A game whose `landscape()` is true is drawn 800 by 480 in the panel's own layout, with the USB edge at the top, as CrossPlay's Solitaire is. `shell::draw()` sets the orientation before every draw, and touch follows `shell::landscape()`, so nothing else sets it. Use `screenWidth()` and `screenHeight()` in code that runs in both, because `SCREEN_WIDTH` and `SCREEN_HEIGHT` are the portrait sizes. The sleep screen is always portrait.
+
+**Boot and sleep screens:** `ui::drawSplash()` draws the logo (`ui/logo.cpp`, a die in a stitched pocket), the name, a line and the version. Boot shows it with a full refresh for `SPLASH_MS`, then the open screen with another full refresh; sleep leaves it on the panel with `PRESS OK TO WAKE`.
 
 **Refreshing:** `displayBufferAsync()` returns once the frame is sent, so `loop()` keeps reading buttons while the panel updates. It allocates one 48 KB shadow frame on first use and keeps it. Once async refreshes have started, don't call a blocking `displayBuffer(FAST_REFRESH)`: in single-buffer mode it compares against the panel's stored previous frame, which async refreshes leave out of date. To wait for a frame, call `displayBufferAsync()` and then `waitRefreshComplete()`. Refreshing is counted, not timed: boot and `RedrawFull` use a full refresh, and every Nth other update is a half refresh to clear ghosts, where N is the `REFRESH` setting and defaults to 30. Nothing redraws while the device is idle except the clock on the Wi-Fi status page, so a flash on an untouched game screen means a restart, not a refresh.
 
