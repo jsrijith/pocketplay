@@ -24,6 +24,7 @@ Games firmware for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), 
 - **Word Ladder:** a new ladder every day: change one word into another a letter at a time, every step a word, with par, hints and earlier days. [How it plays](src/games/wordladder/README.md)
 - **Dice Roller:** two dice and their total, with one button to roll again, for any board game. [How it plays](src/games/diceroller/README.md)
 - **Nonograms:** picture logic puzzles, filling cells to match the row and column clues, 600 of them in four sizes, with X marks, undo and half-done puzzles kept. [How it plays](src/games/nonogram/README.md)
+- **Kakuro:** cross sums, filling digits so every run adds up to its clue with none repeated, 600 puzzles in three levels, with the ways to make each run shown and hints. [How it plays](src/games/kakuro/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 
