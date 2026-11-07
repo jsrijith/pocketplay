@@ -256,4 +256,30 @@ Blob loadBlob(const char* name, size_t& size) {
   return data;
 }
 
+bool ensureFolder(const char* folder) { return mounted && SdMan.ensureDirectoryExists(folder); }
+
+std::vector<std::string> listFolder(const char* folder, int max) {
+  std::vector<std::string> names;
+  if (!mounted) return names;
+  for (const String& name : SdMan.listFiles(folder, max)) names.emplace_back(name.c_str());
+  return names;
+}
+
+Blob readFile(const char* path, size_t maxSize, size_t& size) {
+  if (!mounted) return nullptr;
+  FsFile file = SdMan.open(path, O_RDONLY);
+  if (!file) return nullptr;
+  const size_t length = file.fileSize();
+  if (length > maxSize) return nullptr;
+  // One extra byte, so an empty file still returns a buffer.
+  Blob data(static_cast<uint8_t*>(heap_caps_malloc(length + 1, MALLOC_CAP_SPIRAM)));
+  if (!data) {
+    Serial.printf("ERROR: no memory for %lu bytes from %s\n", static_cast<unsigned long>(length), path);
+    return nullptr;
+  }
+  if (file.read(data.get(), length) != static_cast<int>(length)) return nullptr;
+  size = length;
+  return data;
+}
+
 }  // namespace storage

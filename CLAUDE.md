@@ -88,7 +88,7 @@ It runs on top of seven `freeink-sdk` libraries (BoardConfig, EInkDisplay, Input
 - Have `unpack` reject out-of-range values, and fall back to defaults rather than a half-restored game.
 - Erase a game's save when the game ends, or it gets offered for resume.
 
-`storage::save()` writes a temp file, reads it back, then replaces the old save, and `load()` falls back to a valid temp file. Don't shortcut this: a power cut can come at any step, and opening a file for writing empties it. Saves hold up to 512 bytes. For more, `saveBlob()` and `loadBlob()` work the same way, with the data in PSRAM.
+`storage::save()` writes a temp file, reads it back, then replaces the old save, and `load()` falls back to a valid temp file. Don't shortcut this: a power cut can come at any step, and opening a file for writing empties it. Saves hold up to 512 bytes. For more, `saveBlob()` and `loadBlob()` work the same way, with the data in PSRAM. Files the player copies onto the card, such as story files, are read with `listFolder()` and `readFile()`, which never write: keep them outside `/.pocketplay/`.
 
 **One task for the bus:** the card and panel share an SPI bus, with nothing guarding it. That's safe because everything that uses them runs in `loop()` and a refresh only watches the busy pin. The Wi-Fi stack runs its own tasks, but they never touch the card or panel. Keep all `WiFi` calls in `loop()` too. A second task that touches the card or panel needs a lock first.
 

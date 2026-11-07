@@ -2,7 +2,10 @@
 // A blob can be put on it before the game opens: PREVIEW_BLOB_<name>=<file> loads
 // that file as the blob <name>, with any '_' in the name read as '-'. A save works
 // the same way, with PREVIEW_SAVE_<name>=<file>, and the file's first byte is the
-// save's version.
+// save's version. Files the player copies onto the card are read from the PC folder named by
+// PREVIEW_CARD, so "/textadv" is $PREVIEW_CARD/textadv.
+#include <dirent.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -94,6 +97,46 @@ Blob loadBlob(const char* name, size_t& size) {
   size = found->second.size();
   Blob blob(new uint8_t[size > 0 ? size : 1]);
   if (size > 0) memcpy(blob.get(), found->second.data(), size);
+  return blob;
+}
+
+namespace {
+
+std::string cardPath(const char* path) {
+  const char* card = getenv("PREVIEW_CARD");
+  return card == nullptr ? std::string() : std::string(card) + path;
+}
+
+}  // namespace
+
+bool ensureFolder(const char*) { return true; }
+
+std::vector<std::string> listFolder(const char* folder, int max) {
+  std::vector<std::string> names;
+  const std::string path = cardPath(folder);
+  if (path.empty()) return names;
+  DIR* dir = opendir(path.c_str());
+  if (dir == nullptr) return names;
+  for (dirent* entry = readdir(dir); entry != nullptr && static_cast<int>(names.size()) < max; entry = readdir(dir)) {
+    if (entry->d_type == DT_REG) names.emplace_back(entry->d_name);
+  }
+  closedir(dir);
+  return names;
+}
+
+Blob readFile(const char* path, size_t maxSize, size_t& size) {
+  const std::string full = cardPath(path);
+  if (full.empty()) return Blob();
+  FILE* file = fopen(full.c_str(), "rb");
+  if (file == nullptr) return Blob();
+  std::vector<uint8_t> data;
+  int c = 0;
+  while ((c = fgetc(file)) != EOF && data.size() <= maxSize) data.push_back(static_cast<uint8_t>(c));
+  fclose(file);
+  if (data.size() > maxSize) return Blob();
+  size = data.size();
+  Blob blob(new uint8_t[size > 0 ? size : 1]);
+  if (size > 0) memcpy(blob.get(), data.data(), size);
   return blob;
 }
 

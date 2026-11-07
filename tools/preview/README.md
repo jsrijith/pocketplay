@@ -33,5 +33,6 @@ CrossPlay's own screenshots are in `/home/srijith/mycrossplay/site/assets/shots/
 
   The file has to be in the blob's own format. For Connections that's a 4-byte index length, then `tests/connections/archive.idx`, then `archive.dat`.
 - A save can be put there the same way, to preview a game part-way through: `PREVIEW_SAVE_<name>=<file>` loads the file as the save `<name>`, and the file's first byte is the save's version.
+- Files the player copies onto the card, read with `storage::listFolder()` and `storage::readFile()`, come from the PC folder named by `PREVIEW_CARD`, so `/textadv` is `$PREVIEW_CARD/textadv`.
 - A preview shows pixels, not the panel. Ghosting, refresh timing, touch accuracy and sleep still have to be checked on the device.
 - It runs under AddressSanitizer and UBSan, so a memory error in drawing code stops it.

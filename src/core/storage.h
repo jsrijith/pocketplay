@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
+#include <vector>
 
 // Small save files on the SD card, one per name, in /.pocketplay/. A power cut at
 // any moment leaves either the old save or the new one, never a damaged one.
@@ -33,5 +35,19 @@ bool saveBlob(const char* name, const uint8_t* data, size_t size);
 
 // Returns nothing if there's no valid blob or no memory for it.
 Blob loadBlob(const char* name, size_t& size);
+
+// Files the player copies onto the card, outside the save folder, such as a game's story
+// files. Read only: nothing here writes or removes them.
+//
+// Creates the folder if it's missing, so the player can find where files go. Folder names
+// are full paths from the card's root, such as "/textadv".
+bool ensureFolder(const char* folder);
+
+// The names of the files in a folder, not its subfolders, up to `max`, in the card's order.
+std::vector<std::string> listFolder(const char* folder, int max);
+
+// A whole file into PSRAM. Returns nothing if it's missing, bigger than `maxSize`, or
+// there's no memory for it.
+Blob readFile(const char* path, size_t maxSize, size_t& size);
 
 }  // namespace storage
