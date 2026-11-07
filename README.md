@@ -16,6 +16,7 @@ Games firmware for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), 
 - **Lights Out:** a 5x5 board where each tap switches a square and its neighbours. Switch them all off, in as few presses as the target, with hint and undo. [How it plays](src/games/lightsout/README.md)
 - **One Clue:** a deck of 110 word cards for the party game where everyone writes a one-word clue and matching clues cancel. It deals the cards; you keep score on paper. [How it plays](src/games/oneclue/README.md)
 - **Suguru:** 800 logic puzzles from 5x5 to 8x8 in four banks. Fill each outlined region with 1 up to its size, and never let touching squares match. [How it plays](src/games/suguru/README.md)
+- **Sokoban:** push every box onto a goal, in 385 levels from five classic packs. Swipe or tap beside the player to move, with undo and your best per level. [How it plays](src/games/sokoban/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 
