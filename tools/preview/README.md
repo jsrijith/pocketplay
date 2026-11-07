@@ -23,7 +23,7 @@ tools/preview/run.sh dungeon dungeonGame /tmp/shots shot:menu tap:240,758 shot:b
 CrossPlay's own screenshots are in `/home/srijith/mycrossplay/site/assets/shots/`, at the same 480 x 800 (800 x 480 for a landscape game). A landscape game's screens come out landscape, and its `row:` stays portrait, as the home page is.
 
 **Limits:**
-- It links `core/graphics`, `core/text`, `ui/` and the game's folder. `net_stub.cpp` stands in for `core/network` and `core/download`: Wi-Fi is never connected, so a download stops at its Wi-Fi step. The clock is the PC's.
+- It links `core/graphics`, `core/text`, all of `ui/` (the keyboard too) and the game's folder. `net_stub.cpp` stands in for `core/network` and `core/download`: Wi-Fi is never connected, so a download stops at its Wi-Fi step. The clock is the PC's.
 - A game's downloaded data can be put on the in-memory card before the game opens. `PREVIEW_BLOB_<name>=<file>` loads a file as the blob `<name>`, with `_` in the name read as `-`:
 
   ```bash

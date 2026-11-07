@@ -22,7 +22,7 @@ trap 'rm -rf "$BUILD"' EXIT
 "${CXX:-c++}" -std=c++17 -Wall -Wextra -Wno-missing-field-initializers -g -fsanitize=address,undefined \
   -DPREVIEW_GAME="$FUNCTION" -I"$HERE/stub" -I"$ROOT/src" -I"$ROOT/src/games/$FOLDER" \
   "$HERE/preview.cpp" "$HERE/storage_stub.cpp" "$HERE/net_stub.cpp" \
-  "$ROOT/src/core/graphics.cpp" "$ROOT/src/core/text.cpp" "$ROOT/src/ui/ui.cpp" \
+  "$ROOT/src/core/graphics.cpp" "$ROOT/src/core/text.cpp" "$ROOT"/src/ui/*.cpp \
   "$ROOT"/src/games/"$FOLDER"/*.cpp -o "$BUILD/preview"
 
 (cd "$OUT_DIR" && "$BUILD/preview" . "$@")
