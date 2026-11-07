@@ -123,5 +123,5 @@ These cause silent failures, and the build won't catch them:
 
 - Copy the rules (`<Name>Core.h/.cpp`) and their test from `host-tests/<name>/` unchanged apart from includes, and keep the MIT licence beside them. The test goes in `tests/<name>/`.
 - Rewrite the screens and activity on `core/` and `ui/`, because CrossPlay's Activity system, FreeInkUI and Toybox aren't here. Keep the features and behaviour the same.
-- List every difference from CrossPlay for the user before building, and again in the game's `README.md`, including anything PocketPlay does that CrossPlay doesn't.
+- List every difference from CrossPlay for the user before building. The game's `README.md` is for players (rules, getting around, saves) and only credits CrossPlay in one line, not the differences.
 - Before calling reported behaviour a bug, compare it with CrossPlay. If the two match, tell the user that rather than changing the rule.

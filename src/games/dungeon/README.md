@@ -1,23 +1,31 @@
 # D&Diagrams
 
-A nonogram whose clues are a dungeon. Each number beside a row or column is how many walls it holds, and the walls have to make a dungeon by five rules: every dead end holds a monster and every monster is in a dead end, every chest sits in a 3x3 room with one way in, corridors are one cell wide, and all the floor joins up. Each of the 64 dungeons has exactly one answer.
+A logic puzzle where you uncover a hidden dungeon by placing walls. There are 64 dungeons in eight tiers of eight, plus a tutorial, and each one has exactly one answer.
 
-- **Menu:** the campaign map, eight tiers of eight. A cleared dungeon is a filled room, and a tier's number fills once all eight are cleared. Tapping a room picks it, and the brackets show which one. `PLAY` opens it, or `RESUME` if it has marks on it. `TUTORIAL` opens the guide.
-- **Board:** a tap cycles a cell through wall, floor note and blank. A monster or a chest refuses. A clue fills black when its row or column holds exactly that many walls, and turns grey when it holds more. `CLEAR` empties the board.
-- **Guide:** eight pages, each a rule, shown on the tutorial's own board a step further along. The tutorial is never a level.
-- **Win:** the dungeon's name and the finished map, with a full refresh. `NEXT` opens the next unsolved dungeon.
+## Rules
 
-**Saves:** `dungeon` in `/.pocketplay/`, 33 bytes: the dungeon in hand, its walls and floor notes, and which dungeons are solved. It's written on every change and never erased, because it holds the campaign. A finished board isn't kept: the save moves on to the next dungeon.
+Each grid hides a dungeon. You place walls; every square without a wall is floor. A solved dungeon follows all of these:
 
-**Copied code:** `dungeon_rules.h` and `.cpp` are CrossPlay's `src/apps_local/dungeon/DungeonCore.h` and `.cpp`, and `dungeon_puzzles.h` is its `DungeonPuzzles.h`, each changed only in one include. `tests/dungeon/test_dungeon.cpp` is CrossPlay's test, changed only in its includes. `dungeon_guide.cpp` holds the guide pages from `DungeonScreens.cpp`, moved unchanged so the test needs no drawing code. The screens and game are ported from `DungeonScreens.cpp` and `DungeonActivity.cpp`, redrawn without CrossPlay's UI toolkit. `dungeon_art.h` holds CrossPlay's monster, chest and home-page icons, drawn from Lucide icons (ISC licence). All of it matched CrossPlay commit `fbeac762` when last compared, and it's under the MIT licence, in `LICENSE-CrossPlay.txt`.
+1. **The numbers:** the number beside each row and above each column is how many walls it holds.
+2. **Monsters:** every dead end (a floor square with only one open neighbour) holds a monster, and every monster sits in a dead end.
+3. **Treasure:** every chest sits in a 3x3 room of floor with exactly one way in, one chest and no monsters.
+4. **Corridors:** corridors are one square wide. Outside treasure rooms, there are no 2x2 blocks of floor.
+5. **The map:** all the floor joins up into one area. Squares that touch only at a corner aren't joined.
 
-**Differences from CrossPlay:**
+You can solve every dungeon with logic alone; no guessing is needed.
 
-- `BACK` is a button in the header, because PocketPlay has no edge swipe. It leaves the board, the win screen and the guide's first page for the menu, steps back a page in the guide, and leaves the game from the menu. Because `BACK` takes room in the header, a long title such as `D&DIAGRAMS` drops from Size30 to Size20, and the count beside it is Size20.
-- It saves on every mark. CrossPlay saves every 12 taps, so a power cut there loses up to 12 marks.
-- The save is packed byte by byte rather than written as a struct, and a CrossPlay save isn't imported.
-- A tap that changes nothing draws nothing: on a monster or a chest, on the picked room, or `CLEAR` on an empty board. CrossPlay redraws for each.
-- Opening a board is a full refresh, as starting a game is everywhere in PocketPlay. CrossPlay uses a fast one.
-- There are no button hints.
+## Getting around
 
-**Kept from CrossPlay as it is:** `NEXT` on the win screen is meant to dim once every dungeon is cleared, but the test counts the tutorial among the dungeons, so it never dims. After the last one, `NEXT` reopens dungeon 64.
+- **Menu:** the campaign map. Tap a room to choose it (brackets show the choice), then `PLAY` to open it, or `RESUME` if you've already marked it. A cleared dungeon is a filled room, and a tier's number fills once all eight of its dungeons are cleared. `TUTORIAL` opens the guide.
+- **Board:** tap a square to place a wall, tap again to mark it as floor (a note for yourself), and once more to clear it. Monsters and chests can't be marked. A clue turns black when its row or column has exactly the right number of walls, and grey when it has too many. `CLEAR` empties the board, and `DUNGEONS` goes back to the map.
+- **Guide:** eight pages, one rule each, shown on the tutorial's board a step further along each time. `NEXT` and `PREV` turn the pages, and `PLAY` on the last page opens the map.
+- **Win:** the dungeon's name and its finished map. `NEXT` opens the next dungeon you haven't solved. Once all of them are solved, `NEXT` opens dungeon 64 again.
+- `BACK` in the header steps back a page in the guide, returns to the map from the board or win screen, and returns to the home page from the map.
+
+## Saves
+
+`dungeon` holds the dungeon you're on, its walls and floor notes, and which dungeons you've solved. It's written on every mark and never erased, because it holds your campaign.
+
+## Credits
+
+Copied from CrossPlay and modified for PocketPlay, under the MIT licence (`LICENSE-CrossPlay.txt`). The icon is from Lucide (ISC licence).

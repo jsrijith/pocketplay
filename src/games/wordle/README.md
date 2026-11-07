@@ -1,26 +1,49 @@
 # Wordle
 
-Six guesses for one five-letter word, the same word as the New York Times' Wordle that day. `GET PUZZLES` downloads every past answer and the list of accepted guesses, and after that playing never touches the network. There's no free play: a day is a day's word.
+Guess the day's hidden five-letter word in six tries. It's the same word as the New York Times' Wordle for that date, and every past day can be played too.
 
-- **Menu:** today's date is the way into today's game. Below it are how today went, the record, a chart of guesses per win, `HOW TO PLAY`, `ARCHIVE` and `GET PUZZLES` (`ALL CAUGHT UP` when today is on the card).
-- **The record** only counts games finished on their own date. The streak runs from today, or from yesterday while today is still open. A past day played from the archive is marked on the calendar and counts for nothing else. The first finish of a day is the one kept.
-- **Marks:** solid black is the right letter in the right spot, a heavy border and a dot is the right letter in the wrong spot, and grey isn't in the word.
-- **"Today"** is the device's local date, in the time zone chosen in Settings. With no clock, the newest puzzle on the card stands in.
+## Rules
 
-**Saves:** all of these are in `/.pocketplay/`.
+- Type a five-letter word and tap the tick key. It has to be a real word from the accepted list, or you'll see `Not in the word list.` and can change it.
+- After each guess, every letter is marked:
+  - **Solid black:** the right letter in the right place.
+  - **Heavy border with a dot:** the letter is in the word, but somewhere else.
+  - **Grey:** the letter isn't in the word.
+- Find the word within six guesses to win. After the sixth wrong guess the game is lost and the word is shown.
+- There's no free play: each day has exactly one word.
 
-| Name | Kind | Holds |
-|---|---|---|
-| `wordle` | Save | The day on screen and the row being typed, so a wake returns to it. Erased on leaving the game for the menu or the archive. |
-| `wordle-answers` | Blob | Five bytes per day from 2021-06-19, `.` for a day not known. |
-| `wordle-words` | Blob | The accepted guesses, sorted, five bytes each, binary-searched in memory. |
-| `wordle-results` | Blob | One byte per day: 1-6 solved, 7 lost, 8 started, with 0x80 set when finished on the day. |
-| `wordle-games` | Blob | `day ANSWER GUESS GUESS...`, one line per day played. |
+## Getting started
 
-**Where the puzzles come from:** [mfilej/wrdl](https://github.com/mfilej/wrdl), a mirror that lands a day behind, then NYT's own `svc/wordle/v2/YYYY-MM-DD.json` for the days after it: at most 14 requests, and never for a date after today. The words are the New York Times'. This firmware ships none of them, and the device fetches them when asked.
+The device has no words until you fetch them. On the menu, tap `GET PUZZLES`. It joins Wi-Fi if it needs to, downloads every past answer and the list of accepted guesses, and turns the radio off again. `BACK` stops a download. After that, playing never uses the network. Tap `GET PUZZLES` again on a later day to get the new words; it reads `ALL CAUGHT UP` when today's word is already on the card.
 
-**Copied code:** `wordle_rules.h` and `wordle_rules.cpp` are CrossPlay's `src/apps_local/wordle/WordleCore.h` and `.cpp`, changed only in one include and one comment, and `tests/wordle/test_wordle.cpp` is its test. The screens and game logic are ported from `WordleScreens.cpp`, `WordleActivity.cpp` and the calendar in `ConnectionsScreens.cpp`, redrawn without CrossPlay's UI toolkit. All of it matched CrossPlay commit `fbeac762` when last compared, and it's under the MIT licence, in `LICENSE-CrossPlay.txt`.
+"Today" is the device's local date, in the time zone chosen in Settings.
 
-**Differences from CrossPlay:** the calendar and download screens use Jersey 25, because this firmware has no serif font. The download runs in the background, so `BACK` can stop it. A half-typed row survives sleep. Progress isn't imported from a CrossPlay card. The header carries a `BACK` button, because PocketPlay has no edge swipe, so a long title drops a size sooner.
+## Getting around
 
-**Icon:** `wordle_home_icon.h` is CrossPlay's home-page icon for this game, drawn from the Lucide `spell-check` icon (ISC licence).
+- **Menu:** tap today's date to play today's word. Below it are how today went, your record, a chart of how many guesses your wins took, and `HOW TO PLAY`, `ARCHIVE` and `GET PUZZLES`.
+- **Game:** tap the on-screen keyboard to type. The tick key at the left of the bottom row enters the guess (it's grey until five letters are typed), and the delete key at the right removes a letter. Letters on the keyboard take the marks they've earned, so you can see which ones are left. When the game ends, `NEXT` opens the next day you haven't finished, and `ARCHIVE` opens the calendar.
+- **Archive:** a calendar, one month at a time. Use the `YEAR` and `MONTH` steppers to move, and `TODAY` to jump back to the newest month. Tap a day to play it. Days you've played show how they went.
+- **How to play:** a short reminder of the rules.
+- `BACK` in the header goes from the game, archive or how to play to the menu, and from the menu to the home page.
+
+## Your record
+
+- Only games finished on their own date count towards the record and the streak. A past day played from the archive is marked on the calendar but doesn't change the record.
+- The streak runs back from today, or from yesterday while today is still unplayed.
+- The first time you finish a day is the result that's kept. Playing it again doesn't change it.
+
+## Saves
+
+All in `/.pocketplay/`:
+
+| Name | Holds |
+|---|---|
+| `wordle` | The day on screen and the half-typed row, so waking returns to it. Erased when you leave for the menu or archive. |
+| `wordle-answers` | Every downloaded answer, one per day. |
+| `wordle-words` | The accepted guesses. |
+| `wordle-results` | How each day went. |
+| `wordle-games` | The guesses made on each day played. |
+
+## Credits
+
+Copied from CrossPlay and modified for PocketPlay, under the MIT licence (`LICENSE-CrossPlay.txt`). The icon is from Lucide (ISC licence). The words are the New York Times', fetched from mfilej/wrdl and NYT.

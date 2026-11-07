@@ -1,11 +1,24 @@
 # Tic Tac Toe
 
-Two players on one device. Every move is saved to the SD card, so sleep, a crash or a flat battery returns you to the same board. `BACK` keeps the game for later, and finishing it or tapping `NEW GAME` clears the save.
+Two players share one device and take turns on a 3x3 grid.
 
-**Saves:** `tictactoe`, holding the board and whose turn it is. It's erased when the game ends.
+## Rules
 
-**Copied code:** `tictactoe_rules.h` is CrossPlay's `src/apps_local/tictactoe/TicTacToeCore.h`, unchanged, and matched CrossPlay commit `fbeac762` when last compared. It's under the MIT licence, in `LICENSE-CrossPlay.txt`.
+- X always moves first, then the players take turns.
+- Tap an empty square to put your mark there.
+- The first player to get three marks in a row (across, down or diagonally) wins.
+- If all nine squares fill up and nobody has three in a row, the game is a draw.
 
-**Icon:** `tictactoe_icon.h` is CrossPlay's home-page icon for this game, drawn from the Lucide `circle-x` icon (ISC licence).
+## Getting around
 
-**Differences from CrossPlay:** the header carries a `BACK` button, because PocketPlay has no edge swipe. The rules are worded more briefly.
+- The line above the grid says whose turn it is (`X TO MOVE`), or how the game ended (`X WINS`, `O WINS`, `A DRAW`).
+- `NEW GAME` under the grid clears the board and starts again.
+- `BACK` in the header returns to the home page. The game is kept, so you can finish it later.
+
+## Saves
+
+`tictactoe` holds the board and whose turn it is. It's written after every move, so sleep or a flat battery brings you back to the same board, and it's erased when the game ends or you tap `NEW GAME`.
+
+## Credits
+
+Copied from CrossPlay and modified for PocketPlay, under the MIT licence (`LICENSE-CrossPlay.txt`). The icon is from Lucide (ISC licence).
