@@ -1,0 +1,4 @@
+praxix.z5 is Praxix, a Z-machine unit test by Zarf and Dannii, from the IF Archive
+(if-archive/infocom/interpreters/tools/praxix.zip), used unchanged to test the interpreter.
+Its source says: "Public domain, but please share your changes so we can improve the tests."
+Its indirect test is Copyright (C) 2003, Amir Karger.

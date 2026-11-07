@@ -1,0 +1,10 @@
+czech.z5 is CZECH, the Comprehensive Z-machine Emulation CHecker, from the IF Archive
+(if-archive/infocom/interpreters/tools/czech_0_8.zip), used unchanged to test the interpreter.
+
+Czech, v0.8
+Copyright (C) 2003, Amir Karger
+
+The copyright holder hereby grants the rights of usage, distribution
+and modification of this software to everyone and for any purpose, as
+long as this license and the copyright notice above are preserved and
+not modified.  There is no warranty for this software.
