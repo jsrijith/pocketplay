@@ -1,6 +1,6 @@
 # PocketPlay
 
-A pocket games console for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. PocketPlay replaces the device's firmware with a home page of 21 games, from daily word puzzles to logic puzzles, card games and text adventures. Everything is played by tapping the screen, and everything is designed for e-ink: black and white, few refreshes, and nothing that moves unless you touch it.
+A pocket games console for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. PocketPlay replaces the device's firmware with a home page of 22 games, from daily word puzzles to logic puzzles, card games and text adventures. Everything is played by tapping the screen, and everything is designed for e-ink: black and white, few refreshes, and nothing that moves unless you touch it.
 
 PocketPlay drew heavy inspiration from [CrossPlay](https://github.com/ma-r-s/crossplay), and while it has since grown to include its own unique design, games, and features, most of its games were ported from two open-source projects: nine from CrossPlay, including the very first ones, and nine from [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel. I would like to extend my sincere thanks to the authors of both: CrossPlay laid the foundation that made this possible, and touch-licorice-apps brought many of the puzzle games and their puzzles.
 
@@ -31,6 +31,7 @@ I have also credited all the open-source projects referenced here. If I have mis
 - **Dice Roller:** two dice and their total, with one button to roll again, for any board game. [How it plays](src/games/diceroller/README.md)
 - **Nonograms:** picture logic puzzles, filling cells to match the row and column clues, 600 of them in four sizes, with X marks, undo and half-done puzzles kept. [How it plays](src/games/nonogram/README.md)
 - **Kakuro:** cross sums, filling digits so every run adds up to its clue with none repeated, 600 puzzles in three levels, with the ways to make each run shown and hints. [How it plays](src/games/kakuro/README.md)
+- **Bingo Caller:** calls 30, 75, 80 or 90-ball bingo for players with paper cards, one random number a tap with no repeats, and a board of every number called. [How it plays](src/games/bingocaller/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 
