@@ -18,7 +18,7 @@ A question deck for a party game played round a table, where the aim is to think
 
 ## Your questions
 
-The questions come from a text file on the SD card: `/thinkalike/questions.txt`. A starter file with five questions is in this folder as [questions.txt](questions.txt). Copy it to the card, then add your own on any computer.
+The questions come from a text file on the SD card: `/thinkalike/questions.txt`. A starter file of questions is in this folder as [questions.txt](questions.txt). Copy it to the card, then add your own on any computer.
 
 - One question per line, up to 1000 questions of up to 200 characters each.
 - Blank lines, and lines starting with `#`, are skipped.
