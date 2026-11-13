@@ -231,4 +231,6 @@ Wordle and Connections are trademarks of The New York Times Company, and this pr
 
 ## Licence
 
-<!-- TODO: choose before publishing, and add a LICENSE file. -->
+PocketPlay's own code is under the MIT licence (`LICENSE`). Code and data copied from other projects keep their own licences, in the `LICENSE-*.txt` and `OFL-*.txt` files beside them, as listed under Credits.
+
+The firmware links wolfSSL, which is under the GPL (version 2 or later), so a built firmware image as a whole is bound by the GPL: anyone who passes one on must also offer its source, which this repository is.
