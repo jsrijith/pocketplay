@@ -33,6 +33,7 @@ I have also credited all the open-source projects referenced here. If I have mis
 - **Kakuro:** cross sums, filling digits so every run adds up to its clue with none repeated, 600 puzzles in three levels, with the ways to make each run shown and hints. [How it plays](src/games/kakuro/README.md)
 - **Bingo Caller:** calls 30, 75, 80 or 90-ball bingo for players with paper cards, one random number a tap with no repeats, and a board of every number called. [How it plays](src/games/bingocaller/README.md)
 - **Island Maps:** 55 official and fan-made island layouts for laying out the tiles of the Forbidden Island board game, stepped through with Up and Down or picked at random. [How it plays](src/games/islandmaps/README.md)
+- **Think Alike:** a deck of questions for the party game where everyone writes an answer and matching the most common one scores. The questions are a text file on the card, so you can add your own. [How it plays](src/games/thinkalike/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 

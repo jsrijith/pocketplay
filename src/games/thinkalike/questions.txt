@@ -1,0 +1,8 @@
+# Think Alike questions. Copy this file to /thinkalike/questions.txt on the SD card.
+# One question per line. Blank lines and lines starting with # are skipped.
+# Up to 1000 questions, each up to 200 characters. Edit it on any computer.
+Name a fruit you can eat without peeling it.
+What is the best day of the week?
+Name something people always forget to pack.
+What is the best pizza topping?
+Name an animal you would ride to work.
