@@ -70,7 +70,7 @@ void drawPill(uint8_t* frame, int left, int top, int width, const char* label, b
 void drawDimmedPill(uint8_t* frame, int left, int top, int width, const char* label, int height = PILL_HEIGHT);
 
 // A list row: the label on the left and a 32 px icon (or none) on the right.
-void drawRow(uint8_t* frame, int top, const char* label, const uint8_t* icon);
+void drawRow(uint8_t* frame, int top, const char* label, const uint8_t* icon, int height = ROW_HEIGHT);
 
 // Left-aligned text with its capitals centred in a box of the given height.
 void drawTextLeft(uint8_t* frame, Font font, int left, int top, int height, const char* text, bool black = true);

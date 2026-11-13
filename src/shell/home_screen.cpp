@@ -22,33 +22,88 @@ constexpr uint8_t PAGE_VERSION = 1;
 constexpr size_t MAX_NAME_BYTES = 32;
 
 constexpr int ROW_WIDTH = SCREEN_WIDTH - 2 * ui::MARGIN;
-constexpr int BOTTOM_MARGIN = 16;
+constexpr int BOTTOM_MARGIN = 20;
 
-// Settings takes the place of CrossPlay's player bar: a row's height, solid black.
-constexpr int SETTINGS_TOP = SCREEN_HEIGHT - BOTTOM_MARGIN - ui::ROW_HEIGHT;
+// 4 px shorter than other lists' rows, so ten fit above the bar.
+constexpr int ROW_HEIGHT = 58;
 
-// The page marks: shorter than a row, because they carry only numbers.
-constexpr int MARKS_HEIGHT = 40;
-constexpr int MARKS_TOP = SETTINGS_TOP - ui::GAP - MARKS_HEIGHT - 6;
+// One bar along the bottom: the battery on the left, the page marks in the middle,
+// and the settings cog on the right.
+constexpr int BAR_HEIGHT = 40;
+constexpr int BAR_TOP = SCREEN_HEIGHT - BOTTOM_MARGIN - BAR_HEIGHT;
+
+// The page marks: they carry only numbers.
+constexpr int MARKS_HEIGHT = BAR_HEIGHT;
+constexpr int MARKS_TOP = BAR_TOP;
 constexpr int MARK_WIDTH = 34;
 constexpr int MARK_GAP = 4;
 constexpr int MARK_RADIUS = 8;
 constexpr int MARK_BORDER = 2;
 
-static_assert(ui::CONTENT_TOP + homePages::ROWS_PER_PAGE * (ui::ROW_HEIGHT + ui::ROW_GAP) <= MARKS_TOP,
-              "the rows must end above the page marks");
+// The battery at its widest ("100%" and the bolt) ends at x=148. The marks are
+// centred, so they may spread this far either side of the middle before narrowing:
+// 4 pages (40 games) at full width.
+constexpr int BATTERY_RIGHT = 148;
+constexpr int MARKS_MAX_WIDTH = 2 * (SCREEN_WIDTH / 2 - BATTERY_RIGHT - ui::GAP);
+
+constexpr int COG_SIZE = 32;
+constexpr int COG_LEFT = SCREEN_WIDTH - ui::MARGIN - COG_SIZE;
+constexpr int COG_TOP = BAR_TOP + (BAR_HEIGHT - COG_SIZE) / 2;
+// The cog's target is larger than the cog, out to the screen's corner, so it is
+// easy to hit. It stays clear of the widest marks and of the last row.
+constexpr int COG_TARGET_LEFT = SCREEN_WIDTH - 80;
+constexpr int COG_TARGET_TOP = BAR_TOP - ui::GAP / 2;
+
+constexpr uint8_t COG[] = {
+    0xFF, 0xFF, 0xFF, 0xFF,  // ................................
+    0xFF, 0xF8, 0x1F, 0xFF,  // .............######.............
+    0xFF, 0xF8, 0x1F, 0xFF,  // .............######.............
+    0xFE, 0xF8, 0x1F, 0x7F,  // .......#.....######.....#.......
+    0xFC, 0x78, 0x1E, 0x3F,  // ......###....######....###......
+    0xF8, 0x38, 0x1C, 0x1F,  // .....#####...######...#####.....
+    0xF0, 0x10, 0x08, 0x0F,  // ....#######.########.#######....
+    0xE0, 0x00, 0x00, 0x07,  // ...##########################...
+    0xF0, 0x00, 0x00, 0x0F,  // ....########################....
+    0xF8, 0x00, 0x00, 0x1F,  // .....######################.....
+    0xFC, 0x00, 0x00, 0x3F,  // ......####################......
+    0xFE, 0x01, 0x80, 0x7F,  // .......########..########.......
+    0xFC, 0x07, 0xE0, 0x3F,  // ......#######......#######......
+    0x80, 0x0F, 0xF0, 0x01,  // .###########........###########.
+    0x80, 0x0F, 0xF0, 0x01,  // .###########........###########.
+    0x80, 0x1F, 0xF8, 0x01,  // .##########..........##########.
+    0x80, 0x1F, 0xF8, 0x01,  // .##########..........##########.
+    0x80, 0x0F, 0xF0, 0x01,  // .###########........###########.
+    0x80, 0x0F, 0xF0, 0x01,  // .###########........###########.
+    0xFC, 0x07, 0xE0, 0x3F,  // ......#######......#######......
+    0xFE, 0x01, 0x80, 0x7F,  // .......########..########.......
+    0xFC, 0x00, 0x00, 0x3F,  // ......####################......
+    0xF8, 0x00, 0x00, 0x1F,  // .....######################.....
+    0xF0, 0x00, 0x00, 0x0F,  // ....########################....
+    0xE0, 0x00, 0x00, 0x07,  // ...##########################...
+    0xF0, 0x10, 0x08, 0x0F,  // ....#######.########.#######....
+    0xF8, 0x38, 0x1C, 0x1F,  // .....#####...######...#####.....
+    0xFC, 0x78, 0x1E, 0x3F,  // ......###....######....###......
+    0xFE, 0xF8, 0x1F, 0x7F,  // .......#.....######.....#.......
+    0xFF, 0xF8, 0x1F, 0xFF,  // .............######.............
+    0xFF, 0xF8, 0x1F, 0xFF,  // .............######.............
+    0xFF, 0xFF, 0xFF, 0xFF,  // ................................
+};
+
+static_assert(ui::CONTENT_TOP + homePages::ROWS_PER_PAGE * (ROW_HEIGHT + ui::ROW_GAP) - ui::ROW_GAP + ui::GAP <= BAR_TOP,
+              "the rows must end above the bar");
+static_assert(SCREEN_WIDTH / 2 + MARKS_MAX_WIDTH / 2 + ui::GAP <= COG_TARGET_LEFT, "the marks must clear the cog's target");
 
 int page = 0;
 bool pageSaveFailed = false;
 
-int rowTop(int row) { return ui::CONTENT_TOP + row * (ui::ROW_HEIGHT + ui::ROW_GAP); }
+int rowTop(int row) { return ui::CONTENT_TOP + row * (ROW_HEIGHT + ui::ROW_GAP); }
 
 int pages() { return homePages::pageCount(games::count()); }
 
 // Marks narrow only if there are too many pages for them all at full width.
 int markWidth() {
   const int count = pages();
-  const int fits = (ROW_WIDTH - (count - 1) * MARK_GAP) / count;
+  const int fits = (MARKS_MAX_WIDTH - (count - 1) * MARK_GAP) / count;
   return fits < MARK_WIDTH ? fits : MARK_WIDTH;
 }
 
@@ -94,12 +149,7 @@ void drawMarks(uint8_t* frame) {
   }
 }
 
-void drawSettings(uint8_t* frame) {
-  fillRect(frame, ui::MARGIN, SETTINGS_TOP, ROW_WIDTH, ui::ROW_HEIGHT, true);
-  ui::drawTextLeft(frame, Font::Size20, ui::MARGIN + 14, SETTINGS_TOP, ui::ROW_HEIGHT, "SETTINGS", false);
-  const int cap = capHeight(Font::Size20);
-  drawText(frame, Font::Size20, SCREEN_WIDTH - ui::MARGIN - 18, SETTINGS_TOP + (ui::ROW_HEIGHT - cap) / 2 + cap, ">", Align::Right, false);
-}
+void drawSettings(uint8_t* frame) { drawIcon(frame, COG, COG_SIZE, COG_SIZE, COG_LEFT, COG_TOP); }
 
 }  // namespace
 
@@ -124,12 +174,10 @@ void draw(uint8_t* frame) {
   const int first = homePages::firstOnPage(page);
   for (int row = 0; row < homePages::rowsOnPage(page, games::count()); row++) {
     const Game& game = games::at(first + row);
-    ui::drawRow(frame, rowTop(row), game.name(), game.icon());
+    ui::drawRow(frame, rowTop(row), game.name(), game.icon(), ROW_HEIGHT);
   }
 
-  // In the marks' band, left of them. At its widest ("100%" and the bolt) it ends at
-  // x=148. The marks are centred, so they clear it up to 4 pages (32 games), and at 5
-  // they would touch it.
+  // On the bar's left, ending at BATTERY_RIGHT at its widest.
   const battery::Reading charge = battery::read();
   ui::drawBattery(frame, ui::MARGIN, MARKS_TOP, MARKS_HEIGHT, charge.percent, charge.charging);
 
@@ -140,7 +188,7 @@ void draw(uint8_t* frame) {
 bool update() { return battery::poll(); }
 
 int onTap(int x, int y) {
-  if (ui::isInBox(x, y, ui::MARGIN, SETTINGS_TOP, ROW_WIDTH, ui::ROW_HEIGHT)) return TAP_SETTINGS;
+  if (x >= COG_TARGET_LEFT && y >= COG_TARGET_TOP) return TAP_SETTINGS;
 
   // Each mark's target runs to the middle of the gap beside it, so the cluster has
   // no dead pixels, but nothing outside it answers.
@@ -153,7 +201,7 @@ int onTap(int x, int y) {
 
   const int first = homePages::firstOnPage(page);
   for (int row = 0; row < homePages::rowsOnPage(page, games::count()); row++) {
-    if (ui::isInBox(x, y, ui::MARGIN, rowTop(row), ROW_WIDTH, ui::ROW_HEIGHT)) return first + row;
+    if (ui::isInBox(x, y, ui::MARGIN, rowTop(row), ROW_WIDTH, ROW_HEIGHT)) return first + row;
   }
   return TAP_NOTHING;
 }

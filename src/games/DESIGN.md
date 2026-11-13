@@ -51,7 +51,7 @@ Jersey 25 only (`core/text.h`), in these roles:
 
 | Element | Changes | Treatment |
 |---|---|---|
-| Header band, Settings bar | never | solid black, white type |
+| Header band | never | solid black, white type |
 | A board's cells | every move | outlines, and black only for the player's own marks |
 | A selection | every move | corner brackets or a 4 px frame, never a fill |
 | A status capsule | every move | outlined; solid only at game over, with the full refresh |

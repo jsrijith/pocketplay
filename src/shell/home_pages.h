@@ -5,7 +5,7 @@
 // page could change, and then a stored page number would point at different games.
 namespace homePages {
 
-constexpr int ROWS_PER_PAGE = 8;
+constexpr int ROWS_PER_PAGE = 10;
 
 constexpr int pageCount(int games) { return games <= 0 ? 1 : (games + ROWS_PER_PAGE - 1) / ROWS_PER_PAGE; }
 

@@ -178,11 +178,11 @@ void drawDimmedPill(uint8_t* frame, int left, int top, int width, const char* la
   drawTextInBox(frame, font, left, top, width, height, label);
 }
 
-void drawRow(uint8_t* frame, int top, const char* label, const uint8_t* icon) {
-  drawRectOutline(frame, MARGIN, top, ROW_WIDTH, ROW_HEIGHT, HAIRLINE);
-  drawTextLeft(frame, Font::Size20, MARGIN + ROW_TEXT_INSET, top, ROW_HEIGHT, label);
+void drawRow(uint8_t* frame, int top, const char* label, const uint8_t* icon, int height) {
+  drawRectOutline(frame, MARGIN, top, ROW_WIDTH, height, HAIRLINE);
+  drawTextLeft(frame, Font::Size20, MARGIN + ROW_TEXT_INSET, top, height, label);
   if (icon != nullptr) {
-    drawIcon(frame, icon, ICON_SIZE, ICON_SIZE, MARGIN + ROW_WIDTH - ROW_TEXT_INSET - ICON_SIZE, top + (ROW_HEIGHT - ICON_SIZE) / 2);
+    drawIcon(frame, icon, ICON_SIZE, ICON_SIZE, MARGIN + ROW_WIDTH - ROW_TEXT_INSET - ICON_SIZE, top + (height - ICON_SIZE) / 2);
   }
 }
 
