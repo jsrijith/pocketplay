@@ -1,5 +1,8 @@
 #include "ui.h"
 
+#include <cstdio>
+
+#include "battery_icon.h"
 #include "core/graphics.h"
 #include "core/text.h"
 
@@ -7,6 +10,61 @@ namespace ui {
 
 namespace {
 constexpr int BORDER = 3;
+
+constexpr int BATTERY_WIDTH = 28;
+constexpr int BATTERY_HEIGHT = 14;
+constexpr int BATTERY_BORDER = 2;
+constexpr int BATTERY_INSET = BATTERY_BORDER + 1;  // a white gap inside the outline
+constexpr int BATTERY_NUB_WIDTH = 3;
+constexpr int BATTERY_NUB_HEIGHT = 6;
+constexpr int BATTERY_TEXT_GAP = 6;
+
+constexpr int BOLT_WIDTH = 14;
+constexpr int BOLT_HEIGHT = 23;
+constexpr uint8_t BOLT[] = {
+    0xFF, 0x0F,  // ........####..
+    0xFE, 0x1F,  // .......####...
+    0xFE, 0x1F,  // .......####...
+    0xFC, 0x3F,  // ......####....
+    0xFC, 0x3F,  // ......####....
+    0xF8, 0x7F,  // .....####.....
+    0xF8, 0x7F,  // .....####.....
+    0xF0, 0xFF,  // ....####......
+    0xF0, 0xFF,  // ....####......
+    0xE0, 0x07,  // ...##########.
+    0xC0, 0x0F,  // ..##########..
+    0xFE, 0x1F,  // .......####...
+    0xFE, 0x1F,  // .......####...
+    0xFC, 0x3F,  // ......####....
+    0xFC, 0x3F,  // ......####....
+    0xF8, 0x7F,  // .....####.....
+    0xF8, 0x7F,  // .....####.....
+    0xF0, 0xFF,  // ....####......
+    0xF1, 0xFF,  // ....###.......
+    0xE3, 0xFF,  // ...###........
+    0xE7, 0xFF,  // ...##.........
+    0xCF, 0xFF,  // ..##..........
+    0xDF, 0xFF,  // ..#...........
+};
+}  // namespace
+
+void drawBattery(uint8_t* frame, int left, int top, int height, int percent, bool charging) {
+  const int bodyTop = top + (height - BATTERY_HEIGHT) / 2;
+  drawRectOutline(frame, left, bodyTop, BATTERY_WIDTH, BATTERY_HEIGHT, BATTERY_BORDER);
+  fillRect(frame, left + BATTERY_WIDTH, bodyTop + (BATTERY_HEIGHT - BATTERY_NUB_HEIGHT) / 2, BATTERY_NUB_WIDTH, BATTERY_NUB_HEIGHT, true);
+
+  const int fill = batteryFillWidth(percent, BATTERY_WIDTH - 2 * BATTERY_INSET);
+  fillRect(frame, left + BATTERY_INSET, bodyTop + BATTERY_INSET, fill, BATTERY_HEIGHT - 2 * BATTERY_INSET, true);
+
+  char label[12] = "--%";
+  if (percent >= 0) snprintf(label, sizeof(label), "%d%%", percent);
+  const int textLeft = left + BATTERY_WIDTH + BATTERY_NUB_WIDTH + BATTERY_TEXT_GAP;
+  drawTextLeft(frame, Font::Size20, textLeft, top, height, label);
+
+  // After the number, so the battery and number stay put when it comes and goes.
+  if (charging) {
+    drawIcon(frame, BOLT, BOLT_WIDTH, BOLT_HEIGHT, textLeft + textWidth(Font::Size20, label) + BATTERY_TEXT_GAP, top + (height - BOLT_HEIGHT) / 2);
+  }
 }
 
 bool isInBox(int x, int y, int left, int top, int width, int height) { return x >= left && x < left + width && y >= top && y < top + height; }

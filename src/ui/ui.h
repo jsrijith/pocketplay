@@ -75,4 +75,8 @@ void drawRow(uint8_t* frame, int top, const char* label, const uint8_t* icon);
 // Left-aligned text with its capitals centred in a box of the given height.
 void drawTextLeft(uint8_t* frame, Font font, int left, int top, int height, const char* text, bool black = true);
 
+// A small battery, its percentage, and a bolt while charging, centred in a band of
+// the given height. A percent below 0 means unknown: an empty battery and "--%".
+void drawBattery(uint8_t* frame, int left, int top, int height, int percent, bool charging);
+
 }  // namespace ui

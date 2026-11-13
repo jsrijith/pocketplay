@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 
+#include "core/battery.h"
 #include "core/graphics.h"
 #include "core/storage.h"
 #include "core/text.h"
@@ -126,9 +127,17 @@ void draw(uint8_t* frame) {
     ui::drawRow(frame, rowTop(row), game.name(), game.icon());
   }
 
+  // In the marks' band, left of them. At its widest ("100%" and the bolt) it ends at
+  // x=148. The marks are centred, so they clear it up to 4 pages (32 games), and at 5
+  // they would touch it.
+  const battery::Reading charge = battery::read();
+  ui::drawBattery(frame, ui::MARGIN, MARKS_TOP, MARKS_HEIGHT, charge.percent, charge.charging);
+
   if (pages() > 1) drawMarks(frame);
   drawSettings(frame);
 }
+
+bool update() { return battery::poll(); }
 
 int onTap(int x, int y) {
   if (ui::isInBox(x, y, ui::MARGIN, SETTINGS_TOP, ROW_WIDTH, ui::ROW_HEIGHT)) return TAP_SETTINGS;

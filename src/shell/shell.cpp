@@ -187,6 +187,7 @@ Redraw update() {
     return Redraw::Fast;
   }
   if (screen == Screen::Playing && currentGame->update()) return Redraw::Fast;
+  if (screen == Screen::Home && homeScreen::update()) return Redraw::Fast;
 
   if (!networkChanged) return Redraw::None;
   return screen == Screen::Settings || screen == Screen::Wifi ? Redraw::Fast : Redraw::None;
