@@ -2,7 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-PocketPlay is a games-only firmware for the Seeed reTerminal Sticky (ESP32-S3), built up one step at a time so its owner can learn how ESP32 firmware works. Keep each step small, and explain the hardware reasoning.
+PocketPlay is a games-only firmware for the Seeed reTerminal Sticky (ESP32-S3).
+
+Machine-specific details (serial port, folders, where other projects are checked out) live in `CLAUDE.local.md`, which isn't committed. Read it if it exists.
 
 ## Commands
 
@@ -25,16 +27,14 @@ Every firmware build runs `scripts/check.sh` first and stops if it fails (`scrip
 
 There are no linters. These tests cover code with no hardware in it, and a build only proves the rest compiles, so behaviour has to be confirmed on the device.
 
-**Flashing is done by the user, from Windows.** WSL has no USB access to the device. Give the user commands to run in PowerShell, after they copy the image to `C:\Users\Srijith\Downloads`:
+**Flashing is done by the user, from Windows.** WSL has no USB access to the device. Give the user commands to run in PowerShell, with the port from `CLAUDE.local.md`:
 
 ```powershell
-python -m esptool --chip esp32s3 --port COM8 --baud 460800 write-flash 0x0 pocketplay-full.bin
-python -m serial.tools.miniterm COM8 115200
+python -m esptool --chip esp32s3 --port <PORT> --baud 460800 write-flash 0x0 pocketplay-full.bin
+python -m serial.tools.miniterm <PORT> 115200
 ```
 
-Use `python`, because this machine has no `py` launcher. Always flash the merged image at `0x0`, never the app alone: the merged image includes `boot_app0.bin`, which selects app0 if an earlier firmware last booted from app1.
-
-`gh` exists only as `gh.exe` on the Windows side. WSL has no stored GitHub credentials, so a push needs `-c credential.helper= -c 'credential.helper=!gh.exe auth git-credential'`.
+Always flash the merged image at `0x0`, never the app alone: the merged image includes `boot_app0.bin`, which selects app0 if an earlier firmware last booted from app1.
 
 ## Architecture
 
@@ -110,13 +110,11 @@ These cause silent failures, and the build won't catch them:
 - **GPIO0 is a strapping pin** and also the SCL of the sensor bus the clock chip is on. Don't leave a pull on it that disturbs boot mode.
 - **Keep the device recoverable.** Never write eFuses or enable secure boot or flash encryption, since those can permanently lock the chip.
 
-## Reference
+## Porting a game
 
-`/home/srijith/mycrossplay` is a working full firmware for this device, built on the same SDK. Read it to see how something is done on the Sticky, but don't modify it or copy its structure wholesale. Its `CLAUDE.md` describes that project and doesn't apply here.
+Some games began in other MIT-licensed projects: [CrossPlay](https://github.com/ma-r-s/crossplay), a full firmware for this device on the same SDK, and touch-licorice-apps. `CLAUDE.local.md` says where they're checked out. Read them to see how something was done, but never modify them or copy their structure wholesale.
 
-**Copying a game from CrossPlay:** its games are in `src/apps_local/<name>/`, and `src/games/wordle/` shows the result.
-
-- Copy the rules (`<Name>Core.h/.cpp`) and their test from `host-tests/<name>/` unchanged apart from includes, and keep the MIT licence beside them. The test goes in `tests/<name>/`.
-- Rewrite the screens and activity on `core/` and `ui/`, because CrossPlay's Activity system, FreeInkUI and Toybox aren't here. Keep the features and behaviour the same.
-- List every difference from CrossPlay for the user before building. The game's `README.md` is for players (rules, getting around, saves) and only credits CrossPlay in one line, not the differences.
-- Before calling reported behaviour a bug, compare it with CrossPlay. If the two match, tell the user that rather than changing the rule.
+- Copy the rules and their test unchanged apart from includes (or translate them, for Lua), and keep the source's licence beside them as `LICENSE-<source>.txt`. The test goes in `tests/<name>/`.
+- Write the screens on `core/` and `ui/` in PocketPlay's own design (`src/games/DESIGN.md`). Keep the source's features and rules.
+- List every difference from the source for the user before building. The game's `README.md` is for players (rules, getting around, saves) and credits the source in one line.
+- Before calling reported behaviour a bug, compare it with the source. If the two match, tell the user that rather than changing the rule.

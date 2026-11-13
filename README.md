@@ -1,6 +1,12 @@
 # PocketPlay
 
-Games firmware for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. It replaces the device's firmware with a simple home page of games, and everything is played by tapping the screen.
+A pocket games console for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. PocketPlay replaces the device's firmware with a home page of 21 games, from daily word puzzles to logic puzzles, card games and text adventures. Everything is played by tapping the screen, and everything is designed for e-ink: black and white, few refreshes, and nothing that moves unless you touch it.
+
+PocketPlay drew heavy inspiration from [CrossPlay](https://github.com/ma-r-s/crossplay), and while it has since grown to include its own unique design, games, and features, most of its games were ported from two open-source projects: nine from CrossPlay, including the very first ones, and nine from [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel. I would like to extend my sincere thanks to the authors of both: CrossPlay laid the foundation that made this possible, and touch-licorice-apps brought many of the puzzle games and their puzzles.
+
+This entire project was also developed using Claude. Having no background in firmware development or C++, I could not have built this independently—Claude was instrumental in turning the idea into reality.
+
+I have also credited all the open-source projects referenced here. If I have missed any attribution, please feel free to reach out and let me know.
 
 **Games included:**
 
@@ -96,7 +102,7 @@ The device restarts into the PocketPlay home page. Always flash at `0x0`, becaus
 ### 5. First-time setup
 
 1. Put in the SD card and restart the device. A card put in later is only seen after a restart.
-2. Open **Settings** and choose your **TIME ZONE**, so Wordle's "today" matches your date.
+2. Open **Settings** with the cog at the bottom right of the home page, and choose your **TIME ZONE**, so Wordle's "today" matches your date.
 3. Open **Wordle** and tap **GET PUZZLES**. It joins Wi-Fi if needed, downloads the puzzles, then turns the radio off. After that, playing needs no network until you want new puzzles. **Connections** has its own **GET PUZZLES**, which works the same way.
 
 ## Using it
@@ -104,6 +110,9 @@ The device restarts into the PocketPlay home page. Always flash at `0x0`, becaus
 | To do this | Do this |
 |---|---|
 | Open a game or setting | Tap it |
+| Open Settings | Tap the cog at the bottom right of the home page |
+| Change page | Tap a page number at the bottom, or press Up or Down. The home page shows 10 games a page, and Down on the last page goes back to the first |
+| See the battery | It's at the bottom left of the home page, with a bolt while charging |
 | Sleep | Hold OK for 1 second, or leave it idle for the sleep time |
 | Wake | Press OK. A game that was open comes back; otherwise you return to the home page |
 
@@ -196,13 +205,20 @@ Deep sleep turns almost everything off, so waking runs all of this from the star
 
 ## Credits
 
-PocketPlay builds on other people's work, each under its own licence:
+PocketPlay builds on other people's work, each under its own licence, kept beside the code it covers:
 
-- [CrossPlay](https://github.com/ma-r-s/crossplay): the game rules, the games' designs and the font headers (MIT, copied alongside the code)
+- [CrossPlay](https://github.com/ma-r-s/crossplay) by Mario Ruiz: the project that inspired PocketPlay. Several games began as ports of its games, and the font headers come from it (MIT)
+- [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel: the rules and puzzles behind Lights Out, Suguru, Sokoban, Queens, Peg Solitaire, Text Adventures, Word Ladder, Nonograms and Kakuro (MIT)
 - [FreeInk SDK](https://github.com/ma-r-s/freeink-sdk): hardware libraries (MIT)
 - [wolfSSL](https://www.wolfssl.com/): HTTPS (GPLv2 or later, or commercial)
 - [SdFat](https://github.com/greiman/SdFat): SD card access (MIT)
 - Jersey 25: the font (SIL Open Font License)
 - Noto Sans Symbols 2: Solitaire's suit marks, drawn from its card-suit glyphs (SIL Open Font License, in `src/games/solitaire/OFL-Noto.txt`)
 
-Wordle and Connections are trademarks of The New York Times Company, and this project isn't affiliated with it. The firmware ships no puzzles: the device downloads them when you ask, from [mfilej/wrdl](https://github.com/mfilej/wrdl), the New York Times and [Eyefyre/NYT-Connections-Answers](https://github.com/Eyefyre/NYT-Connections-Answers). The Connections test fixture in `tests/connections/` holds a copy of that archive, copied from CrossPlay, and is never built into the firmware.
+Zork I, II and III are © Microsoft, released under the MIT licence. Sokoban's level packs are by David W. Skinner and Aymeric du Peloux, published with their permission. Word Ladder's word lists come from Alan Beale's 12dicts and Kevin Atkinson's AGID.
+
+Wordle and Connections are trademarks of The New York Times Company, and this project isn't affiliated with it. The firmware ships no puzzles: the device downloads them when you ask, from [mfilej/wrdl](https://github.com/mfilej/wrdl), the New York Times and [Eyefyre/NYT-Connections-Answers](https://github.com/Eyefyre/NYT-Connections-Answers). The Connections test fixture in `tests/connections/` holds a copy of that archive and is never built into the firmware.
+
+## Licence
+
+<!-- TODO: choose before publishing, and add a LICENSE file. -->

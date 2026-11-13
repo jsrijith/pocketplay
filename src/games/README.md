@@ -9,7 +9,7 @@ games/
   games.h/.cpp     looks games up from the list; no game-specific code
   tictactoe/       the example to copy
   wordle/          a larger example: several views, downloads and big saves
-  dungeon/         a port from CrossPlay, with a layout struct for taps
+  dungeon/         a port, with a layout struct for taps
   connections/     a port with a download parsed as it arrives, and a layout tested on every board
   solitaire/       a port drawn in landscape
   minesweeper/     a port that acts on a held finger (Game::usesHold)

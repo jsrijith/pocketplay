@@ -1,6 +1,6 @@
 # How a game looks
 
-Every game uses CrossPlay's design language, Toybox, drawn with the calls in `src/ui/ui.h`. CrossPlay's full reasoning is in `/home/srijith/mycrossplay/docs/design-language.md`. This page holds the parts that decide how a PocketPlay screen is built. `home_screen.cpp` and `games/dungeon/` are the examples to copy.
+PocketPlay's design is built for a black-and-white e-ink panel held in one hand: big type, few refreshes, and black spent only where it never changes. It began from CrossPlay's Toybox and has gone its own way. Every screen is drawn with the calls in `src/ui/ui.h`, and `home_screen.cpp` and `games/dungeon/` are the examples to copy.
 
 ## The screen
 
@@ -84,12 +84,12 @@ Use `Redraw` (fast) for a move, and `RedrawFull` (the blink) for starting a game
 
 ## The front door
 
-A game with a menu follows CrossPlay's pattern: a headline (the main action, and the biggest thing on the screen), the state, a rule, a one-line record, an ornament, then the lesser actions anchored at the bottom.
+A game with a menu has a headline (the main action, and the biggest thing on the screen), the state, a rule, a one-line record, an ornament, then the lesser actions anchored at the bottom.
 
 ## The home-page icon
 
-32 x 32 in CrossPlay's format (rows padded to whole bytes, MSB first, 0 = ink), returned by `icon()`. For a CrossPlay game, copy `icon_<name>_32` from `src/apps_local/ui/ToyboxIcons.h` into the game's folder, and name its Lucide source (from `tools_local/toybox/icons.txt`) in a comment and in the README.
+32 x 32, rows padded to whole bytes, MSB first, 0 = ink, returned by `icon()`. Draw it from a [Lucide](https://lucide.dev) icon (ISC licence), and name that icon in a comment and in the README.
 
 ## Checking it
 
-Run `tools/preview/run.sh` and compare its images with CrossPlay's screenshots in `site/assets/shots/`, or check them by eye for a new game, before flashing.
+Run `tools/preview/run.sh` and look at every screen before flashing. For a port, compare them with the source game's screenshots too.

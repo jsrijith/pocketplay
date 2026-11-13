@@ -1,3 +1,4 @@
 .pio/
 dist/
 *.bin
+CLAUDE.local.md

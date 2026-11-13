@@ -1,6 +1,6 @@
 # Preview
 
-Draws a game's screens on the PC as PNGs, so a new or ported game can be checked against CrossPlay's screenshots before anything is flashed. It uses the real drawing code (`core/graphics`, `core/text`, `ui/`) and the game's own folder, with a card kept in memory and no panel.
+Draws a game's screens on the PC as PNGs, so a game's screens can be checked before anything is flashed. It uses the real drawing code (`core/graphics`, `core/text`, `ui/`) and the game's own folder, with a card kept in memory and no panel.
 
 ```bash
 tools/preview/run.sh FOLDER FUNCTION OUT_DIR COMMAND...
@@ -20,7 +20,7 @@ tools/preview/run.sh dungeon dungeonGame /tmp/shots shot:menu tap:240,758 shot:b
 | `press:X,Y`, `hold:X,Y`, `release` | For a game whose `usesHold()` is true: a finger going down, the same finger held for 400 ms, and the press ending. On the device a hold ends its own press, so follow `hold:` with `release` and no `tap:`. |
 | `warning:NAME` | Draws the game with the shell's longest warning, `SAVE FAILED`, where the shell puts it, to check nothing is drawn under it. |
 
-CrossPlay's own screenshots are in `/home/srijith/mycrossplay/site/assets/shots/`, at the same 480 x 800 (800 x 480 for a landscape game). A landscape game's screens come out landscape, and its `row:` stays portrait, as the home page is.
+A landscape game's screens come out landscape, and its `row:` stays portrait, as the home page is.
 
 **Limits:**
 - It links `core/graphics`, `core/text`, all of `ui/` (the keyboard too) and the game's folder. `net_stub.cpp` stands in for `core/network` and `core/download`: Wi-Fi is never connected, so a download stops at its Wi-Fi step. The clock is the PC's.
