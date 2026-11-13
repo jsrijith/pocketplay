@@ -33,11 +33,12 @@ int main() {
   expect(rowsOnPage(4, 45) == 5, "the last page holds what is left");
   expect(rowsOnPage(5, 50) == 0, "past the end holds nothing");
 
-  expect(stepClamped(0, -1, 50) == 0, "back from the first page stays");
-  expect(stepClamped(4, 1, 50) == 4, "forward from the last page stays");
-  expect(stepClamped(2, 1, 50) == 3, "forward steps one page");
-  expect(stepClamped(2, -1, 50) == 1, "back steps one page");
-  expect(stepClamped(0, 1, 3) == 0, "one page never moves");
+  expect(stepWrapped(0, -1, 50) == 4, "back from the first page goes to the last");
+  expect(stepWrapped(4, 1, 50) == 0, "forward from the last page goes to the first");
+  expect(stepWrapped(2, 1, 50) == 3, "forward steps one page");
+  expect(stepWrapped(2, -1, 50) == 1, "back steps one page");
+  expect(stepWrapped(0, 1, 3) == 0 && stepWrapped(0, -1, 3) == 0, "one page never moves");
+  expect(stepWrapped(1, 1, 21) == 2 && stepWrapped(2, 1, 21) == 0, "a short last page still wraps");
 
   expect(pageForSaved(10, 50) == 1, "a saved game reopens its page");
   expect(pageForSaved(-1, 50) == 4, "a removed game reopens the last page");

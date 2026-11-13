@@ -19,13 +19,11 @@ constexpr int rowsOnPage(int page, int games) {
   return left < 0 ? 0 : (left < ROWS_PER_PAGE ? left : ROWS_PER_PAGE);
 }
 
-// One step, stopping at both ends rather than wrapping, because every page draws
-// its rows in the same places and a page reached by surprise looks like the right one.
-constexpr int stepClamped(int page, int delta, int games) {
-  const int next = page + delta;
-  if (next < 0) return 0;
-  const int last = pageCount(games) - 1;
-  return next > last ? last : next;
+// One step, wrapping past the last page to the first and back. The header's counter
+// and the page marks show where a wrap landed.
+constexpr int stepWrapped(int page, int delta, int games) {
+  const int count = pageCount(games);
+  return ((page + delta) % count + count) % count;
 }
 
 // The page to open on, from the saved game's position, or -1 if that game is gone.

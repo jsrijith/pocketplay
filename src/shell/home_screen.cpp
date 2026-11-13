@@ -206,9 +206,9 @@ int onTap(int x, int y) {
   return TAP_NOTHING;
 }
 
-bool onUpPressed() { return showPage(homePages::stepClamped(page, -1, games::count())); }
+bool onUpPressed() { return showPage(homePages::stepWrapped(page, -1, games::count())); }
 
-bool onDownPressed() { return showPage(homePages::stepClamped(page, 1, games::count())); }
+bool onDownPressed() { return showPage(homePages::stepWrapped(page, 1, games::count())); }
 
 bool saveFailed() { return pageSaveFailed; }
 
