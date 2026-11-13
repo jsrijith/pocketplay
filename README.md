@@ -36,6 +36,7 @@ I have also credited all the open-source projects referenced here. If I have mis
 - **Think Alike:** a deck of questions for the party game where everyone writes an answer and matching the most common one scores. The questions are a text file on the card, so you can add your own. [How it plays](src/games/thinkalike/README.md)
 - **Authority Tracker:** two players' scores on one screen, starting at 50, with buttons for ±1, ±5 and ±10. The game ends when a score reaches 0. [How it plays](src/games/authoritytracker/README.md)
 - **Grid Gambit:** chess pieces on a 4x4 board, where every move must take a piece and one piece left wins. Puzzles are made on the device in four levels, with undo and a solved count per level. [How it plays](src/games/gridgambit/README.md)
+- **Chess Puzzles:** 2398 tactics puzzles from the Lichess database in six banks, from mate in 1 to expert: find the best move and play the line out, with hints, show the move and your solved count per bank. [How it plays](src/games/chesspuzzles/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 
@@ -213,7 +214,9 @@ Deep sleep turns almost everything off, so waking runs all of this from the star
 PocketPlay builds on other people's work, each under its own licence, kept beside the code it covers:
 
 - [CrossPlay](https://github.com/ma-r-s/crossplay) by Mario Ruiz: the project that inspired PocketPlay. Several games began as ports of its games, and the font headers come from it (MIT)
-- [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel: the rules and puzzles behind Lights Out, Suguru, Sokoban, Queens, Peg Solitaire, Text Adventures, Word Ladder, Nonograms and Kakuro (MIT)
+- [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel: the rules and puzzles behind Lights Out, Suguru, Sokoban, Queens, Peg Solitaire, Text Adventures, Word Ladder, Nonograms, Kakuro and Chess Puzzles (MIT)
+- [Lichess puzzle database](https://database.lichess.org/#puzzles): Chess Puzzles' puzzles (CC0)
+- [Lucide](https://lucide.dev): home-page icons, and Grid Gambit's pieces (ISC)
 - [FreeInk SDK](https://github.com/ma-r-s/freeink-sdk): hardware libraries (MIT)
 - [wolfSSL](https://www.wolfssl.com/): HTTPS (GPLv2 or later, or commercial)
 - [SdFat](https://github.com/greiman/SdFat): SD card access (MIT)
