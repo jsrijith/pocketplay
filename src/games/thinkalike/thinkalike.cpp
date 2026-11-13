@@ -26,8 +26,8 @@ constexpr const char* SAVE_FILE = "thinkalike";
 constexpr const char* CARD_FOLDER = "/thinkalike";
 constexpr const char* QUESTION_FILE = "questions.txt";
 
-// The question in a card under the band, the rules anchored above the buttons, and
-// the two buttons along the bottom.
+// The question in a card filling the screen under the band, and the two buttons
+// along the bottom. The rules are in the README, so the question gets the room.
 constexpr int MARGIN = 16;
 constexpr int GAP = 12;
 constexpr int INNER_WIDTH = SCREEN_WIDTH - 2 * MARGIN;
@@ -35,10 +35,6 @@ constexpr int CARD_PADDING = 24;
 constexpr int CARD_TEXT_WIDTH = INNER_WIDTH - 2 * CARD_PADDING;
 constexpr int BUTTON_TOP = SCREEN_HEIGHT - MARGIN - ui::PILL_HEIGHT;
 constexpr int BUTTON_WIDTH = (INNER_WIDTH - GAP) / 2;
-
-constexpr const char* RULES =
-    "EVERYONE WRITES AN ANSWER IN SECRET, THEN ALL SAY THEM TOGETHER. "
-    "EVERYONE WHO MATCHES THE MOST COMMON ANSWER SCORES A POINT.";
 
 // The buttons where draw() put them, so a tap reads the same geometry.
 struct Layout {
@@ -119,20 +115,16 @@ class ThinkAlike final : public Game {
     std::snprintf(count, sizeof(count), "%d/%d", deck_.drawn, deck_.count);
     ui::drawBand(frame, name(), count, true, Font::Size20);
 
-    // From the bottom up: buttons, rules, and a note of lines left out.
+    // The card runs down to the buttons, above a note of lines left out if there are
+    // any. Its size never changes between questions, so the layout doesn't jump.
     const bool done = ta::finished(deck_);
-    char usedUp[96];
-    std::snprintf(usedUp, sizeof(usedUp), "NO QUESTIONS LEFT. NEW GAME SHUFFLES ALL %d AGAIN.", deck_.count);
-    const char* rules = done ? usedUp : RULES;
-    const int rulesTop = BUTTON_TOP - 2 * GAP - wrappedHeight(Font::Size14, INNER_WIDTH, rules);
-    int cardBottom = rulesTop - 2 * GAP;
+    int cardBottom = BUTTON_TOP - 2 * GAP;
     const std::string skipped = skippedNote();
     if (!skipped.empty()) {
-      const int noteTop = rulesTop - GAP - wrappedHeight(Font::Size10, INNER_WIDTH, skipped.c_str());
+      const int noteTop = BUTTON_TOP - 2 * GAP - wrappedHeight(Font::Size10, INNER_WIDTH, skipped.c_str());
       drawWrapped(frame, Font::Size10, MARGIN, noteTop, INNER_WIDTH, skipped.c_str());
       cardBottom = noteTop - 2 * GAP;
     }
-    drawWrapped(frame, Font::Size14, MARGIN, rulesTop, INNER_WIDTH, rules);
 
     const int cardTop = ui::CONTENT_TOP;
     const int cardHeight = cardBottom - cardTop;

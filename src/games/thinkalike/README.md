@@ -12,7 +12,7 @@ A question deck for a party game played round a table, where the aim is to think
 ## Getting around
 
 - `NEXT QUESTION`, or the Down button, shows a question that hasn't come up since the last shuffle. The band shows how far through you are, such as `3/5`.
-- After the last question, `NEXT QUESTION` dims, and `NEW GAME` shuffles them all again.
+- After the last question, the band shows `5/5` (or however many you have), `NEXT QUESTION` dims, and `NEW GAME` shuffles them all again.
 - `NEW GAME` shuffles every question and shows the first one.
 - `BACK` returns to the home page and keeps your place.
 
