@@ -67,7 +67,7 @@ void testShippedFile() {
   std::fclose(f);
   check(data.size() <= MAX_FILE_BYTES, "questions.txt fits the size limit");
   const Questions q = parse(data.data(), data.size());
-  check(q.list.size() == 5 && q.tooLong == 0, "questions.txt holds five questions");
+  check(!q.list.empty() && q.tooLong == 0 && q.overLimit == 0, "every line of questions.txt is a question");
 }
 
 bool isPermutation(const std::vector<uint16_t>& order, int count) {
