@@ -27,7 +27,8 @@ bool onDownPressed();
 
 void draw(uint8_t* frame);
 
-// A one-line summary for the Settings row, such as "WIFI OFF".
-void statusLine(char* out, size_t size, int maxWidth);
+// The Wi-Fi state for the Settings row's right side: the network's name, or OFF, JOINING, LOST or
+// FAILED, cut to fit maxWidth.
+void statusValue(char* out, size_t size, int maxWidth);
 
 }  // namespace wifiScreen

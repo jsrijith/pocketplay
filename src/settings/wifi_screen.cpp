@@ -540,25 +540,25 @@ void draw(uint8_t* frame) {
   }
 }
 
-void statusLine(char* out, size_t size, int maxWidth) {
+void statusValue(char* out, size_t size, int maxWidth) {
   char text[48];
   switch (network::state()) {
     case network::State::Joining:
-      snprintf(text, sizeof(text), "WIFI JOINING");
+      snprintf(text, sizeof(text), "JOINING");
       break;
     case network::State::Connected:
-      snprintf(text, sizeof(text), "WIFI %s", network::ssid());
+      snprintf(text, sizeof(text), "%s", network::ssid());
       break;
     case network::State::Lost:
-      snprintf(text, sizeof(text), "WIFI LOST");
+      snprintf(text, sizeof(text), "LOST");
       break;
     case network::State::Failed:
-      snprintf(text, sizeof(text), "WIFI FAILED");
+      snprintf(text, sizeof(text), "FAILED");
       break;
     case network::State::Off:
     case network::State::Scanning:
     case network::State::ScanDone:
-      snprintf(text, sizeof(text), "WIFI OFF");
+      snprintf(text, sizeof(text), "OFF");
       break;
   }
   fitText(Font::Size20, text, maxWidth, out, size);

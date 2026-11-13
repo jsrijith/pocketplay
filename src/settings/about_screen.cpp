@@ -20,7 +20,7 @@ constexpr int TEXT_TOP = LOGO_TOP + ui::LOGO_HEIGHT + 16;
 bool onTap(int x, int y) { return ui::isOnBack(x, y); }
 
 void draw(uint8_t* frame, int gameCount) {
-  ui::drawHeader(frame, "ABOUT");
+  ui::drawBand(frame, "ABOUT", nullptr, true);
   ui::drawLogo(frame, SCREEN_WIDTH / 2, LOGO_TOP);
 
   int top = TEXT_TOP;

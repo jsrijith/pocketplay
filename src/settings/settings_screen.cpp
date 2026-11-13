@@ -6,6 +6,8 @@
 
 #include "core/clock.h"
 #include "core/graphics.h"
+#include "core/text.h"
+#include "core/version.h"
 #include "core/storage.h"
 #include "state.h"
 #include "ui/ui.h"
@@ -17,14 +19,19 @@ namespace {
 
 constexpr const char* SETTINGS_FILE = "settings";
 
+// List rows as the home page draws them: the setting on the left, its value on the right.
 constexpr int ROW_WIDTH = SCREEN_WIDTH - 2 * ui::MARGIN;
-constexpr int ROW_HEIGHT = 84;
+constexpr int ROW_HEIGHT = ui::ROW_HEIGHT;
+constexpr int ROW_STEP = ROW_HEIGHT + ui::ROW_GAP;
 constexpr int WIFI_ROW_TOP = ui::CONTENT_TOP;
-constexpr int SLEEP_ROW_TOP = WIFI_ROW_TOP + ROW_HEIGHT + ui::GAP;
-constexpr int ZONE_ROW_TOP = SLEEP_ROW_TOP + ROW_HEIGHT + ui::GAP;
-constexpr int REFRESH_ROW_TOP = ZONE_ROW_TOP + ROW_HEIGHT + ui::GAP;
-constexpr int ABOUT_ROW_TOP = REFRESH_ROW_TOP + ROW_HEIGHT + ui::GAP;
-constexpr int ROW_TEXT_WIDTH = ROW_WIDTH - 2 * ui::GAP;
+constexpr int SLEEP_ROW_TOP = WIFI_ROW_TOP + ROW_STEP;
+constexpr int ZONE_ROW_TOP = SLEEP_ROW_TOP + ROW_STEP;
+constexpr int REFRESH_ROW_TOP = ZONE_ROW_TOP + ROW_STEP;
+constexpr int ABOUT_ROW_TOP = REFRESH_ROW_TOP + ROW_STEP;
+constexpr int VALUE_INSET = 18;
+constexpr int VALUE_RIGHT = ui::MARGIN + ROW_WIDTH - VALUE_INSET;
+// The Wi-Fi value has the row less its label; "WI-FI" is under 80 px at Size20.
+constexpr int WIFI_VALUE_WIDTH = ROW_WIDTH - 2 * VALUE_INSET - 80 - ui::GAP;
 
 Settings settings;
 bool failed = false;
@@ -95,29 +102,37 @@ Tap onTap(int x, int y) {
   return Tap::Nothing;
 }
 
+namespace {
+
+void drawSetting(uint8_t* frame, int top, const char* label, const char* value) {
+  ui::drawRow(frame, top, label, nullptr);
+  const int cap = capHeight(Font::Size20);
+  drawText(frame, Font::Size20, VALUE_RIGHT, top + (ROW_HEIGHT - cap) / 2 + cap, value, Align::Right);
+}
+
+}  // namespace
+
 void draw(uint8_t* frame) {
-  ui::drawHeader(frame, "SETTINGS");
+  ui::drawBand(frame, "SETTINGS", nullptr, true);
 
-  char text[48];
-  wifiScreen::statusLine(text, sizeof(text), ROW_TEXT_WIDTH);
-  ui::drawButton(frame, ui::MARGIN, WIFI_ROW_TOP, ROW_WIDTH, ROW_HEIGHT, text);
+  char value[48];
+  wifiScreen::statusValue(value, sizeof(value), WIFI_VALUE_WIDTH);
+  drawSetting(frame, WIFI_ROW_TOP, "WI-FI", value);
 
-  snprintf(text, sizeof(text), "SLEEP %u MIN", settings.idleSleepMinutes);
-  ui::drawButton(frame, ui::MARGIN, SLEEP_ROW_TOP, ROW_WIDTH, ROW_HEIGHT, text);
+  snprintf(value, sizeof(value), "%u MIN", settings.idleSleepMinutes);
+  drawSetting(frame, SLEEP_ROW_TOP, "SLEEP AFTER", value);
 
-  char offset[12];
-  wallClock::formatOffset(settings.timeZone, offset, sizeof(offset));
-  snprintf(text, sizeof(text), "TIME ZONE %s", offset);
-  ui::drawButton(frame, ui::MARGIN, ZONE_ROW_TOP, ROW_WIDTH, ROW_HEIGHT, text);
+  wallClock::formatOffset(settings.timeZone, value, sizeof(value));
+  drawSetting(frame, ZONE_ROW_TOP, "TIME ZONE", value);
 
   if (updatesPerCleanup() == 0) {
-    snprintf(text, sizeof(text), "REFRESH NEVER");
+    snprintf(value, sizeof(value), "NEVER");
   } else {
-    snprintf(text, sizeof(text), "REFRESH EVERY %d", updatesPerCleanup());
+    snprintf(value, sizeof(value), "EVERY %d", updatesPerCleanup());
   }
-  ui::drawButton(frame, ui::MARGIN, REFRESH_ROW_TOP, ROW_WIDTH, ROW_HEIGHT, text);
+  drawSetting(frame, REFRESH_ROW_TOP, "REFRESH", value);
 
-  ui::drawButton(frame, ui::MARGIN, ABOUT_ROW_TOP, ROW_WIDTH, ROW_HEIGHT, "ABOUT");
+  drawSetting(frame, ABOUT_ROW_TOP, "ABOUT", version::NUMBER);
 }
 
 bool saveFailed() { return failed; }

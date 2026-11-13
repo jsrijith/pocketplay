@@ -19,9 +19,11 @@ constexpr int PAGE_COUNT = (wallClock::ZONE_COUNT + ROWS_PER_PAGE - 1) / ROWS_PE
 constexpr int OFFSET_WIDTH = 110;
 
 // The list is long, so paging works by touch as well as with UP and DOWN.
-constexpr int BUTTONS_TOP = ROWS_TOP + ROWS_PER_PAGE * ROW_HEIGHT + ui::GAP;
-constexpr int BUTTON_HEIGHT = SCREEN_HEIGHT - ui::MARGIN - BUTTONS_TOP;
+// Pills along the bottom, as in the games.
+constexpr int BUTTON_HEIGHT = ui::PILL_HEIGHT;
+constexpr int BUTTONS_TOP = SCREEN_HEIGHT - 16 - BUTTON_HEIGHT;
 constexpr int BUTTON_WIDTH = 130;
+static_assert(ROWS_TOP + ROWS_PER_PAGE * ROW_HEIGHT <= BUTTONS_TOP - ui::GAP, "the rows must end above the pills");
 constexpr int NEXT_LEFT = SCREEN_WIDTH - ui::MARGIN - BUTTON_WIDTH;
 
 bool screenOpen = false;
@@ -90,7 +92,7 @@ bool onUpPressed() { return previousPage(); }
 bool onDownPressed() { return nextPage(); }
 
 void draw(uint8_t* frame) {
-  ui::drawHeader(frame, "TIME ZONE");
+  ui::drawBand(frame, "TIME ZONE", nullptr, true);
 
   for (int i = 0; i < ROWS_PER_PAGE; i++) {
     const int index = page * ROWS_PER_PAGE + i;
@@ -98,8 +100,17 @@ void draw(uint8_t* frame) {
     drawRow(frame, index, ROWS_TOP + i * ROW_HEIGHT);
   }
 
-  ui::drawButton(frame, ui::MARGIN, BUTTONS_TOP, BUTTON_WIDTH, BUTTON_HEIGHT, "PREV");
-  ui::drawButton(frame, NEXT_LEFT, BUTTONS_TOP, BUTTON_WIDTH, BUTTON_HEIGHT, "NEXT");
+  // The end of the list dims its button rather than hiding it.
+  if (page == 0) {
+    ui::drawDimmedPill(frame, ui::MARGIN, BUTTONS_TOP, BUTTON_WIDTH, "PREV");
+  } else {
+    ui::drawPill(frame, ui::MARGIN, BUTTONS_TOP, BUTTON_WIDTH, "PREV", false);
+  }
+  if (page + 1 >= PAGE_COUNT) {
+    ui::drawDimmedPill(frame, NEXT_LEFT, BUTTONS_TOP, BUTTON_WIDTH, "NEXT");
+  } else {
+    ui::drawPill(frame, NEXT_LEFT, BUTTONS_TOP, BUTTON_WIDTH, "NEXT", false);
+  }
 
   char label[16];
   snprintf(label, sizeof(label), "%d / %d", page + 1, PAGE_COUNT);
