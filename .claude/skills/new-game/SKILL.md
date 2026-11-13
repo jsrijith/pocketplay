@@ -5,12 +5,11 @@ description: Add a game to PocketPlay, either new or ported ("lifted and shifted
 
 # Adding a game to PocketPlay
 
-The rules live in the repo, not here. Read these first, in full:
+The rules live in the repo, not here. `CLAUDE.md` is already in your context, so don't read it again; follow its **Games**, **Storage**, and **Copying a game from CrossPlay** sections. Read these first, in full, yourself rather than through subagents:
 
-1. `CLAUDE.md`, especially **Games**, **Storage**, and **Copying a game from CrossPlay**.
-2. `src/games/README.md`: the folder layout, the boundaries, and how to list a game.
-3. `src/games/DESIGN.md`: how a screen is built, and which `ui::` calls to use.
-4. `tools/preview/README.md`: how to see the screens on the PC.
+1. `src/games/README.md`: the folder layout, the boundaries, and how to list a game.
+2. `src/games/DESIGN.md`: how a screen is built, and which `ui::` calls to use.
+3. `tools/preview/README.md`: how to see the screens on the PC.
 
 `src/games/dungeon/` is the worked example of a port, and `src/games/tictactoe/` is the smallest game.
 
@@ -22,7 +21,7 @@ The rules live in the repo, not here. Read these first, in full:
 4. **Shared changes come first, in their own commit.** If the game needs something in `core/` or `ui/`, add and commit that separately, so game branches don't conflict over it.
 5. **Copy the rules and test unchanged except for includes**, with `LICENSE-CrossPlay.txt` beside them. Add a save module and its test if the game saves. Add `tests/<name>/run.sh`, which takes its flags from `tests/flags.sh`.
 6. **Write the screens and the `Game`** on `core/` and `ui/` only, following DESIGN.md. Add the icon, `README.md` for players (rules, getting around, saves, and a one-line credit; see `src/games/wordle/README.md`), and one line in `game_list.inc`. Add a line to the root README's game list.
-7. **Preview every screen.** Run `tools/preview/run.sh` and look at each PNG with the Read tool. Compare it with the CrossPlay screenshot. Check that each tap prints the `TapResult` you expect, and fix anything that's cut off, overlapping or misaligned before going further.
+7. **Preview every screen.** Run `tools/preview/run.sh` and look at each PNG with the Read tool. Compare it with the CrossPlay screenshot. Check that each tap prints the `TapResult` you expect, and fix anything that's cut off, overlapping or misaligned before going further. After a fix, look again only at the screens that fix could change, not at every PNG.
 8. **Check and build:** run `scripts/check.sh` (only `CHECK-VERDICT: green` passes) and `./scripts/package.sh`.
 9. **Hand over:** commit as described in the commit rules, show the user the preview images, give them the PowerShell flash commands from CLAUDE.md, and list what can only be checked on the device. Don't push unless they ask.
 
