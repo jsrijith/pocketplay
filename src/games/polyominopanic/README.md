@@ -25,4 +25,6 @@ All in `/.pocketplay/`:
 |---|---|
 | `polyominopanic` | Both decks' order and how far into each you are, saved on every deal and round, so sleep or a flat battery brings back the same cards. Erased when the game deck runs out, so the next visit starts a new game. |
 
-The icon is Lucide's blocks (ISC licence).
+## Credits
+
+Inspired by Uwe Rosenberg's [Second Chance](https://boardgamegeek.com/boardgame/265683/second-chance). The icon is Lucide's blocks (ISC licence).
