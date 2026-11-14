@@ -32,4 +32,6 @@ All in `/.pocketplay/`:
 |---|---|
 | `crowncrest` | The dice showing, who rolled them and the dice taken so far, saved on every roll and pick, so sleep or a flat battery brings back the same turn. |
 
-The icon is Lucide's shield (ISC licence).
+## Credits
+
+Inspired by Bruno Cathala and Ludovic Maublanc's [Kingdomino Duel](https://boardgamegeek.com/boardgame/281960/kingdomino-duel). The icon is Lucide's shield (ISC licence).
