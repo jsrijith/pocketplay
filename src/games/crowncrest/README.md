@@ -1,13 +1,24 @@
 # Crown & Crest
 
-The four dice for Crown & Crest. Each die has its own six faces: shields with stripes, dots or quarters, some with X marks beside them, and a `?` on dice 3 and 4.
+The four dice for Crown & Crest, a game for two players, A and B. Each die has its own six faces: shields with stripes, dots or quarters, some with X marks beside them, and a `?` on dice 3 and 4.
+
+## A turn
+
+1. The roller rolls all four dice. Player A rolls first.
+2. The roller takes one die.
+3. The other player takes two of the three left.
+4. The roller gets the last die.
+
+Then the other player rolls, and the same happens with the roles swapped. Scoring and the number of rounds stay off the device for now.
 
 ## Getting around
 
-- `ROLL`, or the Down button, rolls all four dice together. Each die shows the face it landed on, and the label under it says which die it is.
-- Before the first roll the dice are blank and grey.
-- Roll as often as you like: there's no score or round count yet.
-- `BACK` in the header returns to the home page.
+- `A ROLLS` or `B ROLLS` names whose roll is next. Tap it, or press the Down button, to roll all four dice. It greys out to `ROLL` while dice are still to be taken.
+- The capsule at the top says whose move it is, such as `PLAYER B: TAKE 2 DICE`.
+- Tap a die (or its label) to take it for the player named in the capsule. A taken die's label turns black and names its owner, such as `DIE 3: PLAYER A`.
+- Once all four are shared out, the capsule turns black and says who rolls next.
+- `UNDO` takes back the last die taken this turn.
+- `BACK` in the header returns to the home page. The turn is kept.
 
 ## How the dice stay fair
 
@@ -19,6 +30,6 @@ All in `/.pocketplay/`:
 
 | Name | Holds |
 |---|---|
-| `crowncrest` | The last roll, so sleep or a flat battery brings back the same dice. |
+| `crowncrest` | The dice showing, who rolled them and the dice taken so far, saved on every roll and pick, so sleep or a flat battery brings back the same turn. |
 
 The icon is Lucide's shield (ISC licence).

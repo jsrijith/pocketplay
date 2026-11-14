@@ -38,7 +38,7 @@ I have also credited all the open-source projects referenced here. If I have mis
 - **Grid Gambit:** chess pieces on a 4x4 board, where every move must take a piece and one piece left wins. Puzzles are made on the device in four levels, with undo and a solved count per level. [How it plays](src/games/gridgambit/README.md)
 - **Chess Puzzles:** 2398 tactics puzzles from the Lichess database in six banks, from mate in 1 to expert: find the best move and play the line out, with hints, show the move and your solved count per bank. [How it plays](src/games/chesspuzzles/README.md)
 - **Polyomino Panic:** holds the decks for the paper game: deals a different starting shape to each player, then flips two shapes a round from the 40-card deck until it runs out. Plotting and scoring stay on paper. [How it plays](src/games/polyominopanic/README.md)
-- **Crown & Crest:** rolls the four dice for Crown & Crest, each with its own six faces of shields and marks. [How it plays](src/games/crowncrest/README.md)
+- **Crown & Crest:** the four dice for the two-player Crown & Crest, each with its own six faces of shields and marks: roll, then share the dice out (the roller takes one, the other player two, the roller the last). [How it plays](src/games/crowncrest/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 

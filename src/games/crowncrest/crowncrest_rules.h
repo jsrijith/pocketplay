@@ -60,4 +60,64 @@ inline void roll(Roll& r, Source& source, uint64_t entropy) {
   for (int d = 0; d < kDice; d++) r.face[d] = face([&] { return source.next(); });
 }
 
+// ---- The draft ----
+// Two players take turns to roll. The roller takes one die, the other player takes two of the
+// three left, and the roller gets the last. Then the other player rolls.
+
+constexpr int kPlayers = 2;
+constexpr int kPicks = 3;        // the fourth die isn't picked: it's what's left
+constexpr uint8_t kNoOne = 0xFF;
+
+struct Turn {
+  Roll dice;
+  uint8_t roller = 0;              // 0 = player A, 1 = player B
+  uint8_t picks = 0;               // 0 to 3 dice taken so far
+  uint8_t order[kPicks] = {};      // which die each pick took
+};
+
+inline uint8_t other(uint8_t player) { return static_cast<uint8_t>(1 - player); }
+inline bool done(const Turn& t) { return t.picks == kPicks; }
+
+// Who rolls next: A first, then whoever didn't roll last.
+inline uint8_t nextRoller(const Turn& t) { return rolled(t.dice) ? other(t.roller) : 0; }
+inline bool canRoll(const Turn& t) { return !rolled(t.dice) || done(t); }
+
+// Whose pick it is, or kNoOne when no die is waiting to be picked.
+inline uint8_t picker(const Turn& t) {
+  if (!rolled(t.dice) || done(t)) return kNoOne;
+  return t.picks == 0 ? t.roller : other(t.roller);
+}
+
+// Who has a die, or kNoOne. The first pick is the roller's, the next two the other player's,
+// and once those are made the die left over is the roller's.
+inline uint8_t owner(const Turn& t, int die) {
+  for (int i = 0; i < t.picks; i++) {
+    if (t.order[i] == die) return i == 0 ? t.roller : other(t.roller);
+  }
+  return done(t) ? t.roller : kNoOne;
+}
+
+// Rolls all four dice for the next roller. False, and nothing changes, while dice are unpicked.
+inline bool rollTurn(Turn& t, Source& source, uint64_t entropy) {
+  if (!canRoll(t)) return false;
+  t.roller = nextRoller(t);
+  t.picks = 0;
+  roll(t.dice, source, entropy);
+  return true;
+}
+
+// Takes a die for whoever's pick it is. False for a die that's taken or when no pick is due.
+inline bool pick(Turn& t, int die) {
+  if (picker(t) == kNoOne || die < 0 || die >= kDice || owner(t, die) != kNoOne) return false;
+  t.order[t.picks++] = static_cast<uint8_t>(die);
+  return true;
+}
+
+// Takes back this turn's last pick. False when nothing has been picked.
+inline bool undoPick(Turn& t) {
+  if (t.picks == 0) return false;
+  t.picks--;
+  return true;
+}
+
 }  // namespace crowncrest

@@ -2,17 +2,37 @@
 
 namespace crowncrest {
 
-size_t pack(const Roll& roll, uint8_t* out) {
-  for (int d = 0; d < kDice; d++) out[d] = roll.face[d];
+size_t pack(const Turn& turn, uint8_t* out) {
+  for (int d = 0; d < kDice; d++) out[d] = turn.dice.face[d];
+  out[kDice] = turn.roller;
+  out[kDice + 1] = turn.picks;
+  for (int i = 0; i < kPicks; i++) out[kDice + 2 + i] = i < turn.picks ? turn.order[i] : 0;
   return SAVE_BYTES;
 }
 
-bool unpack(uint8_t version, const uint8_t* in, size_t size, Roll& roll) {
+bool unpack(uint8_t version, const uint8_t* in, size_t size, Turn& turn) {
   if (version != SAVE_VERSION || size != SAVE_BYTES) return false;
+  const bool blank = in[0] == 0;
   for (int d = 0; d < kDice; d++) {
-    if (in[d] < 1 || in[d] > kFaces) return false;
+    if (blank ? in[d] != 0 : in[d] < 1 || in[d] > kFaces) return false;
   }
-  for (int d = 0; d < kDice; d++) roll.face[d] = in[d];
+  const uint8_t roller = in[kDice];
+  const uint8_t picks = in[kDice + 1];
+  if (roller >= kPlayers || picks > kPicks) return false;
+  if (blank && (roller != 0 || picks != 0)) return false;
+  bool taken[kDice] = {};
+  for (int i = 0; i < picks; i++) {
+    const uint8_t die = in[kDice + 2 + i];
+    if (die >= kDice || taken[die]) return false;
+    taken[die] = true;
+  }
+
+  Turn loaded;
+  for (int d = 0; d < kDice; d++) loaded.dice.face[d] = in[d];
+  loaded.roller = roller;
+  loaded.picks = picks;
+  for (int i = 0; i < picks; i++) loaded.order[i] = in[kDice + 2 + i];
+  turn = loaded;
   return true;
 }
 
