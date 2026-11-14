@@ -1,8 +1,8 @@
 # PocketPlay
 
-A pocket games console for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. PocketPlay replaces the device's firmware with a home page of 23 games, from daily word puzzles to logic puzzles, card games and text adventures. Everything is played by tapping the screen, and everything is designed for e-ink: black and white, few refreshes, and nothing that moves unless you touch it.
+A pocket games console for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. PocketPlay replaces the device's firmware with a home page of 29 games, from daily word puzzles to logic puzzles, card games and text adventures. Everything is played by tapping the screen, and everything is designed for e-ink: black and white, few refreshes, and nothing that moves unless you touch it.
 
-PocketPlay drew heavy inspiration from [CrossPlay](https://github.com/ma-r-s/crossplay), and while it has since grown to include its own unique design, games, and features, most of its games were ported from two open-source projects: nine from CrossPlay, including the very first ones, and nine from [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel. I would like to extend my sincere thanks to the authors of both: CrossPlay laid the foundation that made this possible, and touch-licorice-apps brought many of the puzzle games and their puzzles.
+PocketPlay drew heavy inspiration from [CrossPlay](https://github.com/ma-r-s/crossplay), and while it has since grown to include its own unique design, games, and features, most of its games were ported from two open-source projects: nine from CrossPlay, including the very first ones, and ten from [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel. I would like to extend my sincere thanks to the authors of both: CrossPlay laid the foundation that made this possible, and touch-licorice-apps brought many of the puzzle games and their puzzles.
 
 This entire project was also developed using Claude. Having no background in firmware development or C++, I could not have built this independently—Claude was instrumental in turning the idea into reality.
 
@@ -41,6 +41,12 @@ I have also credited all the open-source projects referenced here. If I have mis
 - **Crown & Crest:** the four dice for the two-player Crown & Crest, each with its own six faces of shields and marks: roll, then share the dice out (the roller takes one, the other player two, the roller the last). [How it plays](src/games/crowncrest/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
+
+## Disclaimer
+
+- **Built with AI assistance:** PocketPlay was written with Claude Code. I don't have a background in C++ or firmware engineering, so no expert has reviewed the code.
+- **Tested on one device:** it has been tested only on the Seeed reTerminal Sticky, where every feature works as expected. It may not work, or may not be stable, on other hardware or board revisions.
+- **No warranty:** flashing third-party firmware can leave a device unusable or make it behave unexpectedly. PocketPlay is provided as-is, without warranty of any kind (see [Licence](#licence)). Read the code, back up your current firmware ([step 3](#3-back-up-your-current-firmware)), and flash at your own risk.
 
 ## What you need
 

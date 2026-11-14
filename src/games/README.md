@@ -26,6 +26,7 @@ Read `DESIGN.md` before drawing anything, and use `tools/preview/run.sh` to see 
 1. Create `src/games/<name>/`, with the folder name in lowercase and no spaces.
 2. Implement `Game` from `games/game.h`, and define a function that returns it, such as `Game& ticTacToe()`.
 3. Add one line to `game_list.inc`: `GAME(ticTacToe)`.
+4. In the root `README.md`, add a line to the game list and raise the count in the opening ("a home page of N games") to the number of lines in `game_list.inc`. If the game was ported, raise the count of games from its source in the same paragraph.
 
 PlatformIO compiles every file under `src/`, so the build needs no changes. The game then appears on the home page and reopens after waking.
 
