@@ -53,39 +53,23 @@ A game in progress is saved on every move, so it's still there after the device 
 - A Seeed reTerminal Sticky
 - A USB-C **data** cable (charge-only cables don't show up on the computer)
 - A microSD card formatted as FAT32 or exFAT, to keep your saves and downloaded puzzles
-- A computer with Python 3. The steps below use Windows with WSL (Ubuntu), which is the only setup that's been tested
-
-There's no ready-made download yet, so you build the firmware once yourself. The first build downloads its tools and takes several minutes.
+- A Windows computer with Python 3, for flashing. That's the only setup that's been tested
 
 ## Install
 
-### 1. Build the firmware (in WSL)
+### 1. Download the firmware
 
-Install the tools:
+Download `pocketplay-full.bin` from the [latest release](https://github.com/jsrijith/pocketplay/releases/latest) into your Downloads folder. The release notes give its SHA-256 checksum. To check the file arrived intact, compare it with:
 
-```bash
-sudo apt install git python3 python3-venv g++
-curl -fsSL -o get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
-python3 get-platformio.py
+```powershell
+Get-FileHash $HOME\Downloads\pocketplay-full.bin
 ```
 
-Get the code and build it:
-
-```bash
-git clone --recurse-submodules https://github.com/jsrijith/pocketplay.git
-cd pocketplay
-./scripts/package.sh
-```
-
-When it finishes, it prints `Ready to flash` and the image is at `dist/pocketplay-full.bin`. Copy it somewhere Windows can reach, replacing `<you>` with your Windows user name:
-
-```bash
-cp dist/pocketplay-full.bin /mnt/c/Users/<you>/Downloads/
-```
+To build the firmware yourself instead, see [Building the firmware](#building-the-firmware).
 
 ### 2. Set up flashing (in Windows PowerShell)
 
-WSL can't reach the device over USB, so flashing happens from Windows.
+Flashing uses esptool, Espressif's flashing tool, from PowerShell. (If you built the firmware in WSL, flash from Windows anyway: WSL can't reach the device over USB.)
 
 ```powershell
 python -m pip install --upgrade esptool
@@ -174,6 +158,36 @@ python -m esptool --chip esp32s3 --port COM8 --baud 460800 write-flash 0x0 stick
 ```
 
 ## For developers
+
+### Building the firmware
+
+Building needs Linux, or WSL (Ubuntu) on Windows, which is what's been tested. The first build downloads its tools and takes several minutes.
+
+Install the tools:
+
+```bash
+sudo apt install git python3 python3-venv g++
+curl -fsSL -o get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py
+python3 get-platformio.py
+```
+
+Get the code and build it:
+
+```bash
+git clone --recurse-submodules https://github.com/jsrijith/pocketplay.git
+cd pocketplay
+./scripts/package.sh
+```
+
+When it finishes, it prints `Ready to flash` and the image is at `dist/pocketplay-full.bin`. To flash it from Windows, copy it somewhere Windows can reach, replacing `<you>` with your Windows user name:
+
+```bash
+cp dist/pocketplay-full.bin /mnt/c/Users/<you>/Downloads/
+```
+
+Then flash it as in [Install](#install), from step 2.
+
+### Tests and versions
 
 Every firmware build runs the PC tests first and stops if any fail. You can also run them on their own:
 
