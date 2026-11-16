@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include "apps/apps.h"
+#include "apps_screen.h"
 #include "core/download.h"
 #include "core/graphics.h"
 #include "core/network.h"
@@ -18,26 +20,35 @@ namespace shell {
 
 namespace {
 
-// Holds the open game's name rather than its place in the list, so adding a game
-// later can't reopen the wrong one.
+// Holds the open game's or app's name rather than its place in a list, so adding
+// one later can't reopen the wrong one. Version 2 puts a kind byte before the name;
+// version 1 held a game's name alone, and still loads as one.
 constexpr const char* SESSION_FILE = "session";
-constexpr uint8_t SESSION_VERSION = 1;
+constexpr uint8_t SESSION_VERSION = 2;
+constexpr uint8_t SESSION_VERSION_GAME_ONLY = 1;
+constexpr uint8_t KIND_GAME = 0;
+constexpr uint8_t KIND_APP = 1;
 constexpr size_t MAX_NAME_BYTES = 32;
 
-enum class Screen { Home, Settings, Wifi, TimeZone, About, Playing };
+enum class Screen { Home, Settings, Wifi, TimeZone, About, Playing, Apps, UsingApp };
 
 Screen screen = Screen::Home;
 Game* currentGame = nullptr;
+App* currentApp = nullptr;
 bool hasTouch = true;
 bool sessionSaveFailed = false;
 bool wifiOpenedByGame = false;
 
 // Without this file the device wakes on the home page, with the game's own save
 // intact, so a failure here only costs a tap.
-void saveSession(const char* name) {
+void saveSession(uint8_t kind, const char* name) {
   if (!storage::ready()) return;
-  const size_t length = strlen(name);
-  sessionSaveFailed = !storage::save(SESSION_FILE, SESSION_VERSION, reinterpret_cast<const uint8_t*>(name), length);
+  uint8_t data[1 + MAX_NAME_BYTES];
+  size_t length = strlen(name);
+  if (length > MAX_NAME_BYTES) length = MAX_NAME_BYTES;
+  data[0] = kind;
+  memcpy(data + 1, name, length);
+  sessionSaveFailed = !storage::save(SESSION_FILE, SESSION_VERSION, data, 1 + length);
 }
 
 void clearSession() {
@@ -48,17 +59,37 @@ void clearSession() {
 void loadSession() {
   if (!storage::ready()) return;
 
-  char name[MAX_NAME_BYTES + 1];
+  uint8_t data[1 + MAX_NAME_BYTES];
   uint8_t version = 0;
   size_t size = 0;
-  if (!storage::load(SESSION_FILE, version, reinterpret_cast<uint8_t*>(name), MAX_NAME_BYTES, size)) return;
-  if (version != SESSION_VERSION) return;
+  if (!storage::load(SESSION_FILE, version, data, sizeof(data), size)) return;
+
+  uint8_t kind = KIND_GAME;
+  const uint8_t* start = data;
+  if (version == SESSION_VERSION) {
+    if (size < 1) return;
+    kind = data[0];
+    start = data + 1;
+    size -= 1;
+  } else if (version != SESSION_VERSION_GAME_ONLY || size > MAX_NAME_BYTES) {
+    return;
+  }
+  char name[MAX_NAME_BYTES + 1];
+  memcpy(name, start, size);
   name[size] = '\0';
 
-  currentGame = games::find(name);
-  if (currentGame != nullptr) {
-    currentGame->open();
-    screen = Screen::Playing;
+  if (kind == KIND_GAME) {
+    currentGame = games::find(name);
+    if (currentGame != nullptr) {
+      currentGame->open();
+      screen = Screen::Playing;
+    }
+  } else if (kind == KIND_APP) {
+    currentApp = apps::find(name);
+    if (currentApp != nullptr) {
+      currentApp->open();
+      screen = Screen::UsingApp;
+    }
   }
 }
 
@@ -71,12 +102,48 @@ Redraw tapHome(int x, int y) {
     screen = Screen::Settings;
     return Redraw::Fast;
   }
+  if (tapped == homeScreen::TAP_APPS) {
+    screen = Screen::Apps;
+    return Redraw::Fast;
+  }
 
   currentGame = &games::at(tapped);
   currentGame->open();
-  saveSession(currentGame->name());
+  saveSession(KIND_GAME, currentGame->name());
   screen = Screen::Playing;
   return Redraw::Fast;
+}
+
+Redraw tapApps(int x, int y) {
+  const int tapped = appsScreen::onTap(x, y);
+  if (tapped == appsScreen::TAP_NOTHING) return Redraw::None;
+  if (tapped == appsScreen::TAP_BACK) {
+    screen = Screen::Home;
+    return Redraw::Fast;
+  }
+
+  currentApp = &apps::at(tapped);
+  currentApp->open();
+  saveSession(KIND_APP, currentApp->name());
+  screen = Screen::UsingApp;
+  return Redraw::Fast;
+}
+
+// BACK from an app returns to the APPS page it was opened from.
+Redraw applyAppResult(App::TapResult result) {
+  switch (result) {
+    case App::TapResult::Nothing:
+      return Redraw::None;
+    case App::TapResult::Redraw:
+      return Redraw::Fast;
+    case App::TapResult::RedrawFull:
+      return Redraw::Full;
+    case App::TapResult::Leave:
+      clearSession();
+      screen = Screen::Apps;
+      return Redraw::Fast;
+  }
+  return Redraw::None;
 }
 
 Redraw tapSettings(int x, int y) {
@@ -161,7 +228,8 @@ const char* warningText() {
   if (!storage::ready()) return "NO CARD";
 
   const bool gameFailed = currentGame != nullptr && currentGame->saveFailed();
-  if (gameFailed || settingsScreen::saveFailed() || sessionSaveFailed || homeScreen::saveFailed()) return "SAVE FAILED";
+  const bool appFailed = currentApp != nullptr && currentApp->saveFailed();
+  if (gameFailed || appFailed || settingsScreen::saveFailed() || sessionSaveFailed || homeScreen::saveFailed()) return "SAVE FAILED";
   return nullptr;
 }
 
@@ -207,6 +275,10 @@ Redraw onTap(int x, int y) {
       return tapAbout(x, y);
     case Screen::Playing:
       return tapGame(x, y);
+    case Screen::Apps:
+      return tapApps(x, y);
+    case Screen::UsingApp:
+      return applyAppResult(currentApp->onTap(x, y));
   }
   return Redraw::None;
 }
@@ -222,6 +294,7 @@ Redraw onUpPressed() {
   if (screen == Screen::Wifi) return wifiScreen::onUpPressed() ? Redraw::Fast : Redraw::None;
   if (screen == Screen::TimeZone) return timezoneScreen::onUpPressed() ? Redraw::Fast : Redraw::None;
   if (screen == Screen::Playing) return applyGameResult(currentGame->onUpPressed());
+  if (screen == Screen::UsingApp) return applyAppResult(currentApp->onUpPressed());
   return Redraw::None;
 }
 
@@ -230,6 +303,7 @@ Redraw onDownPressed() {
   if (screen == Screen::Wifi) return wifiScreen::onDownPressed() ? Redraw::Fast : Redraw::None;
   if (screen == Screen::TimeZone) return timezoneScreen::onDownPressed() ? Redraw::Fast : Redraw::None;
   if (screen == Screen::Playing) return applyGameResult(currentGame->onDownPressed());
+  if (screen == Screen::UsingApp) return applyAppResult(currentApp->onDownPressed());
   return Redraw::None;
 }
 
@@ -261,6 +335,12 @@ void draw(uint8_t* frame) {
     case Screen::Playing:
       currentGame->draw(frame);
       break;
+    case Screen::Apps:
+      appsScreen::draw(frame);
+      break;
+    case Screen::UsingApp:
+      currentApp->draw(frame);
+      break;
   }
 
   if (const char* warning = warningText()) ui::drawWarning(frame, warning);
@@ -282,6 +362,7 @@ void beforeSleep() {
   // Every change is saved as it happens, so this only retries one that failed.
   if (settingsScreen::saveFailed()) settingsScreen::retrySave();
   if (currentGame != nullptr && currentGame->saveFailed()) currentGame->retrySave();
+  if (currentApp != nullptr && currentApp->saveFailed()) currentApp->retrySave();
 }
 
 }  // namespace shell

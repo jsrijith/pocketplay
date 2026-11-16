@@ -3,12 +3,13 @@
 #include <cstdint>
 
 // The home page, in CrossPlay's look: a page of game rows, numbered page marks when
-// there's more than one page, and Settings in a bar along the bottom.
+// there's more than one page, and the apps icon and Settings in a bar along the bottom.
 namespace homeScreen {
 
 constexpr int TAP_NOTHING = -1;
 constexpr int TAP_SETTINGS = -2;
 constexpr int TAP_PAGE = -3;  // the page changed, so redraw
+constexpr int TAP_APPS = -4;
 
 // Reopens the page that was showing before sleep. Call after storage::begin().
 void begin();

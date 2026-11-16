@@ -109,6 +109,7 @@ The device restarts into the PocketPlay home page. Always flash at `0x0`, becaus
 |---|---|
 | Open a game or setting | Tap it |
 | Open Settings | Tap the cog at the bottom right of the home page |
+| Open apps | Tap the grid of four squares beside the cog. BACK in an app returns to the apps page |
 | Change page | Tap a page number at the bottom, or press Up or Down. The home page shows 10 games a page, and Down on the last page goes back to the first |
 | See the battery | It's at the bottom left of the home page, with a bolt while charging |
 | Sleep | Hold OK for 1 second, or leave it idle for the sleep time |
@@ -219,9 +220,9 @@ Every push to `main` and every pull request is also built and tested on GitHub. 
 | Path | Purpose |
 |---|---|
 | `src/main.cpp` | Boot, input, refreshing the panel, sleep |
-| `src/shell/` | Which screen is open, where taps go, and the home page |
+| `src/shell/` | Which screen is open, where taps go, the home page and the APPS page |
 | `src/games/` | One folder per game, plus what they share |
-| `src/apps/` | One folder per app, when there are some. [The plan](src/apps/README.md) |
+| `src/apps/` | One folder per app: tools rather than games. [How to add one](src/apps/README.md) |
 | `src/settings/` | The Settings, Wi-Fi, time zone and About screens, and their saved values |
 | `src/ui/` | The buttons, header, keyboard and logo that screens share |
 | `src/core/` | Drawing, text and fonts, save files, the radio, downloads and the clock |

@@ -54,6 +54,25 @@ constexpr int COG_TOP = BAR_TOP + (BAR_HEIGHT - COG_SIZE) / 2;
 constexpr int COG_TARGET_LEFT = SCREEN_WIDTH - 80;
 constexpr int COG_TARGET_TOP = BAR_TOP - ui::GAP / 2;
 
+// The apps icon sits left of the cog. Its target runs from the widest marks (plus a
+// gap) to the cog's target, at the same height, with the icon centred in it.
+constexpr int APPS_TARGET_LEFT = 332;
+constexpr int APPS_LEFT = APPS_TARGET_LEFT + (COG_TARGET_LEFT - APPS_TARGET_LEFT - COG_SIZE) / 2;
+
+// Drawn from the Lucide "layout-grid" icon (lucide-static 1.72.0, ISC licence) at
+// 32 x 32 with its stroke widened from 2 to 3, so it weighs about the same as the
+// solid cog beside it: four squares, for the page of apps.
+constexpr uint8_t APPS_ICON[] = {
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF0, 0x03, 0xC0, 0x0F, 0xE0, 0x01, 0x80, 0x07,
+    0xC0, 0x01, 0x80, 0x03, 0xC0, 0x01, 0x80, 0x03, 0xC3, 0xE1, 0x87, 0xC3, 0xC3, 0xE1, 0x87, 0xC3,
+    0xC3, 0xE1, 0x87, 0xC3, 0xC3, 0xE1, 0x87, 0xC3, 0xC3, 0xE1, 0x87, 0xC3, 0xC0, 0x01, 0x80, 0x03,
+    0xC0, 0x01, 0x80, 0x03, 0xC0, 0x01, 0x80, 0x03, 0xE0, 0x03, 0xC0, 0x07, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xE0, 0x03, 0xC0, 0x07, 0xC0, 0x01, 0x80, 0x03, 0xC0, 0x01, 0x80, 0x03,
+    0xC0, 0x01, 0x80, 0x03, 0xC3, 0xE1, 0x87, 0xC3, 0xC3, 0xE1, 0x87, 0xC3, 0xC3, 0xE1, 0x87, 0xC3,
+    0xC3, 0xE1, 0x87, 0xC3, 0xC3, 0xE1, 0x87, 0xC3, 0xC0, 0x01, 0x80, 0x03, 0xC0, 0x01, 0x80, 0x03,
+    0xE0, 0x01, 0x80, 0x07, 0xF0, 0x03, 0xC0, 0x0F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+};
+
 constexpr uint8_t COG[] = {
     0xFF, 0xFF, 0xFF, 0xFF,  // ................................
     0xFF, 0xF8, 0x1F, 0xFF,  // .............######.............
@@ -91,7 +110,8 @@ constexpr uint8_t COG[] = {
 
 static_assert(ui::CONTENT_TOP + homePages::ROWS_PER_PAGE * (ROW_HEIGHT + ui::ROW_GAP) - ui::ROW_GAP + ui::GAP <= BAR_TOP,
               "the rows must end above the bar");
-static_assert(SCREEN_WIDTH / 2 + MARKS_MAX_WIDTH / 2 + ui::GAP <= COG_TARGET_LEFT, "the marks must clear the cog's target");
+static_assert(SCREEN_WIDTH / 2 + MARKS_MAX_WIDTH / 2 + ui::GAP <= APPS_TARGET_LEFT, "the marks must clear the apps target");
+static_assert(APPS_TARGET_LEFT + COG_SIZE <= COG_TARGET_LEFT, "the apps icon must fit beside the cog");
 
 int page = 0;
 bool pageSaveFailed = false;
@@ -151,6 +171,8 @@ void drawMarks(uint8_t* frame) {
 
 void drawSettings(uint8_t* frame) { drawIcon(frame, COG, COG_SIZE, COG_SIZE, COG_LEFT, COG_TOP); }
 
+void drawApps(uint8_t* frame) { drawIcon(frame, APPS_ICON, COG_SIZE, COG_SIZE, APPS_LEFT, COG_TOP); }
+
 }  // namespace
 
 void begin() {
@@ -182,6 +204,7 @@ void draw(uint8_t* frame) {
   ui::drawBattery(frame, ui::MARGIN, MARKS_TOP, MARKS_HEIGHT, charge.percent, charge.charging);
 
   if (pages() > 1) drawMarks(frame);
+  drawApps(frame);
   drawSettings(frame);
 }
 
@@ -189,6 +212,7 @@ bool update() { return battery::poll(); }
 
 int onTap(int x, int y) {
   if (x >= COG_TARGET_LEFT && y >= COG_TARGET_TOP) return TAP_SETTINGS;
+  if (x >= APPS_TARGET_LEFT && y >= COG_TARGET_TOP) return TAP_APPS;
 
   // Each mark's target runs to the middle of the gap beside it, so the cluster has
   // no dead pixels, but nothing outside it answers.
