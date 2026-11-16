@@ -17,3 +17,7 @@ Each die has six symbols: **triangle**, **cross** (drawn as an X), **circle**, *
 ## Saves
 
 `symboldice` in `/.pocketplay/` holds the turn and the two dice showing. It's written on every roll, so sleep or a flat battery brings back the same turn, and it's erased by `RESET`.
+
+## Credits
+
+Made for playing Reiner Knizia's [Criss Cross](https://boardgamegeek.com/boardgame/220988/criss-cross).
