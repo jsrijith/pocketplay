@@ -21,9 +21,13 @@ namespace {
 constexpr const char* SAVE_FILE = "islandmaps";
 
 // From the top: the island's name and its place in the list, below where the shell puts a warning,
-// then the island as large as it fits, then RANDOM.
+// then the island as large as it fits, then FIRST MAP and RANDOM side by side.
 constexpr int MARGIN = 16;
 constexpr int INNER_WIDTH = SCREEN_WIDTH - 2 * MARGIN;
+constexpr int BUTTON_GAP = 12;
+constexpr int BUTTON_WIDTH = (INNER_WIDTH - BUTTON_GAP) / 2;
+constexpr int FIRST_LEFT = MARGIN;
+constexpr int RANDOM_LEFT = SCREEN_WIDTH - MARGIN - BUTTON_WIDTH;
 constexpr int NAME_TOP = ui::CONTENT_TOP;
 constexpr int NAME_HEIGHT = 48;
 constexpr int POSITION_TOP = NAME_TOP + NAME_HEIGHT + 4;
@@ -51,7 +55,9 @@ class IslandMaps final : public Game {
 
   TapResult onTap(int x, int y) override {
     if (ui::isOnBack(x, y)) return TapResult::Leave;
-    if (ui::isInBox(x, y, MARGIN, BUTTON_TOP, INNER_WIDTH, ui::PILL_HEIGHT)) {
+    // On the first island already, FIRST MAP changes nothing, so show() returns Nothing.
+    if (ui::isInBox(x, y, FIRST_LEFT, BUTTON_TOP, BUTTON_WIDTH, ui::PILL_HEIGHT)) return show(0);
+    if (ui::isInBox(x, y, RANDOM_LEFT, BUTTON_TOP, BUTTON_WIDTH, ui::PILL_HEIGHT)) {
       return show(im::pickOther(index_, im::kIslandCount, [] { return static_cast<uint32_t>(esp_random()); }));
     }
     return TapResult::Nothing;
@@ -70,7 +76,8 @@ class IslandMaps final : public Game {
     drawTextInBox(frame, font, MARGIN, NAME_TOP, INNER_WIDTH, NAME_HEIGHT, island.name);
     drawTextInBox(frame, Font::Size14, MARGIN, POSITION_TOP, INNER_WIDTH, POSITION_HEIGHT, position);
     drawIsland(frame, island);
-    ui::drawPill(frame, MARGIN, BUTTON_TOP, INNER_WIDTH, "RANDOM", true);
+    ui::drawPill(frame, FIRST_LEFT, BUTTON_TOP, BUTTON_WIDTH, "FIRST MAP", false);
+    ui::drawPill(frame, RANDOM_LEFT, BUTTON_TOP, BUTTON_WIDTH, "RANDOM", true);
   }
 
   bool saveFailed() const override { return saveFailed_; }
@@ -85,7 +92,7 @@ class IslandMaps final : public Game {
   }
 
   // Square tiles as large as the island allows, capped so a small island doesn't fill the screen,
-  // and centred in the space between the name and RANDOM.
+  // and centred in the space between the name and the buttons.
   static void drawIsland(uint8_t* frame, const im::Island& island) {
     int cell = INNER_WIDTH / island.width;
     if (MAP_HEIGHT / island.height < cell) cell = MAP_HEIGHT / island.height;

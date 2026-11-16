@@ -5,6 +5,7 @@
 ## Getting around
 
 - **Browsing:** Up and Down step through the islands one at a time, and wrap round past the first and the last. The number under the name is the island's place in the list.
+- **The first island:** `FIRST MAP` goes back to Forbidden Island, the first in the list, so you can step through the rest in order from there.
 - **A random island:** `RANDOM` jumps to any island but the one on screen, each equally likely.
 - **The order:** the 11 official islands come first, starting with Forbidden Island, then the fan-made ones from A to Z.
 - **Leaving:** `BACK` returns to the home page. The game opens again on the island you left it on.
