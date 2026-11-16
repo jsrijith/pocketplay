@@ -1,5 +1,7 @@
 // Draws a game on the PC, so its screens can be compared with CrossPlay's before the
-// device is flashed. Built by run.sh, which names the game with -DPREVIEW_GAME.
+// device is flashed. Built by run.sh, which names the game with -DPREVIEW_GAME, or an
+// app with -DPREVIEW_APP. An app is wrapped as a game, and the commands it has no
+// calls for (press:, hold:, release, swipe:, update) stop with an error.
 //
 // Commands, run in order:
 //   tap:X,Y     a tap at a screen position (480 x 800, or 800 x 480 for a landscape game); prints what it returned
@@ -20,7 +22,60 @@
 #include "games/game.h"
 #include "ui/ui.h"
 
+#ifdef PREVIEW_APP
+#include "apps/app.h"
+
+App& PREVIEW_APP();
+
+namespace {
+
+// Forwards to the app the calls it has, so the commands below work on it unchanged.
+class AppAsGame final : public Game {
+ public:
+  explicit AppAsGame(App& app) : app_(app) {}
+  const char* name() const override { return app_.name(); }
+  const uint8_t* icon() const override { return app_.icon(); }
+  void open() override { app_.open(); }
+  TapResult onTap(int x, int y) override { return convert(app_.onTap(x, y)); }
+  void draw(uint8_t* frame) override { app_.draw(frame); }
+  bool saveFailed() const override { return app_.saveFailed(); }
+  void retrySave() override { app_.retrySave(); }
+  TapResult onUpPressed() override { return convert(app_.onUpPressed()); }
+  TapResult onDownPressed() override { return convert(app_.onDownPressed()); }
+
+ private:
+  static TapResult convert(App::TapResult result) {
+    switch (result) {
+      case App::TapResult::Nothing:
+        return TapResult::Nothing;
+      case App::TapResult::Redraw:
+        return TapResult::Redraw;
+      case App::TapResult::RedrawFull:
+        return TapResult::RedrawFull;
+      case App::TapResult::Leave:
+        return TapResult::Leave;
+    }
+    return TapResult::Nothing;
+  }
+  App& app_;
+};
+
+constexpr bool IS_APP = true;
+
+Game& previewed() {
+  static AppAsGame game(PREVIEW_APP());
+  return game;
+}
+
+}  // namespace
+#else
 Game& PREVIEW_GAME();
+
+namespace {
+constexpr bool IS_APP = false;
+Game& previewed() { return PREVIEW_GAME(); }
+}  // namespace
+#endif
 
 namespace {
 
@@ -72,7 +127,7 @@ int main(int argc, char** argv) {
   }
   const std::string outDir = argv[1];
   storage::begin();
-  Game& game = PREVIEW_GAME();
+  Game& game = previewed();
   game.open();
   // As the shell does: the game's own orientation for its taps and screens.
   const Orientation gameOrientation = game.landscape() ? Orientation::Landscape : Orientation::Portrait;
@@ -80,6 +135,11 @@ int main(int argc, char** argv) {
 
   for (int i = 2; i < argc; i++) {
     const std::string command = argv[i];
+    if (IS_APP && (command.rfind("press:", 0) == 0 || command.rfind("hold:", 0) == 0 || command == "release" ||
+                   command.rfind("swipe:", 0) == 0 || command == "update")) {
+      fprintf(stderr, "%s: apps don't get holds, swipes or update()\n", command.c_str());
+      return 2;
+    }
     if (command.rfind("press:", 0) == 0 || command.rfind("hold:", 0) == 0) {
       const bool hold = command[0] == 'h';
       int x = 0;

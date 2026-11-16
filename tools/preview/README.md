@@ -1,13 +1,19 @@
 # Preview
 
-Draws a game's screens on the PC as PNGs, so a game's screens can be checked before anything is flashed. It uses the real drawing code (`core/graphics`, `core/text`, `ui/`) and the game's own folder, with a card kept in memory and no panel.
+Draws a game's or an app's screens on the PC as PNGs, so they can be checked before anything is flashed. It uses the real drawing code (`core/graphics`, `core/text`, `ui/`) and the game's own folder, with a card kept in memory and no panel.
 
 ```bash
 tools/preview/run.sh FOLDER FUNCTION OUT_DIR COMMAND...
 tools/preview/run.sh dungeon dungeonGame /tmp/shots shot:menu tap:240,758 shot:board row:row
 ```
 
-`FOLDER` is the game's folder under `src/games/`, and `FUNCTION` is the function in `game_list.inc`. The game is opened once, then the commands run in order:
+`FOLDER` is the game's folder under `src/games/`, and `FUNCTION` is the function in `game_list.inc`. For an app, `FOLDER` is `apps/<folder>` and `FUNCTION` the function in `app_list.inc`:
+
+```bash
+tools/preview/run.sh apps/calculator calculatorApp /tmp/shots shot:keys tap:67,632 shot:one
+```
+
+The game or app is opened once, then the commands run in order:
 
 | Command | Does |
 |---|---|
@@ -21,6 +27,8 @@ tools/preview/run.sh dungeon dungeonGame /tmp/shots shot:menu tap:240,758 shot:b
 | `warning:NAME` | Draws the game with the shell's longest warning, `SAVE FAILED`, where the shell puts it, to check nothing is drawn under it. |
 
 A landscape game's screens come out landscape, and its `row:` stays portrait, as the home page is.
+
+An app gets only taps and Up and Down, as on the device, so `press:`, `hold:`, `release`, `swipe:` and `update` stop with an error for one. The preview wraps the app as a game, and the results print with a game's names (`Leave` for BACK).
 
 **Limits:**
 - It links `core/graphics`, `core/text`, all of `ui/` (the keyboard too) and the game's folder. `net_stub.cpp` stands in for `core/network` and `core/download`: Wi-Fi is never connected, so a download stops at its Wi-Fi step. The clock is the PC's.

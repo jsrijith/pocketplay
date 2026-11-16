@@ -42,6 +42,10 @@ I have also credited all the open-source projects referenced here. If I have mis
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 
+**Apps included**, opened from the grid icon beside the Settings cog:
+
+- **Calculator:** a pocket calculator with + − × ÷, percent and backspace, working each step out as you go, as a desk calculator does. [How it works](src/apps/calculator/README.md)
+
 ## Disclaimer
 
 - **Built with AI assistance:** PocketPlay was written with Claude Code. I don't have a background in C++ or firmware engineering, so no expert has reviewed the code.
@@ -256,7 +260,7 @@ PocketPlay builds on other people's work, each under its own licence, kept besid
 - [CrossPlay](https://github.com/ma-r-s/crossplay) by Mario Ruiz: the project that inspired PocketPlay. Several games began as ports of its games, and the font headers come from it (MIT)
 - [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel: the rules and puzzles behind Lights Out, Suguru, Sokoban, Queens, Peg Solitaire, Text Adventures, Word Ladder, Nonograms, Kakuro and Chess Puzzles (MIT)
 - [Lichess puzzle database](https://database.lichess.org/#puzzles): Chess Puzzles' puzzles (CC0)
-- [Lucide](https://lucide.dev): home-page icons, and Grid Gambit's pieces (ISC)
+- [Lucide](https://lucide.dev): home-page icons, the apps icon, Calculator's keys, and Grid Gambit's pieces (ISC)
 - [FreeInk SDK](https://github.com/ma-r-s/freeink-sdk): hardware libraries (MIT)
 - [wolfSSL](https://www.wolfssl.com/): HTTPS (GPLv2 or later, or commercial)
 - [SdFat](https://github.com/greiman/SdFat): SD card access (MIT)
