@@ -4,7 +4,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-"${PLATFORMIO_CORE_DIR:-$HOME/.platformio}/penv/bin/pio" run -e sticky
+# A pio on PATH first, as on GitHub's build machines; otherwise the copy PlatformIO installs for
+# itself, as on a PC set up through the editor.
+pio="$(command -v pio || echo "${PLATFORMIO_CORE_DIR:-$HOME/.platformio}/penv/bin/pio")"
+"$pio" run -e sticky
 
 # PlatformIO merges these into firmware.factory.bin:
 #   0x0      bootloader.bin

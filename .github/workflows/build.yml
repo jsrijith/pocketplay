@@ -1,0 +1,62 @@
+# Build check: on every push to main and every pull request, runs the PC tests and builds the
+# firmware on a clean GitHub machine, so a broken commit shows a red cross beside it. The image it
+# builds is kept for 14 days as a download on the run's page. Nothing is published.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: # a "Run workflow" button in the Actions tab
+
+# The token this workflow gets can read the code and nothing else.
+permissions:
+  contents: read
+
+# A newer push to the same pull request cancels the older run; pushes to main all finish.
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # A run takes a few minutes; this only stops a stuck one holding the machine for hours.
+    timeout-minutes: 30
+    steps:
+      - name: Check out the code and the SDK
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive # freeink-sdk is a public submodule
+          fetch-depth: 0 # all history: scripts/version.py counts commits for the build number
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      # pioarduino's PlatformIO Core, which the pioarduino platform in platformio.ini needs, as
+      # CrossPlay's CI uses.
+      - name: Install PlatformIO
+        run: pip install https://github.com/pioarduino/platformio-core/archive/refs/tags/v6.1.19.zip
+
+      # The toolchain and libraries are several hundred MB. Kept between runs until platformio.ini
+      # changes, so only the first run downloads them.
+      - name: Cache PlatformIO packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+
+      # Also run by the build's gate below; a step of its own so a test failure reads as one.
+      - name: PC tests
+        run: scripts/check.sh
+
+      - name: Build the firmware
+        run: scripts/package.sh
+
+      - name: Keep the image
+        uses: actions/upload-artifact@v4
+        with:
+          name: pocketplay-full-${{ github.sha }}
+          path: dist/pocketplay-full.bin
+          retention-days: 14
