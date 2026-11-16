@@ -4,7 +4,7 @@ What's new in each release, written for players. Each release's notes on GitHub 
 
 Before a release, add what changed under `## Unreleased` at the top, and commit it. `scripts/release.sh` renames that heading to the version it makes. A release without a section here falls back to the list of commits.
 
-## Unreleased
+## 0.4.0
 
 - **Last Piece:** a new game of numbered chess challenges on a 4x4 board, where every move takes a piece and one piece left wins. The challenges and their solutions are text files you copy onto the card, in four difficulties. Step through the challenges with Up and Down, and tap RESET to start one again.
 
