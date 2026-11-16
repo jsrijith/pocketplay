@@ -4,7 +4,7 @@ What's new in each release, written for players. Each release's notes on GitHub 
 
 Before a release, add what changed under `## Unreleased` at the top, and commit it. `scripts/release.sh` renames that heading to the version it makes. A release without a section here falls back to the list of commits.
 
-## Unreleased
+## 0.3.0
 
 - **Apps:** a new grid icon beside the Settings cog opens a page of apps: tools rather than games.
 - **Calculator:** the first app, a pocket calculator with + − × ÷, percent and backspace. Its number is kept when the device sleeps.
