@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Prepares a release: works out the next version from the commit messages since the last release,
-# writes it to VERSION, commits, and tags. Nothing leaves this machine: the push and the GitHub
-# release are printed as next steps.
+# writes it to VERSION and CHANGELOG.md, commits, and tags. Nothing leaves this machine: the push
+# is printed as the next step, and GitHub builds and drafts the release from the tag.
 #
 #   scripts/release.sh            # prepare the release
 #   scripts/release.sh --dry-run  # only say what it would do
@@ -82,6 +82,11 @@ if [ "$next" != "$current" ]; then
   echo "$next" > VERSION
   git add VERSION
 fi
+# What's new, written under "## Unreleased" in CHANGELOG.md, becomes this version's section.
+if grep -q '^## Unreleased[[:space:]]*$' CHANGELOG.md 2>/dev/null; then
+  sed -i "s/^## Unreleased[[:space:]]*\$/## $next/" CHANGELOG.md
+  git add CHANGELOG.md
+fi
 git commit -q --allow-empty -m "chore(release): $tag"
 git tag -a "$tag" -m "PocketPlay $next" -m "$changes"
 
@@ -90,9 +95,7 @@ cat <<EOF
 Tagged $tag. Nothing has left this machine yet. To publish it:
 
   git push --follow-tags
-  ./scripts/package.sh
-  sha256sum dist/pocketplay-full.bin
-  gh release create $tag dist/pocketplay-full.bin --title "PocketPlay $next" --generate-notes
 
-Build from the tagged commit, so the version on the device has no '+'.
+GitHub's Release workflow then builds the image from the tag and creates a draft release with
+its notes. Read the draft on the Releases page, then publish it there.
 EOF
