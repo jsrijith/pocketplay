@@ -1,6 +1,6 @@
 # PocketPlay
 
-A pocket games console for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. PocketPlay replaces the device's firmware with a home page of 29 games, from daily word puzzles to logic puzzles, card games and text adventures. Everything is played by tapping the screen, and everything is designed for e-ink: black and white, few refreshes, and nothing that moves unless you touch it.
+A pocket games console for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. PocketPlay replaces the device's firmware with a home page of 30 games, from daily word puzzles to logic puzzles, card games and text adventures. Everything is played by tapping the screen, and everything is designed for e-ink: black and white, few refreshes, and nothing that moves unless you touch it.
 
 PocketPlay drew heavy inspiration from [CrossPlay](https://github.com/ma-r-s/crossplay), and while it has since grown to include its own unique design, games, and features, most of its games were ported from two open-source projects: nine from CrossPlay, including the very first ones, and ten from [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel. I would like to extend my sincere thanks to the authors of both: CrossPlay laid the foundation that made this possible, and touch-licorice-apps brought many of the puzzle games and their puzzles.
 
@@ -39,6 +39,7 @@ I have also credited all the open-source projects referenced here. If I have mis
 - **Chess Puzzles:** 2398 tactics puzzles from the Lichess database in six banks, from mate in 1 to expert: find the best move and play the line out, with hints, show the move and your solved count per bank. [How it plays](src/games/chesspuzzles/README.md)
 - **Polyomino Panic:** holds the decks for the paper game: deals a different starting shape to each player, then flips two shapes a round from the 40-card deck until it runs out. Plotting and scoring stay on paper. [How it plays](src/games/polyominopanic/README.md)
 - **Crown & Crest:** the four dice for the two-player Crown & Crest, each with its own six faces of shields and marks: roll, then share the dice out (the roller takes one, the other player two, the roller the last). [How it plays](src/games/crowncrest/README.md)
+- **Last Piece:** numbered capture-only chess challenges on a 4x4 board, in four difficulties, read from text files you copy onto the card, with undo, reset and a solved count per difficulty. [How it plays](src/games/lastpiece/README.md)
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 
@@ -260,7 +261,7 @@ PocketPlay builds on other people's work, each under its own licence, kept besid
 - [CrossPlay](https://github.com/ma-r-s/crossplay) by Mario Ruiz: the project that inspired PocketPlay. Several games began as ports of its games, and the font headers come from it (MIT)
 - [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel: the rules and puzzles behind Lights Out, Suguru, Sokoban, Queens, Peg Solitaire, Text Adventures, Word Ladder, Nonograms, Kakuro and Chess Puzzles (MIT)
 - [Lichess puzzle database](https://database.lichess.org/#puzzles): Chess Puzzles' puzzles (CC0)
-- [Lucide](https://lucide.dev): home-page icons, the apps icon, Calculator's keys, and Grid Gambit's pieces (ISC)
+- [Lucide](https://lucide.dev): home-page icons, the apps icon, Calculator's keys, and the chess pieces in Grid Gambit and Last Piece (ISC)
 - [FreeInk SDK](https://github.com/ma-r-s/freeink-sdk): hardware libraries (MIT)
 - [wolfSSL](https://www.wolfssl.com/): HTTPS (GPLv2 or later, or commercial)
 - [SdFat](https://github.com/greiman/SdFat): SD card access (MIT)
