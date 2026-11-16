@@ -23,7 +23,7 @@ Every firmware build runs `scripts/check.sh` first and stops if it fails (`scrip
 
 `tools/preview/run.sh` draws a game's screens on the PC as PNGs, to compare with CrossPlay's screenshots before flashing (`tools/preview/README.md`).
 
-**Versions:** `VERSION` holds the version number, such as `0.1.0`; raise it by hand for a release. `scripts/version.py` runs before each build and adds the build (git's commit count) and the commit, with a `+` if there were uncommitted changes, as defines that `core/version.h` reads. The boot screen, the sleep screen and Settings' About page show them, and the serial log prints them at boot. The PC tests and the preview don't run the script, so they show `DEV`.
+**Versions:** `VERSION` holds the version number, such as `0.1.0`, in semantic versioning. `scripts/release.sh` raises it for a release from the commit prefixes since the last `v*` tag (`fix:` the patch, `feat:` the minor, a breaking change the major, or the minor before 1.0), commits and tags; it never pushes. Raise `VERSION` by hand only to choose a number yourself, such as 1.0.0. Release from a tagged, clean commit, and never move or delete a published tag. `scripts/version.py` runs before each build and adds the build (git's commit count) and the commit, with a `+` if there were uncommitted changes, as defines that `core/version.h` reads. The boot screen, the sleep screen and Settings' About page show them, and the serial log prints them at boot. The PC tests and the preview don't run the script, so they show `DEV`.
 
 There are no linters. These tests cover code with no hardware in it, and a build only proves the rest compiles, so behaviour has to be confirmed on the device.
 

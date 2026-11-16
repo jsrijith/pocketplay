@@ -183,7 +183,7 @@ scripts/check.sh    # every test; only "CHECK-VERDICT: green" is a pass
 
 To add a game, follow [src/games/README.md](src/games/README.md). A game is one folder and one line in `game_list.inc`.
 
-**Versions:** `VERSION` holds the number, which you raise by hand for a release. Each build adds the build number (the commit count) and the commit, with a `+` if it had uncommitted changes.
+**Versions:** `VERSION` holds the number, in [semantic versioning](https://semver.org): a release with fixes only raises the last part (0.2.0 to 0.2.1), new features the middle (0.2.1 to 0.3.0), and a breaking change, such as saves that no longer load, the first (from 1.0 on). `scripts/release.sh` reads the `fix:` and `feat:` commits since the last release, raises `VERSION` to match, commits and tags it; `--dry-run` only says what it would do. Each build adds the build number (the commit count) and the commit, with a `+` if it had uncommitted changes.
 
 | Path | Purpose |
 |---|---|
