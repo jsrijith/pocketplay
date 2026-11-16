@@ -42,7 +42,7 @@ jobs:
       # The toolchain and libraries are several hundred MB. Kept between runs until platformio.ini
       # changes, so only the first run downloads them.
       - name: Cache PlatformIO packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.platformio
           key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
@@ -55,7 +55,7 @@ jobs:
         run: scripts/package.sh
 
       - name: Keep the image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pocketplay-full-${{ github.sha }}
           path: dist/pocketplay-full.bin
