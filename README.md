@@ -187,7 +187,7 @@ cp dist/pocketplay-full.bin /mnt/c/Users/<you>/Downloads/
 
 Then flash it as in [Install](#install), from step 2.
 
-### Tests and versions
+### Tests
 
 Every firmware build runs the PC tests first and stops if any fail. You can also run them on their own:
 
@@ -197,7 +197,24 @@ scripts/check.sh    # every test; only "CHECK-VERDICT: green" is a pass
 
 To add a game, follow [src/games/README.md](src/games/README.md). A game is one folder and one line in `game_list.inc`.
 
-**Versions:** `VERSION` holds the number, in [semantic versioning](https://semver.org): a release with fixes only raises the last part (0.2.0 to 0.2.1), new features the middle (0.2.1 to 0.3.0), and a breaking change, such as saves that no longer load, the first (from 1.0 on). `scripts/release.sh` reads the `fix:` and `feat:` commits since the last release, raises `VERSION` to match, commits and tags it; `--dry-run` only says what it would do. Before a release, write what changed for players under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), which the release notes take their "What's new" from. Pushing the tag makes GitHub build the image from it and create a draft release, which is published from the Releases page. Every push to `main` is also built and tested on GitHub. Each build adds the build number (the commit count) and the commit, with a `+` if it had uncommitted changes.
+### Versions and releases
+
+`VERSION` holds the version number, in [semantic versioning](https://semver.org):
+
+- A release with only fixes raises the last part (0.2.0 to 0.2.1).
+- New features raise the middle part (0.2.1 to 0.3.0).
+- A breaking change, such as saves that no longer load, raises the first part (from 1.0 on).
+
+To make a release:
+
+1. **Write the changelog.** Under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), say what changed for players, and commit it. The release notes take their "What's new" from this section.
+2. **Run `scripts/release.sh`.** It reads the `fix:` and `feat:` commits since the last release, raises `VERSION` to match, renames `## Unreleased` to the new version, then commits and tags. It never pushes. `--dry-run` only says what it would do.
+3. **Push the tag** with `git push --follow-tags`. GitHub builds the image from the tag and creates a draft release with its SHA-256.
+4. **Publish the draft** from the Releases page, once its notes look right.
+
+Every push to `main` and every pull request is also built and tested on GitHub. Each build adds the build number (the commit count) and the commit to the version, with a `+` if it had uncommitted changes.
+
+### How it's put together
 
 | Path | Purpose |
 |---|---|

@@ -23,7 +23,7 @@ The rules live in the repo, not here. `CLAUDE.md` is already in your context, so
 6. **Write the screens and the `Game`** on `core/` and `ui/` only, following DESIGN.md. Add the icon, `README.md` for players (rules, getting around, saves, and a one-line credit; see `src/games/wordle/README.md`), and one line in `game_list.inc`. Add a line to the root README's game list, and raise the count in its opening ("a home page of N games") to the number of `GAME(` lines in `game_list.inc`. For a port, also raise that paragraph's count of games from the source.
 7. **Preview every screen.** Run `tools/preview/run.sh` and look at each PNG with the Read tool. For a port, compare it with the source's screenshot. Check that each tap prints the `TapResult` you expect, and fix anything that's cut off, overlapping or misaligned before going further. After a fix, look again only at the screens that fix could change, not at every PNG.
 8. **Check and build:** run `scripts/check.sh` (only `CHECK-VERDICT: green` passes) and `./scripts/package.sh`.
-9. **Hand over:** commit as described in the commit rules, show the user the preview images, give them the PowerShell flash commands from CLAUDE.md, and list what can only be checked on the device. Don't push unless they ask.
+9. **Hand over:** commit as CLAUDE.md's **Commits** paragraph describes (`feat(<name>): add …` or `feat(<name>): port … from …`), show the user the preview images, give them the PowerShell flash commands from CLAUDE.md, and list what can only be checked on the device. Don't push unless they ask.
 
 ## Mistakes made before
 
