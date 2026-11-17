@@ -22,7 +22,7 @@ You can solve every dungeon with logic alone; no guessing is needed.
 
 ## Getting around
 
-- **Menu:** the campaign map. Tap a room to choose it (brackets show the choice), then `PLAY` to open it, or `RESUME` if you've already marked it. A cleared dungeon is a filled room, and a tier's number fills once all eight of its dungeons are cleared. `TUTORIAL` opens the guide.
+- **Menu:** the campaign map, with the chosen dungeon's name above it. Tap a room to choose it (brackets show the choice), or step through the rooms with the Up and Down buttons (Up goes left, Down goes right, and both wrap around from 64 to 1), then `PLAY` to open it, or `RESUME` if you've already marked it. A cleared dungeon is a filled room, and a tier's number fills once all eight of its dungeons are cleared. `TUTORIAL` opens the guide.
 - **Board:** tap a square to place a wall, tap again to mark it as floor (a note for yourself), and once more to clear it. Monsters and chests can't be marked. A clue turns black when its row or column has exactly the right number of walls, and grey when it has too many. `CLEAR` empties the board, and `DUNGEONS` goes back to the map.
 - **Guide:** eight pages, one rule each, shown on the tutorial's board a step further along each time. `NEXT` and `PREV` turn the pages, and `PLAY` on the last page opens the map.
 - **Win:** the dungeon's name and its finished map. `NEXT` opens the next dungeon you haven't solved. Once all of them are solved, `NEXT` opens dungeon 64 again.

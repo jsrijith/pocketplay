@@ -47,12 +47,10 @@ constexpr int NAME_STRIP = 34;
 // The board screen: the dungeon's name above the board.
 constexpr int BOARD_BODY_TOP = BODY_TOP + NAME_STRIP + GUTTER;
 
-// The menu: a caption, the campaign map, then the picked dungeon and TUTORIAL.
-constexpr int CAPTION_HEIGHT = 24;
+// The menu: the picked dungeon, the campaign map, then TUTORIAL.
 constexpr int NEXT_HEIGHT = 44;
 constexpr int NEXT_TOP = ABOVE_ACTIONS - NEXT_HEIGHT;
-constexpr int GUIDE_WIDTH = 150;
-constexpr int MAP_TOP = BODY_TOP + CAPTION_HEIGHT + GUTTER;
+constexpr int MAP_TOP = BODY_TOP + NAME_STRIP + GUTTER;
 constexpr int MAP_BOTTOM = NEXT_TOP - MARGIN;
 constexpr int MAP_LANE = 30;
 constexpr int MAP_GAP = 5;
@@ -241,7 +239,7 @@ void drawMapCell(uint8_t* frame, const Rect& box, int index, bool done, bool cur
   if (current) cornerBrackets(frame, Rect{box.x - 5, box.y - 5, box.width + 10, box.height + 10}, 12);
 }
 
-Rect guideButton() { return Rect{BODY_LEFT + BODY_WIDTH - GUIDE_WIDTH, NEXT_TOP, GUIDE_WIDTH, NEXT_HEIGHT}; }
+Rect guideButton() { return Rect{BODY_LEFT, NEXT_TOP, BODY_WIDTH, NEXT_HEIGHT}; }
 
 }  // namespace
 
@@ -282,7 +280,16 @@ Button boardButtonAt(int x, int y) { return actionAt(x, y, Button::Reset, Button
 void drawMenu(uint8_t* frame, const MenuModel& model, PickerLayout& layout) {
   layout = PickerLayout{};
   drawHeader(frame, TITLE, model.solvedCount, model.total);
-  drawTextInBox(frame, Font::Size10, BODY_LEFT, BODY_TOP, BODY_WIDTH, CAPTION_HEIGHT, "TAP TO CHOOSE, THEN PLAY");
+
+  // The picked dungeon on top, its monster then its name, centred together, so the
+  // name changes right above the map as the brackets move.
+  const char* name = dungeon::kPuzzles[model.selectedIndex].name;
+  const Font nameFont = fitName(name, BODY_WIDTH - MAP_ART - GUTTER);
+  const int groupWidth = MAP_ART + GUTTER + textWidth(nameFont, name);
+  const int groupLeft = BODY_LEFT + (BODY_WIDTH - groupWidth) / 2;
+  drawIcon(frame, dungeonArt::MONSTERS_32[monsterKind(model.selectedIndex)], MAP_ART, MAP_ART, groupLeft,
+           BODY_TOP + (NAME_STRIP - MAP_ART) / 2);
+  ui::drawTextLeft(frame, nameFont, groupLeft + MAP_ART + GUTTER, BODY_TOP, NAME_STRIP, name);
 
   if (model.progress != nullptr) {
     const int height = MAP_BOTTOM - MAP_TOP;
@@ -315,13 +322,6 @@ void drawMenu(uint8_t* frame, const MenuModel& model, PickerLayout& layout) {
     }
   }
 
-  // The picked dungeon, with its monster, and the guide beside it.
-  drawIcon(frame, dungeonArt::MONSTERS_32[monsterKind(model.selectedIndex)], MAP_ART, MAP_ART, BODY_LEFT,
-           NEXT_TOP + (NEXT_HEIGHT - MAP_ART) / 2);
-  const char* name = dungeon::kPuzzles[model.selectedIndex].name;
-  const int nameLeft = BODY_LEFT + MAP_ART + GUTTER;
-  const int nameWidth = BODY_WIDTH - MAP_ART - GUIDE_WIDTH - 2 * GUTTER;
-  ui::drawTextLeft(frame, fitName(name, nameWidth), nameLeft, NEXT_TOP, NEXT_HEIGHT, name);
   const Rect guide = guideButton();
   ui::drawPill(frame, guide.x, guide.y, guide.width, "TUTORIAL", false, guide.height);
 

@@ -54,6 +54,11 @@ class DungeonGame final : public Game {
     return TapResult::Nothing;
   }
 
+  // On the map, Up and Down step the brackets back and forward through the 64
+  // dungeons, row by row, wrapping at either end. Elsewhere they do nothing.
+  TapResult onUpPressed() override { return stepSelection(-1); }
+  TapResult onDownPressed() override { return stepSelection(1); }
+
   void draw(uint8_t* frame) override {
     switch (view_) {
       case View::Menu: {
@@ -129,6 +134,13 @@ class DungeonGame final : public Game {
     const int picked = dungeon::kCampaignFirst + spot;
     if (!dungeon::isPlayable(picked) || picked == selected_) return TapResult::Nothing;
     selected_ = picked;
+    return TapResult::Redraw;
+  }
+
+  TapResult stepSelection(int delta) {
+    if (view_ != View::Menu) return TapResult::Nothing;
+    const int offset = selected_ - dungeon::kCampaignFirst + delta;
+    selected_ = dungeon::kCampaignFirst + (offset + dungeon::kCampaignCount) % dungeon::kCampaignCount;
     return TapResult::Redraw;
   }
 
