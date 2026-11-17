@@ -2,6 +2,12 @@
 
 A logic puzzle on a grid split into outlined regions, in two forms: **Queens**, with one queen in every row, column and region, and **Star Battle**, with two stars in each. There are 1200 puzzles in six sizes, and each has a single answer you can reach by reasoning, without guessing.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Queens being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - Place one queen (Queens) or two stars (Star Battle) in every row, every column and every region. The regions are the areas inside the thick borders.

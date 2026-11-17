@@ -2,6 +2,12 @@
 
 The classic 9x9 number puzzle. Puzzles are made on the device at four levels, and every one has exactly one answer.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Sudoku being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - Fill every empty square with a digit from 1 to 9.

@@ -2,6 +2,12 @@
 
 Klondike, the classic patience game. It's the one game played in landscape: from the home page, turn the device a quarter-turn anticlockwise, so the USB edge is at the top.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Solitaire being played on PocketPlay" width="400">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - The table has seven columns, a stock (face-down pile) and a waste pile in the top corner, and four foundations.

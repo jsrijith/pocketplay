@@ -2,6 +2,12 @@
 
 A logic puzzle where you uncover a hidden dungeon by placing walls. There are 64 dungeons in eight tiers of eight, plus a tutorial, and each one has exactly one answer.
 
+## Screenshot
+
+<img src="screenshot.png" alt="D&Diagrams being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 Each grid hides a dungeon. You place walls; every square without a wall is floor. A solved dungeon follows all of these:

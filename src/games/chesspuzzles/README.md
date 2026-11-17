@@ -2,6 +2,12 @@
 
 2398 chess tactics puzzles from the Lichess puzzle database: find the best move, then keep going until the line is over.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Chess Puzzles being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - The opponent's move that sets the puzzle is made for you, and marked with corners on the squares it left and reached. The board turns so your side is at the bottom.

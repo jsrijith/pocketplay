@@ -2,6 +2,12 @@
 
 A pocket calculator for quick sums.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Calculator being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## How it works
 
 It works like a desk calculator. Each operator works out the sum so far straight away, so 2 + 3 × 4 gives 20, not 14.

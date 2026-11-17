@@ -2,6 +2,12 @@
 
 Calls the numbers for a game of bingo played on paper cards: 30, 75, 80 or 90-ball. Each call is drawn at random from the numbers not called yet, and a board shows every number that's out.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Bingo Caller being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Getting around
 
 - **Choose a game:** tap `30 BALL`, `75 BALL`, `80 BALL` or `90 BALL`. A game with calls in it shows `IN PLAY` and its count. Tap it to carry on.

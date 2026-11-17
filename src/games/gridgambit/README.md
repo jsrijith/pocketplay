@@ -2,6 +2,12 @@
 
 A chess puzzle for one player on a 4x4 board: every move must take a piece, and you win when only one is left. Puzzles are made on the device, so they never run out, and each one can be solved.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Grid Gambit being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - Every move is a capture: one piece takes another, landing on its square. A piece can never move to an empty square.

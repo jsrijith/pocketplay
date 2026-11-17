@@ -2,6 +2,12 @@
 
 Numbered chess challenges for one player on a 4x4 board: every move must take a piece, and you win when only one is left. The challenges are text files you copy onto the card, in four difficulties: `BEGINNER`, `INTERMEDIATE`, `ADVANCED` and `EXPERT`.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Last Piece being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - Every move is a capture: one piece takes another, landing on its square. A piece can never move to an empty square.

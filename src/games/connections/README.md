@@ -2,6 +2,12 @@
 
 Sixteen words hide four groups of four. Find all four groups before you make four mistakes. It's the New York Times' daily puzzle, and every past one can be played too.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Connections being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - Each group shares something: a category, a hidden word, a phrase they complete, and so on. Some words seem to fit more than one group, but each word belongs to exactly one.

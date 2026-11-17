@@ -7,6 +7,12 @@ Holds the two decks for Polyomino Panic, played on paper. Everyone draws their o
 
 Every shape is drawn in solid black. The paper cards' colours aren't shown.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Polyomino Panic being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Getting around
 
 - **Starting shapes:** each tap of `DEAL`, or the Down button, turns over one card from the starter deck. Pass the device round and deal once per player: no shape comes up twice, so everyone starts with a different one. The capsule counts them (`STARTER 2 OF 13`), and once all 13 are out it turns black with `ALL 13 DEALT` and `DEAL` greys out.

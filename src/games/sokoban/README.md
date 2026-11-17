@@ -2,6 +2,12 @@
 
 Push every box onto a goal. There are 385 levels in five packs, from small warm-ups to large boards with dozens of boxes.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Sokoban being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - The player (the black disc) moves one square at a time, left, right, up or down.

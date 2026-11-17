@@ -2,6 +2,12 @@
 
 A 5x5 board of lights. Switch them all off.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Lights Out being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - Tapping a square switches it and its four neighbours, on to off and off to on.

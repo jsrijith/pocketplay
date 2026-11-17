@@ -2,6 +2,12 @@
 
 Lewis Carroll's doublets, a new one every day: change the start word into the target one letter at a time, and every step must be a word. COLD, CORD, CARD, WARD, WARM.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Word Ladder being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - Change one letter at a time. Each new word must be in the word list, and no word can be used twice.

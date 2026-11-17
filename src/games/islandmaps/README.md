@@ -2,6 +2,12 @@
 
 55 island layouts for laying out the tiles of the Forbidden Island board game: the official islands and fan-made ones. Each island is drawn with its tiles in black, so you can lay out the real tiles to match.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Island Maps being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Getting around
 
 - **Browsing:** Up and Down step through the islands one at a time, and wrap round past the first and the last. The number under the name is the island's place in the list.

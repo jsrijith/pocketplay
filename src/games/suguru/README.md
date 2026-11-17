@@ -2,6 +2,12 @@
 
 A number puzzle on a grid split into outlined regions, also called Tectonic. There are 800 puzzles in four banks, from 5x5 to 8x8, and each one has a single answer you can reach by logic, without guessing.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Suguru being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - A region of n squares holds the numbers 1 to n, each once. A region of one square holds a 1, and a region of five holds 1 to 5.

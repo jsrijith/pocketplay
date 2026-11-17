@@ -2,6 +2,12 @@
 
 Jump pegs over each other until as few as possible are left. One peg is a win, and one peg in the centre of the English board is the classic perfect game.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Peg Solitaire being played on PocketPlay" width="400">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - A peg jumps over a neighbouring peg into the empty hole just beyond it, and the peg it jumped over is removed.

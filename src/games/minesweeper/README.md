@@ -2,6 +2,12 @@
 
 An eight by ten board with ten mines hidden in it. Open every safe square without hitting a mine.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Minesweeper being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - Tap a square to dig it. If it's a mine, you lose.

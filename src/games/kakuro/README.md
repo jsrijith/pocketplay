@@ -2,6 +2,12 @@
 
 Cross sums: fill the white cells with digits 1 to 9 so that each run of white cells, across or down, adds up to the clue at its start, with no digit twice in a run. There are 600 puzzles in three levels, and each has one solution you can reach by reasoning about the runs.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Kakuro being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - A clue cell has a diagonal. The number in its top right is the sum of the run to its right, and the number in its bottom left is the sum of the run below it.

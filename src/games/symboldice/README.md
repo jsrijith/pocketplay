@@ -2,6 +2,12 @@
 
 Two dice for a roll-and-write game played on paper, where each turn everyone draws the two rolled symbols on their own sheet. PocketPlay rolls the dice and counts the turns; the sheets and the scoring stay on paper.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Symbol Dice being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## The dice
 
 Each die has six symbols: **triangle**, **cross** (drawn as an X), **circle**, **hash**, **three lines** and **slash**. Every roll throws both dice together, at random, so any of the 36 pairs can come up.

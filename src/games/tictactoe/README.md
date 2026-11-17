@@ -2,6 +2,12 @@
 
 Two players share one device and take turns on a 3x3 grid.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Tic Tac Toe being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - X always moves first, then the players take turns.

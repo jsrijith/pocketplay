@@ -2,6 +2,12 @@
 
 Two six-sided dice and their total, for any board game that needs them.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Dice Roller being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Getting around
 
 - `ROLL`, or the Down button, rolls both dice together. The pips show each die, and the capsule under them shows the total.

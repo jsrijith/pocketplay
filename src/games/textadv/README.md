@@ -2,6 +2,12 @@
 
 Classic interactive fiction: you read where you are, type what to do, and the game replies. It plays Z-machine story files, the format of Infocom's games and of most games written in Inform. Typing is rarely needed, because the common commands are buttons and the game's own words are chips you can tap.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Text Adventures being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Games
 
 - **Zork I, II and III are built in.** Microsoft released all three under the MIT licence in 2025.

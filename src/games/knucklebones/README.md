@@ -2,6 +2,12 @@
 
 A dice game against the computer, on two 3x3 grids facing each other. Fill your grid with the dice that score most, and knock the computer's dice out.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Knucklebones being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - Each turn a die is rolled, and you drop it into one of your three columns that still has room.

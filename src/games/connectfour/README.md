@@ -2,6 +2,12 @@
 
 Drop discs into a seven-column, six-row frame against the computer, and be the first to line up four.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Connect Four being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - You play the outlined discs and always go first. The computer plays the solid ones.

@@ -2,6 +2,12 @@
 
 A score tracker for two players, for deck-building and card games where each player's authority (life) counts down to zero.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Authority Tracker being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - Both players start at 50. That's only the starting number: a score can go up past 50, as high as 999.

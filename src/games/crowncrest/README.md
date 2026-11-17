@@ -2,6 +2,12 @@
 
 The four dice for Crown & Crest, a game for two players, A and B. Each die has its own six faces: shields with stripes, dots or quarters, some with X marks beside them, and a `?` on dice 3 and 4.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Crown & Crest being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## A turn
 
 1. The roller rolls all four dice. Player A rolls first.

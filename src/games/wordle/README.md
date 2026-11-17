@@ -2,6 +2,12 @@
 
 Guess the day's hidden five-letter word in six tries. It's the same word as the New York Times' Wordle for that date, and every past day can be played too.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Wordle being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - Type a five-letter word and tap the tick key. It has to be a real word from the accepted list, or you'll see `Not in the word list.` and can change it.

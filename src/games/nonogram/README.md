@@ -2,6 +2,12 @@
 
 Picture logic puzzles: fill the cells so that every row and column shows its clue, the lengths of its runs of filled cells in order. There are 600 puzzles, 150 in each of four sizes, and each can be solved line by line without guessing, so it has one answer.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Nonograms being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - A clue such as `2 4` means that line has a run of 2 filled cells, then a run of 4, with at least one empty cell between them and any number either side.
