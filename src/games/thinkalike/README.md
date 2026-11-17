@@ -2,6 +2,12 @@
 
 A question deck for a party game played round a table, where the aim is to think like everyone else. PocketPlay only shows the questions. Answers and points stay on paper.
 
+## Screenshot
+
+<img src="screenshot.png" alt="Think Alike being played on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows.
+
 ## Rules
 
 - Read the question out loud.
@@ -35,4 +41,4 @@ All in `/.pocketplay/`:
 |---|---|
 | `thinkalike` | The shuffle, how many questions have been shown, and a checksum of the question file. It's written on every `NEXT QUESTION` and `NEW GAME`, so after a sleep or a flat battery you get the same question back. |
 
-The icon is Lucide's messages-square (ISC licence). Plays like the party game Herd Mentality, with its own name and questions.
+The icon is Lucide's messages-square (ISC licence). Plays like the party game Herd Mentality, with its own name and questions. Thanks to Herd Mentality's designers, Rich Coombes and Dan Penn, for the game it's played after: [Herd Mentality](https://boardgamegeek.com/boardgame/311322/herd-mentality).
