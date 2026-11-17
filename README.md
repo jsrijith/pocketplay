@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/images/logo.png" alt="The PocketPlay logo: a die peeking out of a stitched pocket" width="280"></p>
+
 # PocketPlay
 
 A pocket games console for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. PocketPlay replaces the device's firmware with a home page of 30 games, from daily word puzzles to logic puzzles, card games and text adventures. Everything is played by tapping the screen, and everything is designed for e-ink: black and white, few refreshes, and nothing that moves unless you touch it.
@@ -8,44 +10,72 @@ This entire project was also developed using Claude. Having no background in fir
 
 I have also credited all the open-source projects referenced here. If I have missed any attribution, please feel free to reach out and let me know.
 
-**Games included:**
+## Games included
 
-- **Wordle:** the daily puzzle and every past day, with a calendar archive, your record and a chart of your guesses. [How it plays](src/games/wordle/README.md)
-- **Tic Tac Toe:** two players on one device.
-- **D&Diagrams:** 64 dungeon logic puzzles: place walls so the numbers, monsters and treasure all fit. [How it plays](src/games/dungeon/README.md)
-- **Connections:** sixteen words in four hidden groups, the daily puzzle and every past one, with a calendar archive and your record. [How it plays](src/games/connections/README.md)
-- **Solitaire:** Klondike, drawing one or three, with undo and your record. It plays in landscape, with the USB edge at the top. [How it plays](src/games/solitaire/README.md)
-- **Minesweeper:** eight by ten with ten mines. Tap to dig, hold to flag, and the first dig is always safe. [How it plays](src/games/minesweeper/README.md)
-- **Sudoku:** puzzles made on the device at four levels, graded by the hardest technique they need, with pencil marks, undo and hints. [How it plays](src/games/sudoku/README.md)
-- **Knucklebones:** a dice game against the computer: drop each roll into a column, where matching dice multiply and knock out the opponent's. [How it plays](src/games/knucklebones/README.md)
-- **Connect Four:** drop discs against the computer to get four in a line, across, up or on a diagonal. [How it plays](src/games/connectfour/README.md)
-- **Lights Out:** a 5x5 board where each tap switches a square and its neighbours. Switch them all off, in as few presses as the target, with hint and undo. [How it plays](src/games/lightsout/README.md)
-- **One Clue:** a deck of 110 word cards for the party game where everyone writes a one-word clue and matching clues cancel. It deals the cards; you keep score on paper. [How it plays](src/games/oneclue/README.md)
-- **Suguru:** 800 logic puzzles from 5x5 to 8x8 in four banks. Fill each outlined region with 1 up to its size, and never let touching squares match. [How it plays](src/games/suguru/README.md)
-- **Sokoban:** push every box onto a goal, in 385 levels from five classic packs. Swipe or tap beside the player to move, with undo and your best per level. [How it plays](src/games/sokoban/README.md)
-- **Queens:** 1200 logic puzzles: one queen (or, in Star Battle, two stars) in every row, column and outlined region, none touching. Six sizes from 6x6 to 10x10, with hints. [How it plays](src/games/queens/README.md)
-- **Symbol Dice:** two dice of six symbols for a 12-turn roll-and-write game played on paper, with a turn counter. [How it plays](src/games/symboldice/README.md)
-- **Peg Solitaire:** jump pegs until as few as possible are left, on the 33-hole English board or the 15-hole triangle, with undo and your best per board. [How it plays](src/games/pegsolitaire/README.md)
-- **Text Adventures:** classic interactive fiction, with Zork I, II and III built in and any `.z3`, `.z5` or `.z8` story file you copy to the card. Tap directions and the game's own words instead of typing. [How it plays](src/games/textadv/README.md)
-- **Word Ladder:** a new ladder every day: change one word into another a letter at a time, every step a word, with par, hints and earlier days. [How it plays](src/games/wordladder/README.md)
-- **Dice Roller:** two dice and their total, with one button to roll again, for any board game. [How it plays](src/games/diceroller/README.md)
-- **Nonograms:** picture logic puzzles, filling cells to match the row and column clues, 600 of them in four sizes, with X marks, undo and half-done puzzles kept. [How it plays](src/games/nonogram/README.md)
-- **Kakuro:** cross sums, filling digits so every run adds up to its clue with none repeated, 600 puzzles in three levels, with the ways to make each run shown and hints. [How it plays](src/games/kakuro/README.md)
-- **Bingo Caller:** calls 30, 75, 80 or 90-ball bingo for players with paper cards, one random number a tap with no repeats, and a board of every number called. [How it plays](src/games/bingocaller/README.md)
-- **Island Maps:** 55 official and fan-made island layouts for laying out the tiles of the Forbidden Island board game, stepped through with Up and Down or picked at random. [How it plays](src/games/islandmaps/README.md)
-- **Think Alike:** a deck of questions for the party game where everyone writes an answer and matching the most common one scores. The questions are a text file on the card, so you can add your own. [How it plays](src/games/thinkalike/README.md)
-- **Authority Tracker:** two players' scores on one screen, starting at 50, with buttons for ±1, ±5 and ±10. The game ends when a score reaches 0. [How it plays](src/games/authoritytracker/README.md)
-- **Grid Gambit:** chess pieces on a 4x4 board, where every move must take a piece and one piece left wins. Puzzles are made on the device in four levels, with undo and a solved count per level. [How it plays](src/games/gridgambit/README.md)
-- **Chess Puzzles:** 2398 tactics puzzles from the Lichess database in six banks, from mate in 1 to expert: find the best move and play the line out, with hints, show the move and your solved count per bank. [How it plays](src/games/chesspuzzles/README.md)
-- **Polyomino Panic:** holds the decks for the paper game: deals a different starting shape to each player, then flips two shapes a round from the 40-card deck until it runs out. Plotting and scoring stay on paper. [How it plays](src/games/polyominopanic/README.md)
-- **Crown & Crest:** the four dice for the two-player Crown & Crest, each with its own six faces of shields and marks: roll, then share the dice out (the roller takes one, the other player two, the roller the last). [How it plays](src/games/crowncrest/README.md)
-- **Last Piece:** numbered capture-only chess challenges on a 4x4 board, in four difficulties, read from text files you copy onto the card, with undo, reset and a solved count per difficulty. [How it plays](src/games/lastpiece/README.md)
+### Word and story games
+
+| Game | What it is |
+|---|---|
+| [**Wordle**](src/games/wordle/README.md) | The daily puzzle and every past day, with a calendar archive, your record and a chart of your guesses. |
+| [**Connections**](src/games/connections/README.md) | Sixteen words in four hidden groups, the daily puzzle and every past one, with a calendar archive and your record. |
+| [**Word Ladder**](src/games/wordladder/README.md) | A new ladder every day: change one word into another a letter at a time, every step a word, with par, hints and earlier days. |
+| [**Text Adventures**](src/games/textadv/README.md) | Classic interactive fiction, with Zork I, II and III built in and any `.z3`, `.z5` or `.z8` story file you copy to the card. Tap directions and the game's own words instead of typing. |
+
+### Logic puzzles
+
+| Game | What it is |
+|---|---|
+| [**D&Diagrams**](src/games/dungeon/README.md) | 64 dungeon logic puzzles: place walls so the numbers, monsters and treasure all fit. |
+| [**Sudoku**](src/games/sudoku/README.md) | Puzzles made on the device at four levels, graded by the hardest technique they need, with pencil marks, undo and hints. |
+| [**Suguru**](src/games/suguru/README.md) | 800 logic puzzles from 5x5 to 8x8 in four banks. Fill each outlined region with 1 up to its size, and never let touching squares match. |
+| [**Queens**](src/games/queens/README.md) | 1200 logic puzzles: one queen (or, in Star Battle, two stars) in every row, column and outlined region, none touching. Six sizes from 6x6 to 10x10, with hints. |
+| [**Nonograms**](src/games/nonogram/README.md) | Picture logic puzzles, filling cells to match the row and column clues, 600 of them in four sizes, with X marks, undo and half-done puzzles kept. |
+| [**Kakuro**](src/games/kakuro/README.md) | Cross sums, filling digits so every run adds up to its clue with none repeated, 600 puzzles in three levels, with the ways to make each run shown and hints. |
+| [**Lights Out**](src/games/lightsout/README.md) | A 5x5 board where each tap switches a square and its neighbours. Switch them all off, in as few presses as the target, with hint and undo. |
+| [**Minesweeper**](src/games/minesweeper/README.md) | Eight by ten with ten mines. Tap to dig, hold to flag, and the first dig is always safe. |
+| [**Sokoban**](src/games/sokoban/README.md) | Push every box onto a goal, in 385 levels from five classic packs. Swipe or tap beside the player to move, with undo and your best per level. |
+| [**Peg Solitaire**](src/games/pegsolitaire/README.md) | Jump pegs until as few as possible are left, on the 33-hole English board or the 15-hole triangle, with undo and your best per board. |
+
+### Chess
+
+| Game | What it is |
+|---|---|
+| [**Chess Puzzles**](src/games/chesspuzzles/README.md) | 2398 tactics puzzles from the Lichess database in six banks, from mate in 1 to expert: find the best move and play the line out, with hints, show the move and your solved count per bank. |
+| [**Grid Gambit**](src/games/gridgambit/README.md) | Chess pieces on a 4x4 board, where every move must take a piece and one piece left wins. Puzzles are made on the device in four levels, with undo and a solved count per level. |
+| [**Last Piece**](src/games/lastpiece/README.md) | Numbered capture-only chess challenges on a 4x4 board, in four difficulties, read from text files you copy onto the card, with undo, reset and a solved count per difficulty. |
+
+### Card and board games
+
+| Game | What it is |
+|---|---|
+| [**Solitaire**](src/games/solitaire/README.md) | Klondike, drawing one or three, with undo and your record. It plays in landscape, with the USB edge at the top. |
+| [**Knucklebones**](src/games/knucklebones/README.md) | A dice game against the computer: drop each roll into a column, where matching dice multiply and knock out the opponent's. |
+| [**Connect Four**](src/games/connectfour/README.md) | Drop discs against the computer to get four in a line, across, up or on a diagonal. |
+| [**Tic Tac Toe**](src/games/tictactoe/README.md) | Two players on one device. |
+
+### Companions for tabletop and party games
+
+| Game | What it is |
+|---|---|
+| [**One Clue**](src/games/oneclue/README.md) | A deck of 110 word cards for the party game where everyone writes a one-word clue and matching clues cancel. It deals the cards; you keep score on paper. |
+| [**Think Alike**](src/games/thinkalike/README.md) | A deck of questions for the party game where everyone writes an answer and matching the most common one scores. The questions are a text file on the card, so you can add your own. |
+| [**Symbol Dice**](src/games/symboldice/README.md) | Two dice of six symbols for a 12-turn roll-and-write game played on paper, with a turn counter. |
+| [**Dice Roller**](src/games/diceroller/README.md) | Two dice and their total, with one button to roll again, for any board game. |
+| [**Bingo Caller**](src/games/bingocaller/README.md) | Calls 30, 75, 80 or 90-ball bingo for players with paper cards, one random number a tap with no repeats, and a board of every number called. |
+| [**Island Maps**](src/games/islandmaps/README.md) | 55 official and fan-made island layouts for laying out the tiles of the Forbidden Island board game, stepped through with Up and Down or picked at random. |
+| [**Authority Tracker**](src/games/authoritytracker/README.md) | Two players' scores on one screen, starting at 50, with buttons for ±1, ±5 and ±10. The game ends when a score reaches 0. |
+| [**Polyomino Panic**](src/games/polyominopanic/README.md) | Holds the decks for the paper game: deals a different starting shape to each player, then flips two shapes a round from the 40-card deck until it runs out. Plotting and scoring stay on paper. |
+| [**Crown & Crest**](src/games/crowncrest/README.md) | The four dice for the two-player Crown & Crest, each with its own six faces of shields and marks: roll, then share the dice out (the roller takes one, the other player two, the roller the last). |
 
 A game in progress is saved on every move, so it's still there after the device sleeps or the battery runs out.
 
-**Apps included**, opened from the grid icon beside the Settings cog:
+## Apps included
 
-- **Calculator:** a pocket calculator with + − × ÷, percent and backspace, working each step out as you go, as a desk calculator does. [How it works](src/apps/calculator/README.md)
+Opened from the grid icon beside the Settings cog.
+
+| App | What it is |
+|---|---|
+| [**Calculator**](src/apps/calculator/README.md) | A pocket calculator with + − × ÷, percent and backspace, working each step out as you go, as a desk calculator does. |
 
 ## Disclaimer
 
@@ -233,6 +263,7 @@ Every push to `main` and every pull request is also built and tested on GitHub. 
 | `src/core/` | Drawing, text and fonts, save files, the radio, downloads and the clock |
 | `tests/` | Tests that run on a PC |
 | `freeink-sdk/` | Screen, input and power libraries, as a git submodule |
+| `docs/images/` | Pictures for this page. `logo.png` is the boot screen's logo, drawn by `src/ui/logo.cpp` |
 
 **The hardware:**
 

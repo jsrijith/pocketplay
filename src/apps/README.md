@@ -20,7 +20,8 @@ apps/
 1. Create `src/apps/<name>/`, with the folder name in lowercase and no spaces.
 2. Implement `App` from `apps/app.h`, and define a function that returns it, such as `App& calculatorApp()`.
 3. Add one line to `app_list.inc`: `APP(calculatorApp)`.
-4. Add it to the root `README.md`'s list of apps.
+4. Add a line to `tools/preview/screenshots.sh` with the taps that reach a screen of use, run `tools/preview/screenshots.sh apps/<name>`, and add a `## Screenshot` section to the app's `README.md` like Calculator's.
+5. Add a row to the table under "Apps included" in the root `README.md`, with the name linked to the app's `README.md`.
 
 PlatformIO compiles every file under `src/`, so the build needs no changes. The app then appears on the APPS page and reopens after waking.
 
