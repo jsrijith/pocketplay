@@ -19,7 +19,8 @@ namespace {
 
 constexpr const char* SAVE_FILE = "diceroller";
 
-// Two big dice side by side, the total in a capsule under them, and ROLL along the bottom.
+// Two big dice side by side, the total in a capsule under them, the roll count under that,
+// and RESET and ROLL sharing the bottom row.
 constexpr int MARGIN = 16;
 constexpr int GAP = 12;
 constexpr int INNER_WIDTH = SCREEN_WIDTH - 2 * MARGIN;
@@ -29,11 +30,16 @@ constexpr int DIE_RADIUS = 28;
 constexpr int PIP_RADIUS = 20;
 constexpr int PIP_OFFSET = DIE * 27 / 100;  // a corner pip's distance from the middle, each way
 constexpr int TOTAL_HEIGHT = 96;
+constexpr int COUNT_HEIGHT = 40;
 constexpr int BUTTON_TOP = SCREEN_HEIGHT - MARGIN - ui::PILL_HEIGHT;
-// The dice and the total, centred in the room between the band and the button.
-constexpr int GROUP_HEIGHT = DIE + 2 * GAP + TOTAL_HEIGHT;
+constexpr int BUTTON_WIDTH = (INNER_WIDTH - GAP) / 2;
+constexpr int RESET_LEFT = MARGIN;
+constexpr int ROLL_LEFT = MARGIN + BUTTON_WIDTH + GAP;
+// The dice, the total and the count, centred in the room between the band and the buttons.
+constexpr int GROUP_HEIGHT = DIE + 2 * GAP + TOTAL_HEIGHT + GAP + COUNT_HEIGHT;
 constexpr int DIE_TOP = ui::CONTENT_TOP + (BUTTON_TOP - GAP - ui::CONTENT_TOP - GROUP_HEIGHT) / 2;
 constexpr int TOTAL_TOP = DIE_TOP + DIE + 2 * GAP;
+constexpr int COUNT_TOP = TOTAL_TOP + TOTAL_HEIGHT + GAP;
 
 int dieLeft(int d) { return (SCREEN_WIDTH - 2 * DIE - DIE_GAP) / 2 + d * (DIE + DIE_GAP); }
 
@@ -73,7 +79,8 @@ class DiceRoller final : public Game {
 
   TapResult onTap(int x, int y) override {
     if (ui::isOnBack(x, y)) return TapResult::Leave;
-    if (ui::isInBox(x, y, MARGIN, BUTTON_TOP, INNER_WIDTH, ui::PILL_HEIGHT)) return rollDice();
+    if (ui::isInBox(x, y, ROLL_LEFT, BUTTON_TOP, BUTTON_WIDTH, ui::PILL_HEIGHT)) return rollDice();
+    if (ui::isInBox(x, y, RESET_LEFT, BUTTON_TOP, BUTTON_WIDTH, ui::PILL_HEIGHT)) return resetDice();
     return TapResult::Nothing;
   }
 
@@ -99,7 +106,15 @@ class DiceRoller final : public Game {
       std::snprintf(text, sizeof(text), "TAP ROLL");
     }
     drawTextInBox(frame, Font::Size30, MARGIN, TOTAL_TOP, INNER_WIDTH, TOTAL_HEIGHT, text);
-    ui::drawPill(frame, MARGIN, BUTTON_TOP, INNER_WIDTH, "ROLL", true);
+    std::snprintf(text, sizeof(text), "ROLLS %u", static_cast<unsigned>(roll_.rolls));
+    drawTextInBox(frame, Font::Size20, MARGIN, COUNT_TOP, INNER_WIDTH, COUNT_HEIGHT, text);
+    // Nothing to reset before the first roll, so RESET is dimmed until then.
+    if (rolled) {
+      ui::drawPill(frame, RESET_LEFT, BUTTON_TOP, BUTTON_WIDTH, "RESET", false);
+    } else {
+      ui::drawDimmedPill(frame, RESET_LEFT, BUTTON_TOP, BUTTON_WIDTH, "RESET");
+    }
+    ui::drawPill(frame, ROLL_LEFT, BUTTON_TOP, BUTTON_WIDTH, "ROLL", true);
   }
 
   bool saveFailed() const override { return saveFailed_; }
@@ -115,6 +130,14 @@ class DiceRoller final : public Game {
     return TapResult::Redraw;
   }
 
+  // Blank dice and a count of 0, as at the very start, so it's a full refresh.
+  TapResult resetDice() {
+    if (!dr::rolled(roll_)) return TapResult::Nothing;
+    dr::reset(roll_);
+    persist();
+    return TapResult::RedrawFull;
+  }
+
   void load() {
     source_.stir((static_cast<uint64_t>(esp_random()) << 32) | esp_random());
     if (!storage::ready()) return;
@@ -126,10 +149,15 @@ class DiceRoller final : public Game {
     }
   }
 
-  // The last roll, so a wake shows the same dice.
+  // The last roll and the count, so a wake shows the same dice. After a reset there's
+  // nothing to keep, so the save is erased and a wake starts blank.
   void persist() {
     if (!storage::ready()) {
       saveFailed_ = false;
+      return;
+    }
+    if (!dr::rolled(roll_)) {
+      saveFailed_ = !storage::erase(SAVE_FILE);
       return;
     }
     uint8_t data[dr::SAVE_BYTES];

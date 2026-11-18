@@ -3,15 +3,18 @@
 #include <cstddef>
 #include <cstdint>
 
-// Dice Roller: two six-sided dice and their total. No screen or card, so it can be tested off
-// the device: the screen hands each roll its entropy, and nothing here reaches for hardware.
+// Dice Roller: two six-sided dice, their total, and how many rolls since the last reset. No
+// screen or card, so it can be tested off the device: the screen hands each roll its entropy,
+// and nothing here reaches for hardware.
 namespace diceroller {
 
 constexpr int kDice = 2;
 constexpr int kFaces = 6;
+constexpr uint32_t kMaxRolls = 99999;  // the count stops here rather than wrapping to 0
 
 struct Roll {
   uint8_t dice[kDice] = {};  // 1 to 6, or 0 before the first roll
+  uint32_t rolls = 0;        // rolls since the last reset
 };
 
 inline bool rolled(const Roll& r) { return r.dice[0] != 0; }
@@ -54,10 +57,14 @@ uint8_t face(Next&& next) {
   return static_cast<uint8_t>(v % kFaces + 1);
 }
 
-// Both dice together, after stirring in this roll's entropy.
+// Both dice together, after stirring in this roll's entropy, and one more on the count.
 inline void roll(Roll& r, Source& source, uint64_t entropy) {
   source.stir(entropy);
   for (int d = 0; d < kDice; d++) r.dice[d] = face([&] { return source.next(); });
+  if (r.rolls < kMaxRolls) r.rolls++;
 }
+
+// Back to the start: blank dice and a count of 0.
+inline void reset(Roll& r) { r = Roll{}; }
 
 }  // namespace diceroller

@@ -98,14 +98,43 @@ void testState() {
   check(!rolled(fresh) && total(fresh) == 0, "nothing rolled yet");
 }
 
+void testCount() {
+  Roll r;
+  Source source;
+  check(r.rolls == 0, "no rolls yet");
+  for (int i = 0; i < 5; i++) roll(r, source, i);
+  check(r.rolls == 5 && rolled(r), "each roll adds one");
+  reset(r);
+  check(r.rolls == 0 && !rolled(r) && total(r) == 0, "reset clears the count and the dice");
+  roll(r, source, 9);
+  check(r.rolls == 1, "counting starts again after a reset");
+  r.rolls = kMaxRolls;
+  roll(r, source, 10);
+  check(r.rolls == kMaxRolls && rolled(r), "the count stops at its limit, and the dice still roll");
+}
+
 void testSave() {
   Roll r;
   r.dice[0] = 3;
   r.dice[1] = 6;
+  r.rolls = 70000;  // over 16 bits, so every count byte is checked
   uint8_t data[SAVE_BYTES];
   const size_t size = pack(r, data);
   Roll back;
   check(unpack(SAVE_VERSION, data, size, back) && back.dice[0] == 3 && back.dice[1] == 6 && total(back) == 9, "the roll round-trips");
+  check(back.rolls == 70000, "so does the count");
+  const uint8_t version1[2] = {3, 6};
+  check(!unpack(1, version1, sizeof(version1), back), "a version 1 save, without a count, is refused");
+  Roll zero = r;
+  zero.rolls = 0;
+  uint8_t zeroData[SAVE_BYTES];
+  pack(zero, zeroData);
+  check(!unpack(SAVE_VERSION, zeroData, size, back), "dice with a count of 0 are refused");
+  Roll over = r;
+  over.rolls = kMaxRolls + 1;
+  uint8_t overData[SAVE_BYTES];
+  pack(over, overData);
+  check(!unpack(SAVE_VERSION, overData, size, back), "a count past the limit is refused");
   check(!unpack(SAVE_VERSION + 1, data, size, back), "another version is refused");
   check(!unpack(SAVE_VERSION, data, size - 1, back), "a short one");
   data[1] = 7;
@@ -123,6 +152,7 @@ int main() {
   testRejection();
   testFair();
   testState();
+  testCount();
   testSave();
   if (failures) {
     std::printf("%d failure(s)\n", failures);

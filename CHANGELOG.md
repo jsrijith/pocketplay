@@ -4,6 +4,10 @@ What's new in each release, written for players. Each release's notes on GitHub 
 
 Before a release, add what changed under `## Unreleased` at the top, and commit it. `scripts/release.sh` renames that heading to the version it makes. A release without a section here falls back to the list of commits.
 
+## Unreleased
+
+- **Dice Roller:** a count of your rolls under the total, and a `RESET` button that clears the dice and starts the count again from 0.
+
 ## 0.5.0
 
 - **D&Diagrams:** the chosen dungeon's name now shows at the top of the map, right above the rooms. Step through the dungeons with the Up and Down buttons: Up goes left, Down goes right, and both wrap around from 64 to 1.

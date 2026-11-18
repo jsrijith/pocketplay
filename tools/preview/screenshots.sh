@@ -24,7 +24,7 @@ SHOTS=(
   "connectfour connectFourGame tap:240,686 tap:242,340 update tap:306,340 update tap:178,340 update"
   "connections connectionsGame tap:150,160 tap:297,218 tap:182,218 tap:67,333 tap:182,563 tap:395,758 tap:297,448 tap:182,448"
   "crowncrest crownCrestGame tap:312,756"
-  "diceroller diceRollerGame tap:240,756"
+  "diceroller diceRollerGame tap:355,756 tap:355,756 tap:355,756"
   "dungeon dungeonGame tap:240,756"
   "gridgambit gridGambitGame update"
   "islandmaps islandMapsGame"

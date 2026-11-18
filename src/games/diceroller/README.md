@@ -1,6 +1,6 @@
 # Dice Roller
 
-Two six-sided dice and their total, for any board game that needs them.
+Two six-sided dice, their total, and a count of the rolls, for any board game that needs them.
 
 ## Screenshot
 
@@ -11,7 +11,8 @@ Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel 
 ## Getting around
 
 - `ROLL`, or the Down button, rolls both dice together. The pips show each die, and the capsule under them shows the total.
-- There's nothing else to track: roll as often as you like.
+- `ROLLS` under the total counts every roll, which helps for counting turns or rounds. It stops at 99999.
+- `RESET` starts over: the dice go blank and the count goes back to 0. It's greyed out until the first roll.
 - `BACK` in the header returns to the home page.
 
 ## How the dice stay fair
@@ -24,4 +25,4 @@ All in `/.pocketplay/`:
 
 | Name | Holds |
 |---|---|
-| `diceroller` | The last roll, so sleep or a flat battery brings back the same dice. |
+| `diceroller` | The last roll and the count, so sleep or a flat battery brings back the same dice. `RESET` erases it. |
