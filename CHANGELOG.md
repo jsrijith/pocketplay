@@ -4,7 +4,7 @@ What's new in each release, written for players. Each release's notes on GitHub 
 
 Before a release, add what changed under `## Unreleased` at the top, and commit it. `scripts/release.sh` renames that heading to the version it makes. A release without a section here falls back to the list of commits.
 
-## Unreleased
+## 0.6.0
 
 - **Dice Roller:** a count of your rolls under the total, and a `RESET` button that clears the dice and starts the count again from 0.
 - **Crown & Crest:** a count of the rolls under the dice, and a `RESET` button that starts a new game. Tap it twice to confirm: the first tap turns it into `SURE?`.
