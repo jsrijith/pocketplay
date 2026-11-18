@@ -7,6 +7,7 @@ Before a release, add what changed under `## Unreleased` at the top, and commit 
 ## Unreleased
 
 - **Dice Roller:** a count of your rolls under the total, and a `RESET` button that clears the dice and starts the count again from 0.
+- **Crown & Crest:** a count of the rolls under the dice, and a `RESET` button that starts a new game. Tap it twice to confirm: the first tap turns it into `SURE?`.
 
 ## 0.5.0
 

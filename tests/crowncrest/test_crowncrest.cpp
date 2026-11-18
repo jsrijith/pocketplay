@@ -132,21 +132,57 @@ void testSave() {
   Turn untouched;
   check(!unpack(SAVE_VERSION - 1, data, SAVE_BYTES, untouched), "an old version is refused");
   check(!unpack(SAVE_VERSION, data, SAVE_BYTES - 1, untouched), "a short save is refused");
-  const uint8_t blankDie[SAVE_BYTES] = {1, 2, 0, 4, 0, 0, 0, 0, 0};
+  const uint8_t blankDie[SAVE_BYTES] = {1, 2, 0, 4, 0, 0, 0, 0, 0, 1, 0, 0, 0};
   check(!unpack(SAVE_VERSION, blankDie, SAVE_BYTES, untouched), "one blank die is refused");
-  const uint8_t seven[SAVE_BYTES] = {1, 7, 3, 4, 0, 0, 0, 0, 0};
+  const uint8_t seven[SAVE_BYTES] = {1, 7, 3, 4, 0, 0, 0, 0, 0, 1, 0, 0, 0};
   check(!unpack(SAVE_VERSION, seven, SAVE_BYTES, untouched), "a face past 6 is refused");
-  const uint8_t roller[SAVE_BYTES] = {1, 2, 3, 4, 2, 0, 0, 0, 0};
+  const uint8_t roller[SAVE_BYTES] = {1, 2, 3, 4, 2, 0, 0, 0, 0, 1, 0, 0, 0};
   check(!unpack(SAVE_VERSION, roller, SAVE_BYTES, untouched), "a third player is refused");
-  const uint8_t picks[SAVE_BYTES] = {1, 2, 3, 4, 0, 4, 0, 1, 2};
+  const uint8_t picks[SAVE_BYTES] = {1, 2, 3, 4, 0, 4, 0, 1, 2, 1, 0, 0, 0};
   check(!unpack(SAVE_VERSION, picks, SAVE_BYTES, untouched), "four picks are refused");
-  const uint8_t twice[SAVE_BYTES] = {1, 2, 3, 4, 0, 2, 1, 1, 0};
+  const uint8_t twice[SAVE_BYTES] = {1, 2, 3, 4, 0, 2, 1, 1, 0, 1, 0, 0, 0};
   check(!unpack(SAVE_VERSION, twice, SAVE_BYTES, untouched), "the same die picked twice is refused");
-  const uint8_t far[SAVE_BYTES] = {1, 2, 3, 4, 0, 1, 4, 0, 0};
+  const uint8_t far[SAVE_BYTES] = {1, 2, 3, 4, 0, 1, 4, 0, 0, 1, 0, 0, 0};
   check(!unpack(SAVE_VERSION, far, SAVE_BYTES, untouched), "a fifth die is refused");
-  const uint8_t blankPicked[SAVE_BYTES] = {0, 0, 0, 0, 0, 1, 0, 0, 0};
+  const uint8_t blankPicked[SAVE_BYTES] = {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0};
   check(!unpack(SAVE_VERSION, blankPicked, SAVE_BYTES, untouched), "picks before a roll are refused");
+  const uint8_t noCount[SAVE_BYTES] = {1, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  check(!unpack(SAVE_VERSION, noCount, SAVE_BYTES, untouched), "rolled dice with a count of 0 are refused");
+  const uint8_t blankCounted[SAVE_BYTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0};
+  check(!unpack(SAVE_VERSION, blankCounted, SAVE_BYTES, untouched), "a count before any roll is refused");
+  const uint8_t tooMany[SAVE_BYTES] = {1, 2, 3, 4, 0, 0, 0, 0, 0, 0xA0, 0x86, 0x01, 0};  // 100000
+  check(!unpack(SAVE_VERSION, tooMany, SAVE_BYTES, untouched), "a count past the limit is refused");
   check(!rolled(untouched.dice), "a refused save leaves the turn alone");
+
+  Turn counted;
+  counted.dice.face[0] = 2;
+  counted.dice.face[1] = 2;
+  counted.dice.face[2] = 2;
+  counted.dice.face[3] = 2;
+  counted.rolls = 70000;  // over 16 bits, so every count byte is checked
+  pack(counted, data);
+  check(unpack(SAVE_VERSION, data, SAVE_BYTES, back) && back.rolls == 70000, "the count round-trips");
+}
+
+void testCount() {
+  Turn t;
+  Source source;
+  check(t.rolls == 0 && !canReset(t), "a new game has no rolls and nothing to reset");
+  rollTurn(t, source, 1);
+  check(t.rolls == 1 && canReset(t), "a roll counts");
+  check(!rollTurn(t, source, 2) && t.rolls == 1, "a refused roll doesn't count");
+  pick(t, 0);
+  pick(t, 1);
+  pick(t, 2);
+  rollTurn(t, source, 3);
+  check(t.rolls == 2 && t.roller == 1, "B's roll counts in the same total");
+  pick(t, 2);
+  reset(t);
+  check(t.rolls == 0 && !rolled(t.dice) && t.picks == 0 && !canReset(t), "reset clears the count, the dice and the picks");
+  check(nextRoller(t) == 0 && rollTurn(t, source, 4) && t.roller == 0 && t.rolls == 1, "after a reset A rolls first again");
+  for (int i = 0; i < 3; i++) pick(t, i);
+  t.rolls = kMaxRolls;
+  check(rollTurn(t, source, 5) && t.rolls == kMaxRolls, "the count stops at its limit, and the dice still roll");
 }
 
 }  // namespace
@@ -157,6 +193,7 @@ int main() {
   testFaces();
   testDraft();
   testSave();
+  testCount();
   if (failures) {
     std::printf("crowncrest: %d failed\n", failures);
     return 1;

@@ -67,12 +67,14 @@ inline void roll(Roll& r, Source& source, uint64_t entropy) {
 constexpr int kPlayers = 2;
 constexpr int kPicks = 3;        // the fourth die isn't picked: it's what's left
 constexpr uint8_t kNoOne = 0xFF;
+constexpr uint32_t kMaxRolls = 99999;  // the count stops here rather than wrapping to 0
 
 struct Turn {
   Roll dice;
   uint8_t roller = 0;              // 0 = player A, 1 = player B
   uint8_t picks = 0;               // 0 to 3 dice taken so far
   uint8_t order[kPicks] = {};      // which die each pick took
+  uint32_t rolls = 0;              // rolls by either player since the game began or was reset
 };
 
 inline uint8_t other(uint8_t player) { return static_cast<uint8_t>(1 - player); }
@@ -103,8 +105,15 @@ inline bool rollTurn(Turn& t, Source& source, uint64_t entropy) {
   t.roller = nextRoller(t);
   t.picks = 0;
   roll(t.dice, source, entropy);
+  if (t.rolls < kMaxRolls) t.rolls++;
   return true;
 }
+
+// A new game: blank dice, no picks, a count of 0, and player A rolls first.
+inline void reset(Turn& t) { t = Turn{}; }
+
+// Whether a reset would change anything.
+inline bool canReset(const Turn& t) { return rolled(t.dice) || t.rolls != 0; }
 
 // Takes a die for whoever's pick it is. False for a die that's taken or when no pick is due.
 inline bool pick(Turn& t, int die) {

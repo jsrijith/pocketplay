@@ -24,6 +24,8 @@ Then the other player rolls, and the same happens with the roles swapped. Scorin
 - Tap a die (or its label) to take it for the player named in the capsule. A taken die's label turns black and names its owner, such as `DIE 3: PLAYER A`.
 - Once all four are shared out, the capsule turns black and says who rolls next.
 - `UNDO` takes back the last die taken this turn.
+- `ROLLS` under the dice counts every roll by either player since the game began. It stops at 99999.
+- `RESET` starts a new game: the dice go blank, the count goes back to 0, and player A rolls first. It turns into `SURE?` on the first tap, and only a second tap on it resets. Any other tap, or the Down button, cancels it. It's greyed out before the first roll.
 - `BACK` in the header returns to the home page. The turn is kept.
 
 ## How the dice stay fair
@@ -36,7 +38,7 @@ All in `/.pocketplay/`:
 
 | Name | Holds |
 |---|---|
-| `crowncrest` | The dice showing, who rolled them and the dice taken so far, saved on every roll and pick, so sleep or a flat battery brings back the same turn. |
+| `crowncrest` | The dice showing, who rolled them, the dice taken so far and the roll count, saved on every roll and pick, so sleep or a flat battery brings back the same turn. `RESET` erases it. |
 
 ## Credits
 

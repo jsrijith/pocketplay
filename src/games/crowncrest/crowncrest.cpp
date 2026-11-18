@@ -22,7 +22,8 @@ namespace {
 constexpr const char* SAVE_FILE = "crowncrest";
 
 // A status capsule saying whose move it is, four big dice in a 2 x 2 grid with a label under
-// each naming the die and who took it, then UNDO and ROLL along the bottom.
+// each naming the die and who took it, the roll count, then UNDO, RESET and ROLL along the
+// bottom.
 constexpr int MARGIN = 16;
 constexpr int GAP = 12;
 constexpr int INNER_WIDTH = SCREEN_WIDTH - 2 * MARGIN;
@@ -34,18 +35,25 @@ constexpr int DIE_RADIUS = 28;
 constexpr int LABEL_GAP = 4;
 constexpr int LABEL_HEIGHT = 28;
 constexpr int ROW_GAP = 16;
+constexpr int COUNT_GAP = 4;
+constexpr int COUNT_HEIGHT = 36;
 constexpr int BUTTON_TOP = SCREEN_HEIGHT - MARGIN - ui::PILL_HEIGHT;
-// The grid, centred in the room between the capsule and the buttons.
+// The grid and the count, centred in the room between the capsule and the buttons.
 constexpr int CELL_HEIGHT = DIE + LABEL_GAP + LABEL_HEIGHT;
 constexpr int GRID_HEIGHT = 2 * CELL_HEIGHT + ROW_GAP;
+constexpr int GROUP_HEIGHT = GRID_HEIGHT + COUNT_GAP + COUNT_HEIGHT;
 constexpr int ROOM_TOP = STATUS_TOP + STATUS_HEIGHT + GAP;
-constexpr int GRID_TOP = ROOM_TOP + (BUTTON_TOP - GAP - ROOM_TOP - GRID_HEIGHT) / 2;
-constexpr int UNDO_WIDTH = (INNER_WIDTH - GAP) / 3;
-constexpr int ROLL_LEFT = MARGIN + UNDO_WIDTH + GAP;
-constexpr int ROLL_WIDTH = INNER_WIDTH - UNDO_WIDTH - GAP;
+constexpr int GRID_TOP = ROOM_TOP + (BUTTON_TOP - GAP - ROOM_TOP - GROUP_HEIGHT) / 2;
+constexpr int COUNT_TOP = GRID_TOP + GRID_HEIGHT + COUNT_GAP;
+constexpr int BUTTON_WIDTH = (INNER_WIDTH - 2 * GAP) / 3;
+constexpr int UNDO_LEFT = MARGIN;
+constexpr int RESET_LEFT = UNDO_LEFT + BUTTON_WIDTH + GAP;
+constexpr int ROLL_LEFT = RESET_LEFT + BUTTON_WIDTH + GAP;
+constexpr int ROLL_WIDTH = INNER_WIDTH - 2 * (BUTTON_WIDTH + GAP);  // takes the pixel left over
 
 static_assert(faces::FACE + 2 * ui::FRAME <= DIE, "a face must fit inside its die");
 static_assert(GRID_TOP >= ROOM_TOP, "the dice must start below the capsule");
+static_assert(COUNT_TOP + COUNT_HEIGHT <= BUTTON_TOP - GAP, "the count must end above the buttons");
 
 int dieLeft(int d) { return (SCREEN_WIDTH - 2 * DIE - DIE_GAP) / 2 + (d % 2) * (DIE + DIE_GAP); }
 int dieTop(int d) { return GRID_TOP + (d / 2) * (CELL_HEIGHT + ROW_GAP); }
@@ -64,9 +72,25 @@ class CrownCrest final : public Game {
   }
 
   TapResult onTap(int x, int y) override {
-    if (ui::isOnBack(x, y)) return TapResult::Leave;
+    if (ui::isOnBack(x, y)) {
+      confirming_ = false;
+      return TapResult::Leave;
+    }
+    const bool onReset = ui::isInBox(x, y, RESET_LEFT, BUTTON_TOP, BUTTON_WIDTH, ui::PILL_HEIGHT);
+    // RESET throws the game away, so it takes two taps. Any other tap only cancels it, so a
+    // second tap that misses doesn't also roll or pick.
+    if (confirming_) {
+      confirming_ = false;
+      if (onReset) return resetGame();
+      return TapResult::Redraw;
+    }
+    if (onReset) {
+      if (!cc::canReset(turn_)) return TapResult::Nothing;
+      confirming_ = true;
+      return TapResult::Redraw;
+    }
     if (ui::isInBox(x, y, ROLL_LEFT, BUTTON_TOP, ROLL_WIDTH, ui::PILL_HEIGHT)) return rollDice();
-    if (ui::isInBox(x, y, MARGIN, BUTTON_TOP, UNDO_WIDTH, ui::PILL_HEIGHT)) {
+    if (ui::isInBox(x, y, UNDO_LEFT, BUTTON_TOP, BUTTON_WIDTH, ui::PILL_HEIGHT)) {
       return cc::undoPick(turn_) ? changed() : TapResult::Nothing;
     }
     // A die and its label are one target.
@@ -78,8 +102,15 @@ class CrownCrest final : public Game {
     return TapResult::Nothing;
   }
 
-  // The Down button rolls when a roll is due, for rolling without looking.
-  TapResult onDownPressed() override { return rollDice(); }
+  // The Down button rolls when a roll is due, for rolling without looking. While RESET is
+  // asking to be confirmed, it cancels that instead.
+  TapResult onDownPressed() override {
+    if (confirming_) {
+      confirming_ = false;
+      return TapResult::Redraw;
+    }
+    return rollDice();
+  }
 
   void draw(uint8_t* frame) override {
     ui::drawBand(frame, name(), nullptr, true);
@@ -97,11 +128,21 @@ class CrownCrest final : public Game {
       }
       drawLabel(frame, d);
     }
+    char count[16];
+    std::snprintf(count, sizeof(count), "ROLLS %u", static_cast<unsigned>(turn_.rolls));
+    drawTextInBox(frame, Font::Size20, MARGIN, COUNT_TOP, INNER_WIDTH, COUNT_HEIGHT, count);
 
     if (turn_.picks == 0) {
-      ui::drawDimmedPill(frame, MARGIN, BUTTON_TOP, UNDO_WIDTH, "UNDO");
+      ui::drawDimmedPill(frame, UNDO_LEFT, BUTTON_TOP, BUTTON_WIDTH, "UNDO");
     } else {
-      ui::drawPill(frame, MARGIN, BUTTON_TOP, UNDO_WIDTH, "UNDO", false);
+      ui::drawPill(frame, UNDO_LEFT, BUTTON_TOP, BUTTON_WIDTH, "UNDO", false);
+    }
+    if (confirming_) {
+      ui::drawPill(frame, RESET_LEFT, BUTTON_TOP, BUTTON_WIDTH, "SURE?", true);
+    } else if (cc::canReset(turn_)) {
+      ui::drawPill(frame, RESET_LEFT, BUTTON_TOP, BUTTON_WIDTH, "RESET", false);
+    } else {
+      ui::drawDimmedPill(frame, RESET_LEFT, BUTTON_TOP, BUTTON_WIDTH, "RESET");
     }
     char roll[16];
     std::snprintf(roll, sizeof(roll), "%s ROLLS", playerName(cc::nextRoller(turn_)));
@@ -128,12 +169,21 @@ class CrownCrest final : public Game {
     return cc::rollTurn(turn_, source_, entropy) ? changed() : TapResult::Nothing;
   }
 
+  // A new game, as the first time it's opened, so it's a full refresh.
+  TapResult resetGame() {
+    cc::reset(turn_);
+    persist();
+    return TapResult::RedrawFull;
+  }
+
   // Whose move it is, in words. Solid once all four dice are shared out, so the end of a turn
   // stands out from the picking.
   void drawStatus(uint8_t* frame) const {
     char text[40];
     const uint8_t p = cc::picker(turn_);
-    if (!cc::rolled(turn_.dice)) {
+    if (confirming_) {
+      std::snprintf(text, sizeof(text), "NEW GAME? TAP SURE?");
+    } else if (!cc::rolled(turn_.dice)) {
       std::snprintf(text, sizeof(text), "PLAYER A ROLLS FIRST");
     } else if (cc::done(turn_)) {
       std::snprintf(text, sizeof(text), "PLAYER %s ROLLS NEXT", playerName(cc::nextRoller(turn_)));
@@ -144,7 +194,7 @@ class CrownCrest final : public Game {
     } else {
       std::snprintf(text, sizeof(text), "PLAYER %s: TAKE 1 MORE", playerName(p));
     }
-    const bool solid = cc::done(turn_);
+    const bool solid = cc::done(turn_) && !confirming_;
     if (solid) {
       fillRect(frame, MARGIN, STATUS_TOP, INNER_WIDTH, STATUS_HEIGHT, true);
     } else {
@@ -179,10 +229,15 @@ class CrownCrest final : public Game {
     }
   }
 
-  // The turn, saved on every roll and pick, so a wake shows the same dice and picks.
+  // The turn and the count, saved on every roll and pick, so a wake shows the same dice and
+  // picks. After a reset there's nothing to keep, so the save is erased.
   void persist() {
     if (!storage::ready()) {
       saveFailed_ = false;
+      return;
+    }
+    if (!cc::canReset(turn_)) {
+      saveFailed_ = !storage::erase(SAVE_FILE);
       return;
     }
     uint8_t data[cc::SAVE_BYTES];
@@ -194,6 +249,7 @@ class CrownCrest final : public Game {
   cc::Source source_{};
   bool loaded_ = false;
   bool saveFailed_ = false;
+  bool confirming_ = false;  // RESET was tapped once; not saved, so a wake forgets it
 };
 
 }  // namespace
