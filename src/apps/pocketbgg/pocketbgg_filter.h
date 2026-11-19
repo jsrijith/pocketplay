@@ -10,16 +10,19 @@
 namespace pocketbgg {
 
 constexpr const char* kFilterSave = "pocketbgg-filter";
-constexpr uint8_t kFilterVersion = 1;
-constexpr size_t kFilterBytes = 4;
+constexpr uint8_t kFilterVersion = 2;  // 1 had no order, and still loads as A-Z
+constexpr size_t kFilterBytes = 5;
 constexpr uint8_t kAnyPlayers = 0;
 constexpr uint8_t kMostPlayers = 8;  // the last choice, meaning 8 or more
 constexpr uint16_t kAllStatuses = 0xFF;
+
+enum class Order : uint8_t { Name, LastPlayed };
 
 struct Filter {
   uint16_t statuses = kOwn;  // a game shows if it has any of these; never none
   bool playedOnly = false;
   uint8_t players = kAnyPlayers;  // 0 for any, 1 to 7, or kMostPlayers for 8 or more
+  Order order = Order::Name;
 };
 
 // All three must hold: one of the chosen statuses, a play if playedOnly, and a player count the
@@ -27,7 +30,9 @@ struct Filter {
 // want of data.
 bool matches(const Game& game, const Filter& filter);
 
-// The positions in `games` of those that match, in order.
+// The positions in `games` of those that match. In `games`' own order (A to Z) for Order::Name;
+// for Order::LastPlayed, the most recently played first, and those never played last, still
+// A to Z among themselves.
 std::vector<int> visibleGames(const std::vector<Game>& games, const Filter& filter);
 
 // How many games have this status, for the filter screen.
@@ -43,7 +48,10 @@ uint8_t nextPlayers(uint8_t players);
 // "ANY", "4" or "8+".
 void playersLabel(uint8_t players, char* out, size_t size);
 
-// As 4 bytes: the statuses (2, low byte first), played only, players.
+// The order's name for the filter screen: "A-Z" or "LAST PLAYED".
+const char* orderLabel(Order order);
+
+// As 5 bytes: the statuses (2, low byte first), played only, players, order.
 size_t packFilter(const Filter& filter, uint8_t* out);
 
 // False, leaving `out` alone, unless every value is one the filter screen could have set.

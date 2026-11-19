@@ -35,7 +35,7 @@ std::vector<Game> sampleGames() {
 bool same(const Game& a, const Game& b) {
   return a.id == b.id && a.collId == b.collId && a.name == b.name && a.sortSkip == b.sortSkip && a.year == b.year &&
          a.plays == b.plays && a.minPlayers == b.minPlayers && a.maxPlayers == b.maxPlayers && a.playTime == b.playTime &&
-         a.status == b.status && a.thumbnail == b.thumbnail && a.lastModified == b.lastModified;
+         a.status == b.status && a.thumbnail == b.thumbnail && a.lastModified == b.lastModified && a.lastPlayed == b.lastPlayed;
 }
 
 bool unpack(const std::vector<uint8_t>& bytes, SavedList& out) { return unpackList(bytes.data(), bytes.size(), out); }
@@ -45,6 +45,8 @@ void testRoundTrip() {
   list.syncedAt = 1795600000;  // November 2026
   list.games = sampleGames();
   check(list.games.size() == 5, "the five sample games");
+  list.games[0].lastPlayed = 20261117;
+  list.games[3].lastPlayed = 19991231;
   std::vector<uint8_t> bytes;
   check(packList(list, bytes), "they pack");
   SavedList back;
@@ -53,6 +55,8 @@ void testRoundTrip() {
   for (size_t i = 0; all && i < list.games.size(); i++) all = same(list.games[i], back.games[i]);
   check(all, "every field of every game comes back the same, in the same order");
   check(back.games.size() == 5 && back.games[1].year == -1400, "the year BC survives");
+  check(back.games.size() == 5 && back.games[0].lastPlayed == 20261117 && back.games[3].lastPlayed == 19991231 && back.games[2].lastPlayed == 0,
+        "the last-played dates survive, and no date stays none");
   std::printf("  five games packed into %zu bytes\n", bytes.size());
 
   SavedList empty;
@@ -88,7 +92,8 @@ void testRefused() {
   bad[6] = 0xFF;
   check(!unpack(bad, kept), "a count past the limit");
 
-  // The first game starts at byte 7; its status is at 7 + 4 + 4 + 1 + 2 + 2 + 1 + 1 + 2 = 24.
+  // The first game starts at byte 7; its status is at 7 + 4 + 4 + 1 + 2 + 2 + 1 + 1 + 2 = 24,
+  // its last-played date at 26, and its name's length at 30, the name itself at 32.
   bad = good;
   bad[25] = 0x01;  // status bit 8, which doesn't exist
   check(!unpack(bad, kept), "a status flag that doesn't exist");
@@ -96,12 +101,16 @@ void testRefused() {
   bad[7] = bad[8] = bad[9] = bad[10] = 0;
   check(!unpack(bad, kept), "a game with id 0");
   bad = good;
-  bad[28] = static_cast<uint8_t>(0xC3);  // the first byte of the first name, after its 2-byte length at 26
+  bad[32] = static_cast<uint8_t>(0xC3);
   check(!unpack(bad, kept), "a name that isn't plain ASCII");
   bad = good;
-  bad[26] = 0xFF;  // the first name's length, far past the end
-  bad[27] = 0xFF;
+  bad[30] = 0xFF;  // the first name's length, far past the end
+  bad[31] = 0xFF;
   check(!unpack(bad, kept), "a length running past the end");
+  bad = good;
+  const uint32_t month13 = 20261317;
+  for (int b = 0; b < 4; b++) bad[26 + b] = static_cast<uint8_t>(month13 >> (8 * b));
+  check(!unpack(bad, kept), "a last-played date with month 13");
   check(kept.syncedAt == 7, "no refused file changes the list");
 
   SavedList wrong = list;
@@ -119,11 +128,45 @@ void testRefused() {
   check(!packList(wrong, out), "more games than the limit aren't saved");
 }
 
+// A version 1 file, as M5b saved it before dates, still loads, with no dates.
+void testVersion1() {
+  std::vector<uint8_t> v1 = {1, 0x2A, 0, 0, 0, 1, 0};  // version 1, synced at 42, one game
+  const auto u16 = [&](uint16_t v) {
+    v1.push_back(static_cast<uint8_t>(v));
+    v1.push_back(static_cast<uint8_t>(v >> 8));
+  };
+  const auto u32 = [&](uint32_t v) {
+    u16(static_cast<uint16_t>(v));
+    u16(static_cast<uint16_t>(v >> 16));
+  };
+  const auto text = [&](const char* t) {
+    u16(static_cast<uint16_t>(std::string(t).size()));
+    for (const char* c = t; *c; c++) v1.push_back(static_cast<uint8_t>(*c));
+  };
+  u32(230802);  // id
+  u32(1234);    // collId
+  v1.push_back(0);
+  u16(2017);  // year
+  u16(93);    // plays
+  v1.push_back(2);
+  v1.push_back(4);
+  u16(45);    // play time
+  u16(kOwn);  // status
+  text("Azul");
+  text("");
+  text("2020-07-20 10:24:16");
+  SavedList back;
+  check(unpack(v1, back) && back.syncedAt == 42 && back.games.size() == 1 && back.games[0].name == "Azul" &&
+            back.games[0].plays == 93 && back.games[0].lastPlayed == 0,
+        "a version 1 save loads, without dates");
+}
+
 }  // namespace
 
 int main() {
   testRoundTrip();
   testRefused();
+  testVersion1();
   if (failures) {
     std::printf("pocketbgg save: %d failed\n", failures);
     return 1;

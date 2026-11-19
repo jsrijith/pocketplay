@@ -8,6 +8,12 @@ namespace {
 
 constexpr uint16_t kKnownStatus = 0xFF;  // the eight flags in Status
 
+bool validDate(uint32_t date) {
+  if (date == 0) return true;
+  const uint32_t year = date / 10000, month = date / 100 % 100, day = date % 100;
+  return year >= 1900 && year <= 2200 && month >= 1 && month <= 12 && day >= 1 && day <= 31;
+}
+
 bool plainAscii(const std::string& text) {
   for (char c : text) {
     if (c < 0x20 || c > 0x7E) return false;
@@ -87,6 +93,7 @@ bool packList(const SavedList& list, std::vector<uint8_t>& out) {
       return false;
     }
     if (!plainAscii(g.name) || !plainAscii(g.thumbnail) || !plainAscii(g.lastModified) || (g.status & ~kKnownStatus)) return false;
+    if (!validDate(g.lastPlayed)) return false;
   }
 
   std::vector<uint8_t> bytes;
@@ -104,6 +111,7 @@ bool packList(const SavedList& list, std::vector<uint8_t>& out) {
     w.u8(g.maxPlayers);
     w.u16(g.playTime);
     w.u16(g.status);
+    w.u32(g.lastPlayed);
     w.text(g.name);
     w.text(g.thumbnail);
     w.text(g.lastModified);
@@ -114,7 +122,8 @@ bool packList(const SavedList& list, std::vector<uint8_t>& out) {
 
 bool unpackList(const uint8_t* data, size_t size, SavedList& out) {
   Reader r(data, size);
-  if (r.u8() != kListVersion) return false;
+  const uint8_t version = r.u8();
+  if (version != 1 && version != kListVersion) return false;
   SavedList list;
   list.syncedAt = r.u32();
   const size_t count = r.u16();
@@ -131,8 +140,9 @@ bool unpackList(const uint8_t* data, size_t size, SavedList& out) {
     g.maxPlayers = r.u8();
     g.playTime = r.u16();
     g.status = r.u16();
+    if (version >= 2) g.lastPlayed = r.u32();
     if (!r.text(g.name, kMaxName) || !r.text(g.thumbnail, kMaxThumbnail) || !r.text(g.lastModified, kMaxModified)) return false;
-    if (g.name.empty() || g.id == 0 || (g.status & ~kKnownStatus)) return false;
+    if (g.name.empty() || g.id == 0 || (g.status & ~kKnownStatus) || !validDate(g.lastPlayed)) return false;
     list.games.push_back(std::move(g));
   }
   if (!r.ok() || !r.atEnd()) return false;

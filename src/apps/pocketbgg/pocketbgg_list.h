@@ -36,6 +36,7 @@ struct Game {
   uint16_t status = 0;     // Status flags
   std::string thumbnail;   // its URL, for M6
   std::string lastModified;  // "YYYY-MM-DD HH:MM:SS", as BGG sends it
+  uint32_t lastPlayed = 0;   // the latest logged play as YYYYMMDD, or 0 for none
 };
 
 // Every status, in the order a game's label picks from and the filter screen lists them.
@@ -51,12 +52,16 @@ extern const StatusName kStatusNames[kStatusCount];
 const char* statusLabel(uint16_t status);
 
 // The line under a game's name, such as "2020  -  33 PLAYS  -  OWNED", "1400 BC  -  3 PLAYS",
-// or "1 PLAY" when there's no year and no status.
-void describe(const Game& game, char* out, size_t size);
+// or "1 PLAY" when there's no year and no status. Without `withYear`, as the list's rows have
+// it, "33 PLAYS  -  OWNED", leaving room for the last-played date.
+void describe(const Game& game, char* out, size_t size, bool withYear = true);
 
 // By name, ignoring case and the leading characters BGG says to skip, then by year, so the list
 // reads as BGG's collection page does.
 void sortGames(std::vector<Game>& games);
+
+// A YYYYMMDD date as "12 NOV 2026", or "NOV 2026" with `shortForm`. Empty for 0.
+void formatDate(uint32_t date, bool shortForm, char* out, size_t size);
 
 // Splits rows of the given heights into pages, each holding as many whole rows as fit in `room`
 // with `gap` between them. Returns the first row of each page. A row taller than the room gets

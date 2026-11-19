@@ -17,10 +17,10 @@ const char* statusLabel(uint16_t status) {
   return "";
 }
 
-void describe(const Game& game, char* out, size_t size) {
+void describe(const Game& game, char* out, size_t size, bool withYear) {
   char text[64];
   const char* noun = game.plays == 1 ? "PLAY" : "PLAYS";
-  if (game.year == kNoYear) {
+  if (!withYear || game.year == kNoYear) {
     std::snprintf(text, sizeof(text), "%u %s", static_cast<unsigned>(game.plays), noun);
   } else if (game.year < 0) {
     std::snprintf(text, sizeof(text), "%d BC  -  %u %s", -game.year, static_cast<unsigned>(game.plays), noun);
@@ -48,6 +48,20 @@ void sortGames(std::vector<Game>& games) {
     if (ka != kb) return ka < kb;
     return a.year < b.year;
   });
+}
+
+void formatDate(uint32_t date, bool shortForm, char* out, size_t size) {
+  static const char* const MONTHS[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+  const unsigned year = date / 10000, month = date / 100 % 100, day = date % 100;
+  if (date == 0 || month < 1 || month > 12) {
+    if (size > 0) out[0] = '\0';
+    return;
+  }
+  if (shortForm) {
+    std::snprintf(out, size, "%s %u", MONTHS[month - 1], year);
+  } else {
+    std::snprintf(out, size, "%u %s %u", day, MONTHS[month - 1], year);
+  }
 }
 
 std::vector<int> paginate(const std::vector<int>& heights, int room, int gap) {

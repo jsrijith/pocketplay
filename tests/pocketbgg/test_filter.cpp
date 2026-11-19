@@ -86,6 +86,17 @@ void testHelpers() {
   check(toggleStatus(f, kWishlist) && f.statuses == (kOwn | kWishlist), "another can be turned on");
   check(toggleStatus(f, kOwn) && f.statuses == kWishlist, "and then the first off");
 
+  std::vector<Game> dated = {game(kOwn, 1, 0, 0), game(kOwn, 0, 0, 0), game(kOwn, 3, 0, 0), game(kOwn, 2, 0, 0), game(kWishlist, 1, 0, 0)};
+  dated[0].lastPlayed = 20250101;
+  dated[2].lastPlayed = 20261117;
+  dated[3].lastPlayed = 20250101;
+  dated[4].lastPlayed = 20270101;
+  Filter byDate;
+  byDate.order = Order::LastPlayed;
+  check(visibleGames(dated, byDate) == std::vector<int>({2, 0, 3, 1}),
+        "last played first, a tie kept in A-Z order, never played last, and the filter still applies");
+  check(std::strcmp(orderLabel(Order::Name), "A-Z") == 0 && std::strcmp(orderLabel(Order::LastPlayed), "LAST PLAYED") == 0, "order names");
+
   uint8_t p = kAnyPlayers;
   char label[8];
   std::string labels;
@@ -103,11 +114,16 @@ void testSave() {
   f.statuses = kOwn | kPrevOwned;
   f.playedOnly = true;
   f.players = kMostPlayers;
+  f.order = Order::LastPlayed;
   uint8_t data[kFilterBytes];
-  check(packFilter(f, data) == kFilterBytes, "4 bytes");
+  check(packFilter(f, data) == kFilterBytes, "5 bytes");
   Filter back;
-  check(unpackFilter(kFilterVersion, data, kFilterBytes, back) && back.statuses == f.statuses && back.playedOnly && back.players == kMostPlayers,
+  check(unpackFilter(kFilterVersion, data, kFilterBytes, back) && back.statuses == f.statuses && back.playedOnly && back.players == kMostPlayers &&
+            back.order == Order::LastPlayed,
         "the filter round-trips");
+  Filter old;
+  old.order = Order::LastPlayed;
+  check(unpackFilter(1, data, 4, old) && old.order == Order::Name && old.players == kMostPlayers, "a version 1 filter loads, as A-Z");
 
   Filter kept;
   kept.players = 3;
@@ -126,6 +142,10 @@ void testSave() {
   std::memcpy(bad, data, sizeof(bad));
   bad[3] = kMostPlayers + 1;
   check(!unpackFilter(kFilterVersion, bad, kFilterBytes, kept), "a player count past 8+");
+  std::memcpy(bad, data, sizeof(bad));
+  bad[4] = 2;
+  check(!unpackFilter(kFilterVersion, bad, kFilterBytes, kept), "an order that doesn't exist");
+  check(!unpackFilter(1, data, kFilterBytes, kept), "version 1 with 5 bytes");
   check(kept.players == 3 && kept.statuses == kOwn, "a refused save leaves the filter alone");
 }
 

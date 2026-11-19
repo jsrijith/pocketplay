@@ -27,9 +27,9 @@ Game make(int16_t year, uint16_t plays, uint16_t status = 0) {
   return g;
 }
 
-bool describes(const Game& game, const char* expected) {
+bool describes(const Game& game, const char* expected, bool withYear = true) {
   char out[40];
-  describe(game, out, sizeof(out));
+  describe(game, out, sizeof(out), withYear);
   if (std::strcmp(out, expected) == 0) return true;
   std::printf("  got \"%s\", expected \"%s\"\n", out, expected);
   return false;
@@ -44,6 +44,18 @@ void testDescribe() {
   check(describes(make(2020, 65535), "2020  -  65535 PLAYS"), "the most plays a game can hold");
   check(describes(make(2020, 33, kOwn), "2020  -  33 PLAYS  -  OWNED"), "an owned game says so");
   check(describes(make(kNoYear, 0, kWishlist), "0 PLAYS  -  WISHLIST"), "a wishlist game with no year");
+  check(describes(make(2020, 33, kOwn), "33 PLAYS  -  OWNED", false), "a list row leaves the year out");
+  check(describes(make(-1400, 1, kPrevOwned), "1 PLAY  -  PREV. OWNED", false), "a year BC too");
+}
+
+void testFormatDate() {
+  char out[24];
+  formatDate(20261117, false, out, sizeof(out));
+  check(std::strcmp(out, "17 NOV 2026") == 0, "a long date");
+  formatDate(20260105, true, out, sizeof(out));
+  check(std::strcmp(out, "JAN 2026") == 0, "a short date");
+  formatDate(0, false, out, sizeof(out));
+  check(out[0] == '\0', "no date is empty");
 }
 
 void testStatus() {
@@ -98,6 +110,7 @@ void testManyRows() {
 int main() {
   testDescribe();
   testStatus();
+  testFormatDate();
   testSort();
   testPaginate();
   testManyRows();

@@ -19,6 +19,7 @@
 #include "pocketbgg_collection.h"
 #include "pocketbgg_config.h"
 #include "pocketbgg_filter.h"
+#include "pocketbgg_plays.h"
 #include "pocketbgg_list.h"
 #include "pocketbgg_save.h"
 #include "ui/ui.h"
@@ -72,12 +73,18 @@ constexpr size_t EXPECTED_ANSWER_BYTES = 384 * 1024;
 constexpr size_t MAX_ANSWER_BYTES = 1024 * 1024;
 constexpr size_t PROGRESS_STEP_BYTES = 64 * 1024;  // a redraw each time this much more has come
 
-// The filter screen: a row for each status, then played only, then the player count. Ten rows
-// of 56 with gaps of 4 fit between the caption and the bottom margin.
-constexpr int FILTER_ROW_HEIGHT = 56;
-constexpr int FILTER_ROWS = bgg::kStatusCount + 2;
+// After the collection, every page of plays, for each game's last-played date: 100 plays a page,
+// about 63 KB, with RETRY_WAIT_MS between pages, as BGG asks of its users.
+constexpr const char* PLAYS_URL = "https://boardgamegeek.com/xmlapi2/plays?username=";
+constexpr size_t EXPECTED_PAGE_BYTES = 96 * 1024;
+
+// The filter screen: a row for each status, then played only, the player count and the order.
+// Eleven rows of 52 with gaps of 4 fit between the caption and the bottom margin.
+constexpr int FILTER_ROW_HEIGHT = 52;
+constexpr int FILTER_ROWS = bgg::kStatusCount + 3;
 constexpr int PLAYED_ROW = bgg::kStatusCount;
 constexpr int PLAYERS_ROW = bgg::kStatusCount + 1;
+constexpr int ORDER_ROW = bgg::kStatusCount + 2;
 constexpr int BOX = 28;  // the on/off box at a row's right
 static_assert(LIST_TOP + FILTER_ROWS * (FILTER_ROW_HEIGHT + ui::ROW_GAP) - ui::ROW_GAP <= SCREEN_HEIGHT - MARGIN,
               "the filter rows must fit above the bottom margin");
@@ -113,6 +120,8 @@ class PocketBgg final : public App {
     if (ui::isOnBack(x, y)) {
       if (view_ == View::Details) {
         view_ = View::List;
+        // Dates that came in while the details were open may have changed the order.
+        if (needsRefresh_) applyFilter();
         return TapResult::RedrawFull;
       }
       // A download has to stop before the radio can go off, so the first BACK asks it to, and
@@ -194,6 +203,7 @@ class PocketBgg final : public App {
         finishSync(Sync::StillQueued);
       } else {
         sync_ = Sync::Waiting;
+        waitingForBgg_ = true;
         waitStartMs_ = millis();
       }
       return true;
@@ -201,7 +211,11 @@ class PocketBgg final : public App {
     if (status_ == 401 || status_ == 403) {
       finishSync(Sync::TokenRefused);
     } else if (status_ == 200) {
-      readCollection();
+      if (phase_ == Phase::Plays) {
+        readPlaysPage();
+      } else {
+        readCollection();
+      }
     } else {
       finishSync(Sync::Failed);
     }
@@ -235,6 +249,7 @@ class PocketBgg final : public App {
   int endRow() const { return page_ + 1 < pageCount() ? pages_[page_ + 1] : static_cast<int>(visible_.size()); }
 
   enum class View { List, Details, Filters };
+  enum class Phase { Collection, Plays };
 
   // A new collection, shown through the filter.
   void showGames(std::vector<bgg::Game> games) {
@@ -245,6 +260,7 @@ class PocketBgg final : public App {
   // The games the filter lets through, each row measured once, then split into pages, back on
   // the first. Rows count positions in visible_, which point into games_.
   void applyFilter() {
+    needsRefresh_ = false;
     visible_ = bgg::visibleGames(games_, filter_);
     heights_.clear();
     for (const int i : visible_) heights_.push_back(rowHeight(games_[i]));
@@ -267,6 +283,8 @@ class PocketBgg final : public App {
         filter_.playedOnly = !filter_.playedOnly;
       } else if (row == PLAYERS_ROW) {
         filter_.players = bgg::nextPlayers(filter_.players);
+      } else if (row == ORDER_ROW) {
+        filter_.order = filter_.order == bgg::Order::Name ? bgg::Order::LastPlayed : bgg::Order::Name;
       } else if (!bgg::toggleStatus(filter_, bgg::kStatusNames[row].flag)) {
         return TapResult::Nothing;  // the last status chosen stays on
       }
@@ -291,13 +309,19 @@ class PocketBgg final : public App {
     }
     drawFilterRow(frame, PLAYED_ROW, "PLAYED AT LEAST ONCE", "", filter_.playedOnly);
 
-    const int top = filterRowTop(PLAYERS_ROW);
-    drawRectOutline(frame, MARGIN, top, INNER_WIDTH, FILTER_ROW_HEIGHT, ui::HAIRLINE);
-    ui::drawTextLeft(frame, Font::Size20, MARGIN + ROW_INSET, top, FILTER_ROW_HEIGHT, "PLAYERS");
     char players[8];
     bgg::playersLabel(filter_.players, players, sizeof(players));
-    const int width = textWidth(Font::Size20, players);
-    ui::drawTextLeft(frame, Font::Size20, MARGIN + INNER_WIDTH - ROW_INSET - width, top, FILTER_ROW_HEIGHT, players);
+    drawChoiceRow(frame, PLAYERS_ROW, "PLAYERS", players);
+    drawChoiceRow(frame, ORDER_ROW, "ORDER", bgg::orderLabel(filter_.order));
+  }
+
+  // A label on the left and the choice a tap steps on the right.
+  static void drawChoiceRow(uint8_t* frame, int row, const char* label, const char* choice) {
+    const int top = filterRowTop(row);
+    drawRectOutline(frame, MARGIN, top, INNER_WIDTH, FILTER_ROW_HEIGHT, ui::HAIRLINE);
+    ui::drawTextLeft(frame, Font::Size20, MARGIN + ROW_INSET, top, FILTER_ROW_HEIGHT, label);
+    const int width = textWidth(Font::Size20, choice);
+    ui::drawTextLeft(frame, Font::Size20, MARGIN + INNER_WIDTH - ROW_INSET - width, top, FILTER_ROW_HEIGHT, choice);
   }
 
   // A label, a count beside the box, and the box: an outline when off, filled inside when on.
@@ -352,6 +376,7 @@ class PocketBgg final : public App {
     Waiting,  // BGG answered 202, so a wait before asking again
     Stopping,
     Synced,
+    PlaysStopped,  // the collection synced, but not every page of plays
     StillQueued,  // still 202 after every attempt
     BgError,      // BGG answered with an error, such as an unknown username
     BadAnswer,    // an answer the parser couldn't read, such as one cut off
@@ -412,9 +437,11 @@ class PocketBgg final : public App {
       finishSync(Sync::NoClock);
       return;
     }
-    url_ = std::string(COLLECTION_URL) + bgg::urlEncode(config_.username);
+    username_ = config_.username;
+    url_ = std::string(COLLECTION_URL) + bgg::urlEncode(username_);
     authorization_ = "Bearer " + config_.token;
-    bgg::wipe(config_.token);  // now only in the header, which every attempt reuses
+    bgg::wipe(config_.token);  // now only in the header, which every request reuses
+    phase_ = Phase::Collection;
     attempt_ = 0;
     startAttempt();
   }
@@ -422,7 +449,7 @@ class PocketBgg final : public App {
   void startAttempt() {
     attempt_++;
     answer_.clear();
-    answer_.reserve(EXPECTED_ANSWER_BYTES);
+    answer_.reserve(phase_ == Phase::Plays ? EXPECTED_PAGE_BYTES : EXPECTED_ANSWER_BYTES);
     received_ = 0;
     shownBytes_ = 0;
     status_ = 0;
@@ -485,12 +512,14 @@ class PocketBgg final : public App {
       case bgg::ParseResult::Ok:
         Serial.printf("PocketBGG: %u games, of %u BGG says it sent\n", static_cast<unsigned>(collection.games.size()),
                       static_cast<unsigned>(collection.totalItems));
+        // Until the plays have been read again, each game keeps the date it had.
+        bgg::carryLastPlayed(collection.games, games_);
         showGames(std::move(collection.games));
         synced_ = true;
         // The clock is set: the certificate check needed it.
         syncedAt_ = static_cast<uint32_t>(std::time(nullptr));
         saveList();
-        finishSync(Sync::Synced);
+        startPlays();
         return;
       case bgg::ParseResult::BgError:
         bgError_ = collection.error;
@@ -502,6 +531,68 @@ class PocketBgg final : public App {
         Serial.printf("PocketBGG: the answer couldn't be read (%s)\n", result == bgg::ParseResult::Incomplete ? "cut off" : "not a collection");
         finishSync(Sync::BadAnswer);
         return;
+    }
+  }
+
+  // --- The plays, for last-played dates ---
+
+  void startPlays() {
+    phase_ = Phase::Plays;
+    latest_.clear();
+    playsPage_ = 1;
+    playsPages_ = 0;
+    nextPage();
+  }
+
+  // The page after a pause, so BGG isn't asked too quickly; the first straight away.
+  void nextPage() {
+    url_ = std::string(PLAYS_URL) + bgg::urlEncode(username_) + "&page=" + std::to_string(playsPage_);
+    attempt_ = 0;
+    if (playsPage_ == 1) {
+      startAttempt();
+    } else {
+      sync_ = Sync::Waiting;
+      waitingForBgg_ = false;
+      waitStartMs_ = millis();
+    }
+  }
+
+  // In loop(), once a page has come. Pages come newest first, so a game's date is final as soon
+  // as it's seen, and it's shown straight away.
+  void readPlaysPage() {
+    bgg::PlaysPage page;
+    const bgg::PlaysResult result = bgg::parsePlaysPage(answer_.data(), answer_.size(), page);
+    std::string().swap(answer_);
+    if (result != bgg::PlaysResult::Ok) {
+      Serial.printf("PocketBGG: plays page %d couldn't be read (%d)\n", playsPage_, static_cast<int>(result));
+      finishSync(Sync::PlaysStopped);
+      return;
+    }
+    bgg::addPlays(page, latest_);
+    playsPages_ = bgg::playsPages(page.total);
+    const bool complete = playsPage_ >= playsPages_;
+    bgg::applyLastPlayed(games_, latest_, complete);
+    Serial.printf("PocketBGG: plays page %d of %d, %u plays\n", playsPage_, playsPages_, static_cast<unsigned>(page.plays.size()));
+    if (!complete) {
+      playsPage_++;
+      nextPage();
+      return;
+    }
+    // latest_ holds every game played, some not in the collection, so count the collection's.
+    unsigned dated = 0;
+    for (const bgg::Game& g : games_) dated += g.lastPlayed != 0;
+    Serial.printf("PocketBGG: last-played dates for %u of %u games\n", dated, static_cast<unsigned>(games_.size()));
+    finishSync(Sync::Synced);
+  }
+
+  // A sort by last played has to be redone once the dates change. The list is redone at once;
+  // the details or filter screen redo it on leaving, so neither is pulled away under the player.
+  void refreshOrder() {
+    if (filter_.order != bgg::Order::LastPlayed) return;
+    if (view_ == View::List) {
+      applyFilter();
+    } else {
+      needsRefresh_ = true;
     }
   }
 
@@ -527,13 +618,31 @@ class PocketBgg final : public App {
     bgg::wipe(authorization_);
     bgg::wipe(config_.token);
     std::string().swap(answer_);
+    // The collection is saved already. The dates read so far are kept and saved, whether every
+    // page came or the plays stopped partway, and a failure then says it was the plays.
+    if (phase_ == Phase::Plays) {
+      saveList();
+      refreshOrder();
+      if (result != Sync::Synced && result != Sync::Never) result = Sync::PlaysStopped;
+    }
+    phase_ = Phase::Collection;
     sync_ = result;
   }
 
-  // Leaving while joining or between attempts: no download is running, so the radio can go.
+  // Leaving while joining or between requests: no download is running, so the radio can go.
   void stopSync() {
     if (sync_ != Sync::Joining && sync_ != Sync::Waiting) return;
     finishSync(Sync::Never);
+  }
+
+  // "READING PLAYS, PAGE 12 OF 34", or without the count until the first page says it.
+  const char* playsText(char* out, size_t size) const {
+    if (playsPages_ == 0) {
+      std::snprintf(out, size, "READING PLAYS, PAGE %d", playsPage_);
+    } else {
+      std::snprintf(out, size, "READING PLAYS, PAGE %d OF %d", playsPage_, playsPages_);
+    }
+    return out;
   }
 
   // "SYNCED 20 NOV, 22:53", in the time zone chosen in Settings.
@@ -556,6 +665,7 @@ class PocketBgg final : public App {
       case Sync::ConfigProblem:
         return bgg::configErrorText(configError_);
       case Sync::Downloading:
+        if (phase_ == Phase::Plays) return playsText(out, size);
         if (received_.load() == 0) {
           std::snprintf(out, size, attempt_ == 1 ? "ASKING BGG FOR YOUR COLLECTION" : "ASKING AGAIN (%d OF %d)", attempt_, MAX_ATTEMPTS);
         } else {
@@ -563,12 +673,19 @@ class PocketBgg final : public App {
         }
         return out;
       case Sync::Waiting:
-        std::snprintf(out, size, "BGG IS PREPARING IT (%d OF %d)", attempt_, MAX_ATTEMPTS);
-        return out;
+        if (waitingForBgg_) {
+          std::snprintf(out, size, "BGG IS PREPARING IT (%d OF %d)", attempt_, MAX_ATTEMPTS);
+          return out;
+        }
+        return playsText(out, size);
       case Sync::Stopping:
         return "STOPPING";
       case Sync::Synced:
         return syncedText(out, size);
+      case Sync::PlaysStopped:
+        if (playsPages_ == 0) return "SYNCED, BUT THE PLAYS COULDN'T BE READ";
+        std::snprintf(out, size, "SYNCED. PLAYS STOPPED AT PAGE %d OF %d", playsPage_, playsPages_);
+        return out;
       case Sync::StillQueued:
         return "BGG IS STILL PREPARING IT. TRY AGAIN SOON";
       case Sync::BgError:
@@ -653,10 +770,35 @@ class PocketBgg final : public App {
       drawRectOutline(frame, MARGIN, top, INNER_WIDTH, heights_[row], ui::HAIRLINE);
       const int nameHeight = drawWrapped(frame, NAME_FONT, MARGIN + ROW_INSET, top + ROW_PAD_TOP, NAME_WIDTH, game.name.c_str());
       char meta[64];
-      bgg::describe(game, meta, sizeof(meta));
-      ui::drawTextLeft(frame, META_FONT, MARGIN + ROW_INSET, top + ROW_PAD_TOP + nameHeight, META_HEIGHT, meta);
+      bgg::describe(game, meta, sizeof(meta), false);  // the year is on the details screen
+      const int metaTop = top + ROW_PAD_TOP + nameHeight;
+      ui::drawTextLeft(frame, META_FONT, MARGIN + ROW_INSET, metaTop, META_HEIGHT, meta);
+      drawRowDate(frame, game.lastPlayed, textWidth(META_FONT, meta), metaTop);
     }
     drawActions(frame);
+  }
+
+  // The last-played date at the right end of a row's line, in the smaller cut: "LAST 17 NOV
+  // 2026", then shorter forms if the line leaves too little room, and nothing rather than
+  // touching it.
+  static void drawRowDate(uint8_t* frame, uint32_t lastPlayed, int metaWidth, int top) {
+    if (lastPlayed == 0) return;
+    char day[16], month[16], text[24];
+    bgg::formatDate(lastPlayed, false, day, sizeof(day));
+    bgg::formatDate(lastPlayed, true, month, sizeof(month));
+    const char* forms[] = {"LAST %s", "%s"};
+    const char* dates[] = {day, month};
+    const int room = NAME_WIDTH - metaWidth - GAP;
+    for (const char* date : dates) {
+      for (const char* form : forms) {
+        std::snprintf(text, sizeof(text), form, date);
+        const int width = textWidth(Font::Size10, text);
+        if (width <= room) {
+          ui::drawTextLeft(frame, Font::Size10, MARGIN + ROW_INSET + NAME_WIDTH - width, top, META_HEIGHT, text);
+          return;
+        }
+      }
+    }
   }
 
   void drawDetails(uint8_t* frame, const bgg::Game& game) const {
@@ -680,6 +822,18 @@ class PocketBgg final : public App {
     char line[48];
     int lineTop = metaTop + lineHeight(Font::Size20) + 4;
     if (players(game, line, sizeof(line))) {
+      drawTextInBox(frame, Font::Size14, MARGIN, lineTop, INNER_WIDTH, lineHeight(Font::Size14), line);
+      lineTop += lineHeight(Font::Size14);
+    }
+    // When it was last played; nothing for a game with plays but no dated one yet.
+    char date[16];
+    bgg::formatDate(game.lastPlayed, false, date, sizeof(date));
+    if (game.lastPlayed != 0 || game.plays == 0) {
+      if (game.lastPlayed != 0) {
+        std::snprintf(line, sizeof(line), "LAST PLAYED %s", date);
+      } else {
+        std::snprintf(line, sizeof(line), "NEVER PLAYED");
+      }
       drawTextInBox(frame, Font::Size14, MARGIN, lineTop, INNER_WIDTH, lineHeight(Font::Size14), line);
       lineTop += lineHeight(Font::Size14);
     }
@@ -710,6 +864,7 @@ class PocketBgg final : public App {
   bool filterSaveFailed_ = false;
   std::vector<int> visible_;  // positions in games_ that the filter lets through
   View view_ = View::List;
+  bool needsRefresh_ = false;  // the order by last played is out of date, to redo on leaving
   std::vector<int> heights_;  // each row's height, measured once
   std::vector<int> pages_;    // the first row of each page
   int page_ = 0;
@@ -726,6 +881,12 @@ class PocketBgg final : public App {
   int attempt_ = 0;
   uint32_t waitStartMs_ = 0;
   std::string bgError_;
+  Phase phase_ = Phase::Collection;
+  std::string username_;   // kept for the plays pages; the token is only in authorization_
+  bgg::LastPlayed latest_;  // each game's latest play, from the pages read so far
+  int playsPage_ = 0;
+  int playsPages_ = 0;  // 0 until the first page says how many
+  bool waitingForBgg_ = false;  // a wait after 202, not the pause between pages
 };
 
 }  // namespace
