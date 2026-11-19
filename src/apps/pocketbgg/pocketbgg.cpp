@@ -1,9 +1,12 @@
 #include "pocketbgg.h"
 
+#include <Arduino.h>
+
 #include <cstdio>
 #include <vector>
 
 #include "core/graphics.h"
+#include "core/network.h"
 #include "core/text.h"
 #include "pocketbgg_list.h"
 #include "pocketbgg_sample.h"
@@ -14,9 +17,9 @@ namespace bgg = pocketbgg;
 namespace {
 
 // The list: a caption line saying where the data came from and which page this is, then one
-// row per game (the name, wrapped, and a line under it with the year and plays). The Up and
-// Down buttons turn the pages, so the list runs to the bottom margin. The details: the same caption, a box where the thumbnail will go, the
-// name large, and the year and plays.
+// row per game (the name, wrapped, and a line under it with the year and plays), then a status
+// line and SYNC along the bottom. The Up and Down buttons turn the pages. The details: the same
+// caption, a box where the thumbnail will go, the name large, and the year and plays.
 constexpr int MARGIN = 16;
 constexpr int GAP = 12;
 constexpr int INNER_WIDTH = SCREEN_WIDTH - 2 * MARGIN;
@@ -33,10 +36,17 @@ constexpr int ROW_PAD_BOTTOM = 8;
 constexpr int NAME_WIDTH = INNER_WIDTH - 2 * ROW_INSET;
 constexpr int META_HEIGHT = 26;
 
-// The bottom row is left for actions to come, such as picking a random game. When one is added,
-// end the list above it: LIST_BOTTOM = SCREEN_HEIGHT - MARGIN - ui::PILL_HEIGHT - GAP.
-constexpr int LIST_BOTTOM = SCREEN_HEIGHT - MARGIN;
+// The bottom row holds the actions: SYNC for now, with room beside it for more later, such as
+// picking a random game. The status line above it says how the last sync went.
+constexpr int BUTTON_TOP = SCREEN_HEIGHT - MARGIN - ui::PILL_HEIGHT;
+constexpr int STATUS_HEIGHT = 24;
+constexpr int STATUS_TOP = BUTTON_TOP - 6 - STATUS_HEIGHT;
+constexpr int LIST_BOTTOM = STATUS_TOP - 6;
 constexpr int LIST_ROOM = LIST_BOTTOM - LIST_TOP;
+
+// Until the download arrives (M5), a sync joins Wi-Fi, then stands in for the download with a
+// few seconds of work between taps, counted down on screen, and turns the radio off.
+constexpr uint32_t PLACEHOLDER_WORK_MS = 3000;
 
 constexpr int THUMB = 216;  // BGG's thumbnails are up to 200 x 150, so this leaves a border
 constexpr int THUMB_LEFT = (SCREEN_WIDTH - THUMB) / 2;
@@ -59,11 +69,16 @@ class PocketBgg final : public App {
 
   TapResult onTap(int x, int y) override {
     if (ui::isOnBack(x, y)) {
-      if (selected_ < 0) return TapResult::Leave;
+      if (selected_ < 0) {
+        stopSync();
+        return TapResult::Leave;
+      }
       selected_ = -1;
       return TapResult::RedrawFull;
     }
     if (selected_ >= 0) return TapResult::Nothing;
+
+    if (ui::isInBox(x, y, MARGIN, BUTTON_TOP, INNER_WIDTH, ui::PILL_HEIGHT)) return startSync();
 
     for (int row = firstRow(); row < endRow(); row++) {
       if (ui::isInBox(x, y, MARGIN, rowTop(row), INNER_WIDTH, heights_[row])) {
@@ -88,6 +103,38 @@ class PocketBgg final : public App {
     }
   }
 
+  // The placeholder work, counted down once a second. Called every loop while the app is on
+  // screen; true asks for a redraw.
+  bool update() override {
+    if (sync_ != Sync::Working) return false;
+    const uint32_t elapsed = millis() - workStartMs_;
+    if (elapsed >= PLACEHOLDER_WORK_MS) {
+      // Done with the network, so the radio goes off: a running radio drains the battery.
+      network::turnOff();
+      sync_ = Sync::Done;
+      return true;
+    }
+    const int secondsLeft = static_cast<int>((PLACEHOLDER_WORK_MS - elapsed + 999) / 1000);
+    if (secondsLeft == secondsShown_) return false;
+    secondsShown_ = secondsLeft;
+    return true;
+  }
+
+  // While it works, the idle timer waits: a sleep would cut the radio mid-sync.
+  bool busy() const override { return sync_ == Sync::Working; }
+
+  // Back from the Wi-Fi screen, which closes by itself once it joins.
+  void onWifiClosed() override {
+    if (sync_ != Sync::Joining) return;
+    if (network::state() == network::State::Connected) {
+      startWork();
+    } else {
+      // BACK during a join leaves the radio still trying, so stop it.
+      network::turnOff();
+      sync_ = Sync::NoWifi;
+    }
+  }
+
   // Nothing is saved yet: the games are made up, so there's nothing worth keeping.
   bool saveFailed() const override { return false; }
   void retrySave() override {}
@@ -103,6 +150,59 @@ class PocketBgg final : public App {
     int top = LIST_TOP;
     for (int r = firstRow(); r < row; r++) top += heights_[r] + ui::ROW_GAP;
     return top;
+  }
+
+  enum class Sync { Never, Joining, Working, Done, NoWifi };
+
+  // SYNC: straight to work if Wi-Fi is already up, otherwise the Wi-Fi screen first.
+  TapResult startSync() {
+    if (sync_ == Sync::Joining || sync_ == Sync::Working) return TapResult::Nothing;
+    if (network::state() == network::State::Connected) {
+      startWork();
+      return TapResult::Redraw;
+    }
+    sync_ = Sync::Joining;
+    return TapResult::OpenWifi;
+  }
+
+  void startWork() {
+    sync_ = Sync::Working;
+    workStartMs_ = millis();
+    secondsShown_ = -1;
+  }
+
+  // Leaving mid-sync: update() isn't called off screen, so the work would only freeze.
+  void stopSync() {
+    if (sync_ != Sync::Joining && sync_ != Sync::Working) return;
+    network::turnOff();
+    sync_ = Sync::Never;
+  }
+
+  const char* statusText(char* out, size_t size) const {
+    switch (sync_) {
+      case Sync::Never:
+        return "NOT SYNCED YET";
+      case Sync::Joining:
+        return "JOINING WI-FI";
+      case Sync::Working:
+        std::snprintf(out, size, "CONNECTED. WORKING, %d", secondsShown_ < 0 ? 3 : secondsShown_);
+        return out;
+      case Sync::Done:
+        return "WI-FI WORKS. THE DOWNLOAD COMES NEXT";
+      case Sync::NoWifi:
+        return "NO WI-FI, SO NOT SYNCED";
+    }
+    return "";
+  }
+
+  void drawActions(uint8_t* frame) const {
+    char buffer[40];
+    drawTextInBox(frame, Font::Size14, MARGIN, STATUS_TOP, INNER_WIDTH, STATUS_HEIGHT, statusText(buffer, sizeof(buffer)));
+    if (sync_ == Sync::Joining || sync_ == Sync::Working) {
+      ui::drawDimmedPill(frame, MARGIN, BUTTON_TOP, INNER_WIDTH, "SYNCING");
+    } else {
+      ui::drawPill(frame, MARGIN, BUTTON_TOP, INNER_WIDTH, "SYNC", true);
+    }
   }
 
   TapResult turnPage(int step) {
@@ -134,6 +234,7 @@ class PocketBgg final : public App {
       bgg::describe(game, meta, sizeof(meta));
       ui::drawTextLeft(frame, META_FONT, MARGIN + ROW_INSET, top + ROW_PAD_TOP + nameHeight, META_HEIGHT, meta);
     }
+    drawActions(frame);
   }
 
   void drawDetails(uint8_t* frame, const bgg::Game& game) const {
@@ -161,6 +262,9 @@ class PocketBgg final : public App {
   std::vector<int> pages_;    // the first row of each page
   int page_ = 0;
   int selected_ = -1;  // the game whose details are showing, or -1 for the list
+  Sync sync_ = Sync::Never;
+  uint32_t workStartMs_ = 0;
+  int secondsShown_ = -1;  // the countdown last drawn, so update() redraws once a second
 };
 
 }  // namespace
