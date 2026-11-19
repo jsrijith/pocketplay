@@ -8,7 +8,7 @@ Your BoardGameGeek collection, to browse on the device.
 
 - The list shows each game's name, with the year and how many times it's been played under it. Long names wrap onto a second line rather than being cut short.
 - The Up and Down buttons turn the pages. `PAGE 1 OF 4` at the top says where you are.
-- `SYNC` will download your collection. For now it only checks Wi-Fi: it joins a network, opening the Wi-Fi screen if it isn't already connected, works for a few seconds, then turns the radio off again. The line above it says how it went.
+- `SYNC` will download your collection. For now it tests that the device checks BGG's certificate: it joins Wi-Fi, opening the Wi-Fi screen if it isn't already connected, asks BGG for something small twice with no token, and turns the radio off again. The line above it should read `BGG ROOT: HTTP 401. WRONG ROOT: REFUSED`: BGG answered when its real root was trusted, and a wrong root was refused. `BACK` while it's checking stops it first.
 - Tap a game to see its details. `BACK` returns to the same page of the list.
 - `BACK` on the list returns to the APPS page.
 

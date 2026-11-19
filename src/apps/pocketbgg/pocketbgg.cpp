@@ -5,9 +5,12 @@
 #include <cstdio>
 #include <vector>
 
+#include "core/clock.h"
+#include "core/download.h"
 #include "core/graphics.h"
 #include "core/network.h"
 #include "core/text.h"
+#include "pocketbgg_ca.h"
 #include "pocketbgg_list.h"
 #include "pocketbgg_sample.h"
 #include "ui/ui.h"
@@ -44,9 +47,11 @@ constexpr int STATUS_TOP = BUTTON_TOP - 6 - STATUS_HEIGHT;
 constexpr int LIST_BOTTOM = STATUS_TOP - 6;
 constexpr int LIST_ROOM = LIST_BOTTOM - LIST_TOP;
 
-// Until the download arrives (M5), a sync joins Wi-Fi, then stands in for the download with a
-// few seconds of work between taps, counted down on screen, and turns the radio off.
-constexpr uint32_t PLACEHOLDER_WORK_MS = 3000;
+// Until the collection download arrives (M5), a sync tests the certificate check: it asks BGG
+// for something small twice, with no token, first trusting BGG's real root and then a wrong
+// one. The first must reach BGG, which answers 401 for want of a token; the second must be
+// refused before a byte of HTTP is sent.
+constexpr const char* TEST_URL = "https://boardgamegeek.com/xmlapi2/thing?id=1";
 
 constexpr int THUMB = 216;  // BGG's thumbnails are up to 200 x 150, so this leaves a border
 constexpr int THUMB_LEFT = (SCREEN_WIDTH - THUMB) / 2;
@@ -70,6 +75,14 @@ class PocketBgg final : public App {
   TapResult onTap(int x, int y) override {
     if (ui::isOnBack(x, y)) {
       if (selected_ < 0) {
+        // A download has to stop before the radio can go off, so the first BACK asks it to,
+        // and the app stays until it has.
+        if (sync_ == Sync::Working || sync_ == Sync::Stopping) {
+          if (sync_ == Sync::Stopping) return TapResult::Nothing;
+          download::requestCancel();
+          sync_ = Sync::Stopping;
+          return TapResult::Redraw;
+        }
         stopSync();
         return TapResult::Leave;
       }
@@ -103,25 +116,32 @@ class PocketBgg final : public App {
     }
   }
 
-  // The placeholder work, counted down once a second. Called every loop while the app is on
-  // screen; true asks for a redraw.
+  // Watches the test downloads, which run in their own task, and starts the next when one
+  // ends. Called every loop while the app is on screen; true asks for a redraw.
   bool update() override {
-    if (sync_ != Sync::Working) return false;
-    const uint32_t elapsed = millis() - workStartMs_;
-    if (elapsed >= PLACEHOLDER_WORK_MS) {
-      // Done with the network, so the radio goes off: a running radio drains the battery.
-      network::turnOff();
-      sync_ = Sync::Done;
+    if (sync_ != Sync::Working && sync_ != Sync::Stopping) return false;
+    if (download::state() == download::State::Running) return false;
+
+    const int status = download::httpStatus();
+    if (sync_ == Sync::Stopping) {
+      finishSync(Sync::Never);
       return true;
     }
-    const int secondsLeft = static_cast<int>((PLACEHOLDER_WORK_MS - elapsed + 999) / 1000);
-    if (secondsLeft == secondsShown_) return false;
-    secondsShown_ = secondsLeft;
+    if (step_ == Step::RightRoot) {
+      rightRootStatus_ = status;
+      Serial.printf("PocketBGG: with BGG's root, HTTP %d\n", status);
+      step_ = Step::WrongRoot;
+      if (!startTest(bgg::kAmazonRootCa)) finishSync(Sync::Done);
+      return true;
+    }
+    wrongRootStatus_ = status;
+    Serial.printf("PocketBGG: with a wrong root, HTTP %d (0 means refused)\n", status);
+    finishSync(Sync::Done);
     return true;
   }
 
-  // While it works, the idle timer waits: a sleep would cut the radio mid-sync.
-  bool busy() const override { return sync_ == Sync::Working; }
+  // While it works, the idle timer waits: a sleep would cut the radio mid-download.
+  bool busy() const override { return sync_ == Sync::Working || sync_ == Sync::Stopping; }
 
   // Back from the Wi-Fi screen, which closes by itself once it joins.
   void onWifiClosed() override {
@@ -152,11 +172,12 @@ class PocketBgg final : public App {
     return top;
   }
 
-  enum class Sync { Never, Joining, Working, Done, NoWifi };
+  enum class Sync { Never, Joining, Working, Stopping, Done, NoWifi, NoClock };
+  enum class Step { RightRoot, WrongRoot };
 
   // SYNC: straight to work if Wi-Fi is already up, otherwise the Wi-Fi screen first.
   TapResult startSync() {
-    if (sync_ == Sync::Joining || sync_ == Sync::Working) return TapResult::Nothing;
+    if (sync_ == Sync::Joining || sync_ == Sync::Working || sync_ == Sync::Stopping) return TapResult::Nothing;
     if (network::state() == network::State::Connected) {
       startWork();
       return TapResult::Redraw;
@@ -166,16 +187,38 @@ class PocketBgg final : public App {
   }
 
   void startWork() {
+    // A certificate is valid between two dates, so checking one needs the real date. Without
+    // it every certificate would look expired or not yet valid.
+    if (!wallClock::isSet()) {
+      finishSync(Sync::NoClock);
+      return;
+    }
+    rightRootStatus_ = wrongRootStatus_ = -1;
+    step_ = Step::RightRoot;
     sync_ = Sync::Working;
-    workStartMs_ = millis();
-    secondsShown_ = -1;
+    if (!startTest(bgg::kBggRootCa)) finishSync(Sync::Done);
   }
 
-  // Leaving mid-sync: update() isn't called off screen, so the work would only freeze.
-  void stopSync() {
-    if (sync_ != Sync::Joining && sync_ != Sync::Working) return;
+  // The bytes BGG sends back aren't needed, only whether it answered.
+  static bool discard(void*, const uint8_t*, size_t) { return true; }
+  static void restart(void*) {}
+
+  bool startTest(const char* rootCa) {
+    download::Options options;
+    options.rootCa = rootCa;
+    return download::start(TEST_URL, download::Sink{nullptr, discard, restart}, options);
+  }
+
+  // Done with the network, so the radio goes off: a running radio drains the battery.
+  void finishSync(Sync result) {
     network::turnOff();
-    sync_ = Sync::Never;
+    sync_ = result;
+  }
+
+  // Leaving while joining: the Wi-Fi screen has closed, so only the radio is left on.
+  void stopSync() {
+    if (sync_ != Sync::Joining) return;
+    finishSync(Sync::Never);
   }
 
   const char* statusText(char* out, size_t size) const {
@@ -185,10 +228,23 @@ class PocketBgg final : public App {
       case Sync::Joining:
         return "JOINING WI-FI";
       case Sync::Working:
-        std::snprintf(out, size, "CONNECTED. WORKING, %d", secondsShown_ < 0 ? 3 : secondsShown_);
+        return step_ == Step::RightRoot ? "CHECKING BGG'S CERTIFICATE" : "CHECKING A WRONG ROOT";
+      case Sync::Stopping:
+        return "STOPPING";
+      case Sync::Done: {
+        // Any HTTP answer means the certificate passed: the server spoke. 0 means refused.
+        char right[16], wrong[24];
+        if (rightRootStatus_ > 0) std::snprintf(right, sizeof(right), "HTTP %d", rightRootStatus_);
+        else if (rightRootStatus_ < 0) std::snprintf(right, sizeof(right), "NOT TRIED");
+        else std::snprintf(right, sizeof(right), "REFUSED");
+        if (wrongRootStatus_ == 0) std::snprintf(wrong, sizeof(wrong), "REFUSED");
+        else if (wrongRootStatus_ < 0) std::snprintf(wrong, sizeof(wrong), "NOT TRIED");
+        else std::snprintf(wrong, sizeof(wrong), "HTTP %d!", wrongRootStatus_);
+        std::snprintf(out, size, "BGG ROOT: %s. WRONG ROOT: %s", right, wrong);
         return out;
-      case Sync::Done:
-        return "WI-FI WORKS. THE DOWNLOAD COMES NEXT";
+      }
+      case Sync::NoClock:
+        return "CLOCK NOT SET, SO NO CERTIFICATE CHECK";
       case Sync::NoWifi:
         return "NO WI-FI, SO NOT SYNCED";
     }
@@ -196,9 +252,9 @@ class PocketBgg final : public App {
   }
 
   void drawActions(uint8_t* frame) const {
-    char buffer[40];
+    char buffer[64];
     drawTextInBox(frame, Font::Size14, MARGIN, STATUS_TOP, INNER_WIDTH, STATUS_HEIGHT, statusText(buffer, sizeof(buffer)));
-    if (sync_ == Sync::Joining || sync_ == Sync::Working) {
+    if (sync_ == Sync::Joining || sync_ == Sync::Working || sync_ == Sync::Stopping) {
       ui::drawDimmedPill(frame, MARGIN, BUTTON_TOP, INNER_WIDTH, "SYNCING");
     } else {
       ui::drawPill(frame, MARGIN, BUTTON_TOP, INNER_WIDTH, "SYNC", true);
@@ -263,8 +319,9 @@ class PocketBgg final : public App {
   int page_ = 0;
   int selected_ = -1;  // the game whose details are showing, or -1 for the list
   Sync sync_ = Sync::Never;
-  uint32_t workStartMs_ = 0;
-  int secondsShown_ = -1;  // the countdown last drawn, so update() redraws once a second
+  Step step_ = Step::RightRoot;
+  int rightRootStatus_ = -1;  // HTTP status of each test: 0 refused, -1 not tried
+  int wrongRootStatus_ = -1;
 };
 
 }  // namespace
