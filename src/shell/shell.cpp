@@ -37,7 +37,10 @@ Game* currentGame = nullptr;
 App* currentApp = nullptr;
 bool hasTouch = true;
 bool sessionSaveFailed = false;
-bool wifiOpenedByGame = false;
+// Who opened the Wi-Fi screen, so closing it goes back there. A game or an app gets
+// onWifiClosed(), and is returned to as soon as the network joins.
+enum class WifiOpener { Settings, Game, App };
+WifiOpener wifiOpener = WifiOpener::Settings;
 
 // Without this file the device wakes on the home page, with the game's own save
 // intact, so a failure here only costs a tap.
@@ -142,6 +145,11 @@ Redraw applyAppResult(App::TapResult result) {
       clearSession();
       screen = Screen::Apps;
       return Redraw::Fast;
+    case App::TapResult::OpenWifi:
+      wifiOpener = WifiOpener::App;
+      wifiScreen::open();
+      screen = Screen::Wifi;
+      return Redraw::Fast;
   }
   return Redraw::None;
 }
@@ -156,6 +164,7 @@ Redraw tapSettings(int x, int y) {
       screen = Screen::Home;
       return Redraw::Fast;
     case settingsScreen::Tap::OpenWifi:
+      wifiOpener = WifiOpener::Settings;
       wifiScreen::open();
       screen = Screen::Wifi;
       return Redraw::Fast;
@@ -170,21 +179,28 @@ Redraw tapSettings(int x, int y) {
   return Redraw::None;
 }
 
-void leaveWifiForGame() {
-  wifiOpenedByGame = false;
-  screen = Screen::Playing;
-  currentGame->onWifiClosed();
+// Back to whoever opened the Wi-Fi screen.
+void leaveWifi() {
+  const WifiOpener opener = wifiOpener;
+  wifiOpener = WifiOpener::Settings;
+  switch (opener) {
+    case WifiOpener::Settings:
+      screen = Screen::Settings;
+      break;
+    case WifiOpener::Game:
+      screen = Screen::Playing;
+      currentGame->onWifiClosed();
+      break;
+    case WifiOpener::App:
+      screen = Screen::UsingApp;
+      currentApp->onWifiClosed();
+      break;
+  }
 }
 
 Redraw tapWifi(int x, int y) {
   const bool changed = wifiScreen::onTap(x, y);
-  if (!wifiScreen::isOpen()) {
-    if (wifiOpenedByGame) {
-      leaveWifiForGame();
-    } else {
-      screen = Screen::Settings;
-    }
-  }
+  if (!wifiScreen::isOpen()) leaveWifi();
   return changed ? Redraw::Fast : Redraw::None;
 }
 
@@ -213,7 +229,7 @@ Redraw applyGameResult(Game::TapResult result) {
       screen = Screen::Home;
       return Redraw::Fast;
     case Game::TapResult::OpenWifi:
-      wifiOpenedByGame = true;
+      wifiOpener = WifiOpener::Game;
       wifiScreen::open();
       screen = Screen::Wifi;
       return Redraw::Fast;
@@ -248,13 +264,14 @@ void begin(bool touchWorks) {
 Redraw update() {
   const bool networkChanged = wifiScreen::update();
 
-  // A game asked for Wi-Fi, so it goes back as soon as it has it.
-  if (screen == Screen::Wifi && wifiOpenedByGame && network::state() == network::State::Connected) {
+  // A game or an app asked for Wi-Fi, so it goes back as soon as it has it.
+  if (screen == Screen::Wifi && wifiOpener != WifiOpener::Settings && network::state() == network::State::Connected) {
     wifiScreen::close();
-    leaveWifiForGame();
+    leaveWifi();
     return Redraw::Fast;
   }
   if (screen == Screen::Playing && currentGame->update()) return Redraw::Fast;
+  if (screen == Screen::UsingApp && currentApp->update()) return Redraw::Fast;
   if (screen == Screen::Home && homeScreen::update()) return Redraw::Fast;
 
   if (!networkChanged) return Redraw::None;
@@ -346,7 +363,9 @@ void draw(uint8_t* frame) {
   if (const char* warning = warningText()) ui::drawWarning(frame, warning);
 }
 
-bool busy() { return screen == Screen::Playing && currentGame->busy(); }
+bool busy() {
+  return (screen == Screen::Playing && currentGame->busy()) || (screen == Screen::UsingApp && currentApp->busy());
+}
 
 int updatesPerCleanup() { return settingsScreen::updatesPerCleanup(); }
 
