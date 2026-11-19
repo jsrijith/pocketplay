@@ -38,6 +38,14 @@ struct Game {
   std::string lastModified;  // "YYYY-MM-DD HH:MM:SS", as BGG sends it
 };
 
+// Every status, in the order a game's label picks from and the filter screen lists them.
+struct StatusName {
+  uint16_t flag;
+  const char* label;
+};
+constexpr int kStatusCount = 8;
+extern const StatusName kStatusNames[kStatusCount];
+
 // The status to show for a game: the first of owned, preordered, for trade, wishlist, want to
 // buy, want to play, want, previously owned. Empty if none.
 const char* statusLabel(uint16_t status);

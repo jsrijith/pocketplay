@@ -18,6 +18,7 @@
 #include "pocketbgg_ca.h"
 #include "pocketbgg_collection.h"
 #include "pocketbgg_config.h"
+#include "pocketbgg_filter.h"
 #include "pocketbgg_list.h"
 #include "pocketbgg_save.h"
 #include "ui/ui.h"
@@ -46,9 +47,12 @@ constexpr int ROW_PAD_BOTTOM = 8;
 constexpr int NAME_WIDTH = INNER_WIDTH - 2 * ROW_INSET;
 constexpr int META_HEIGHT = 26;
 
-// The bottom row holds the actions: SYNC for now, with room beside it for more later, such as
-// picking a random game. The status line above it says how the last sync went.
+// The bottom row holds the actions, FILTER and SYNC. The status line above it says how the last
+// sync went.
 constexpr int BUTTON_TOP = SCREEN_HEIGHT - MARGIN - ui::PILL_HEIGHT;
+constexpr int BUTTON_WIDTH = (INNER_WIDTH - GAP) / 2;
+constexpr int FILTER_LEFT = MARGIN;
+constexpr int SYNC_LEFT = MARGIN + BUTTON_WIDTH + GAP;
 constexpr int STATUS_HEIGHT = 24;
 constexpr int STATUS_TOP = BUTTON_TOP - 6 - STATUS_HEIGHT;
 constexpr int LIST_BOTTOM = STATUS_TOP - 6;
@@ -67,6 +71,18 @@ constexpr int MAX_ATTEMPTS = 6;
 constexpr size_t EXPECTED_ANSWER_BYTES = 384 * 1024;
 constexpr size_t MAX_ANSWER_BYTES = 1024 * 1024;
 constexpr size_t PROGRESS_STEP_BYTES = 64 * 1024;  // a redraw each time this much more has come
+
+// The filter screen: a row for each status, then played only, then the player count. Ten rows
+// of 56 with gaps of 4 fit between the caption and the bottom margin.
+constexpr int FILTER_ROW_HEIGHT = 56;
+constexpr int FILTER_ROWS = bgg::kStatusCount + 2;
+constexpr int PLAYED_ROW = bgg::kStatusCount;
+constexpr int PLAYERS_ROW = bgg::kStatusCount + 1;
+constexpr int BOX = 28;  // the on/off box at a row's right
+static_assert(LIST_TOP + FILTER_ROWS * (FILTER_ROW_HEIGHT + ui::ROW_GAP) - ui::ROW_GAP <= SCREEN_HEIGHT - MARGIN,
+              "the filter rows must fit above the bottom margin");
+
+int filterRowTop(int row) { return LIST_TOP + row * (FILTER_ROW_HEIGHT + ui::ROW_GAP); }
 
 constexpr int THUMB = 216;  // BGG's thumbnails are up to 200 x 150, so this leaves a border
 constexpr int THUMB_LEFT = (SCREEN_WIDTH - THUMB) / 2;
@@ -87,34 +103,42 @@ class PocketBgg final : public App {
     if (storage::ready()) storage::ensureFolder(bgg::kConfigFolder);
     if (loaded_) return;
     loaded_ = true;
+    loadFilter();
     showGames({});  // one empty page until a list is loaded or synced, so there's always a page 1
     loadList();
   }
 
   TapResult onTap(int x, int y) override {
+    if (view_ == View::Filters) return tapFilters(x, y);
     if (ui::isOnBack(x, y)) {
-      if (selected_ < 0) {
-        // A download has to stop before the radio can go off, so the first BACK asks it to,
-        // and the app stays until it has.
-        if (sync_ == Sync::Downloading || sync_ == Sync::Stopping) {
-          if (sync_ == Sync::Stopping) return TapResult::Nothing;
-          download::requestCancel();
-          sync_ = Sync::Stopping;
-          return TapResult::Redraw;
-        }
-        stopSync();
-        return TapResult::Leave;
+      if (view_ == View::Details) {
+        view_ = View::List;
+        return TapResult::RedrawFull;
       }
-      selected_ = -1;
+      // A download has to stop before the radio can go off, so the first BACK asks it to, and
+      // the app stays until it has.
+      if (sync_ == Sync::Downloading || sync_ == Sync::Stopping) {
+        if (sync_ == Sync::Stopping) return TapResult::Nothing;
+        download::requestCancel();
+        sync_ = Sync::Stopping;
+        return TapResult::Redraw;
+      }
+      stopSync();
+      return TapResult::Leave;
+    }
+    if (view_ == View::Details) return TapResult::Nothing;
+
+    if (ui::isInBox(x, y, SYNC_LEFT, BUTTON_TOP, BUTTON_WIDTH, ui::PILL_HEIGHT)) return startSync();
+    if (ui::isInBox(x, y, FILTER_LEFT, BUTTON_TOP, BUTTON_WIDTH, ui::PILL_HEIGHT)) {
+      if (games_.empty()) return TapResult::Nothing;
+      view_ = View::Filters;
       return TapResult::RedrawFull;
     }
-    if (selected_ >= 0) return TapResult::Nothing;
-
-    if (ui::isInBox(x, y, MARGIN, BUTTON_TOP, INNER_WIDTH, ui::PILL_HEIGHT)) return startSync();
 
     for (int row = firstRow(); row < endRow(); row++) {
       if (ui::isInBox(x, y, MARGIN, rowTop(row), INNER_WIDTH, heights_[row])) {
         selected_ = row;
+        view_ = View::Details;
         return TapResult::RedrawFull;
       }
     }
@@ -123,15 +147,21 @@ class PocketBgg final : public App {
 
   // Up and Down turn the list's pages, and do nothing past the first or last. On a game's
   // details they do nothing yet.
-  TapResult onUpPressed() override { return selected_ < 0 ? turnPage(-1) : TapResult::Nothing; }
-  TapResult onDownPressed() override { return selected_ < 0 ? turnPage(1) : TapResult::Nothing; }
+  TapResult onUpPressed() override { return view_ == View::List ? turnPage(-1) : TapResult::Nothing; }
+  TapResult onDownPressed() override { return view_ == View::List ? turnPage(1) : TapResult::Nothing; }
 
   void draw(uint8_t* frame) override {
     ui::drawBand(frame, name(), nullptr, true);
-    if (selected_ < 0) {
-      drawList(frame);
-    } else {
-      drawDetails(frame, games_[selected_]);
+    switch (view_) {
+      case View::List:
+        drawList(frame);
+        break;
+      case View::Details:
+        drawDetails(frame, games_[visible_[selected_]]);
+        break;
+      case View::Filters:
+        drawFilters(frame);
+        break;
     }
   }
 
@@ -193,22 +223,117 @@ class PocketBgg final : public App {
     }
   }
 
-  bool saveFailed() const override { return saveFailed_; }
-  void retrySave() override { saveList(); }
+  bool saveFailed() const override { return saveFailed_ || filterSaveFailed_; }
+  void retrySave() override {
+    if (saveFailed_) saveList();
+    if (filterSaveFailed_) saveFilter();
+  }
 
  private:
   int pageCount() const { return static_cast<int>(pages_.size()); }
   int firstRow() const { return pages_[page_]; }
-  int endRow() const { return page_ + 1 < pageCount() ? pages_[page_ + 1] : static_cast<int>(games_.size()); }
+  int endRow() const { return page_ + 1 < pageCount() ? pages_[page_ + 1] : static_cast<int>(visible_.size()); }
 
-  // A new list: every row measured once, then split into pages, back on the first.
+  enum class View { List, Details, Filters };
+
+  // A new collection, shown through the filter.
   void showGames(std::vector<bgg::Game> games) {
     games_ = std::move(games);
+    applyFilter();
+  }
+
+  // The games the filter lets through, each row measured once, then split into pages, back on
+  // the first. Rows count positions in visible_, which point into games_.
+  void applyFilter() {
+    visible_ = bgg::visibleGames(games_, filter_);
     heights_.clear();
-    for (const bgg::Game& game : games_) heights_.push_back(rowHeight(game));
+    for (const int i : visible_) heights_.push_back(rowHeight(games_[i]));
     pages_ = bgg::paginate(heights_, LIST_ROOM, ui::ROW_GAP);
     page_ = 0;
     selected_ = -1;
+    view_ = View::List;
+  }
+
+  // --- The filter screen ---
+
+  TapResult tapFilters(int x, int y) {
+    if (ui::isOnBack(x, y)) {
+      applyFilter();
+      return TapResult::RedrawFull;
+    }
+    for (int row = 0; row < FILTER_ROWS; row++) {
+      if (!ui::isInBox(x, y, MARGIN, filterRowTop(row), INNER_WIDTH, FILTER_ROW_HEIGHT)) continue;
+      if (row == PLAYED_ROW) {
+        filter_.playedOnly = !filter_.playedOnly;
+      } else if (row == PLAYERS_ROW) {
+        filter_.players = bgg::nextPlayers(filter_.players);
+      } else if (!bgg::toggleStatus(filter_, bgg::kStatusNames[row].flag)) {
+        return TapResult::Nothing;  // the last status chosen stays on
+      }
+      saveFilter();
+      return TapResult::Redraw;
+    }
+    return TapResult::Nothing;
+  }
+
+  void drawFilters(uint8_t* frame) const {
+    // How many games these choices show, so a change can be judged before leaving.
+    char caption[40];
+    const size_t shown = bgg::visibleGames(games_, filter_).size();
+    std::snprintf(caption, sizeof(caption), "SHOWING %u OF %u", static_cast<unsigned>(shown), static_cast<unsigned>(games_.size()));
+    ui::drawTextLeft(frame, Font::Size14, MARGIN, CAPTION_TOP, CAPTION_HEIGHT, caption);
+
+    char count[16];
+    for (int row = 0; row < bgg::kStatusCount; row++) {
+      const bgg::StatusName& status = bgg::kStatusNames[row];
+      std::snprintf(count, sizeof(count), "%d", bgg::countWithStatus(games_, status.flag));
+      drawFilterRow(frame, row, status.label, count, (filter_.statuses & status.flag) != 0);
+    }
+    drawFilterRow(frame, PLAYED_ROW, "PLAYED AT LEAST ONCE", "", filter_.playedOnly);
+
+    const int top = filterRowTop(PLAYERS_ROW);
+    drawRectOutline(frame, MARGIN, top, INNER_WIDTH, FILTER_ROW_HEIGHT, ui::HAIRLINE);
+    ui::drawTextLeft(frame, Font::Size20, MARGIN + ROW_INSET, top, FILTER_ROW_HEIGHT, "PLAYERS");
+    char players[8];
+    bgg::playersLabel(filter_.players, players, sizeof(players));
+    const int width = textWidth(Font::Size20, players);
+    ui::drawTextLeft(frame, Font::Size20, MARGIN + INNER_WIDTH - ROW_INSET - width, top, FILTER_ROW_HEIGHT, players);
+  }
+
+  // A label, a count beside the box, and the box: an outline when off, filled inside when on.
+  static void drawFilterRow(uint8_t* frame, int row, const char* label, const char* count, bool on) {
+    const int top = filterRowTop(row);
+    drawRectOutline(frame, MARGIN, top, INNER_WIDTH, FILTER_ROW_HEIGHT, ui::HAIRLINE);
+    ui::drawTextLeft(frame, Font::Size20, MARGIN + ROW_INSET, top, FILTER_ROW_HEIGHT, label);
+    const int boxLeft = MARGIN + INNER_WIDTH - ROW_INSET - BOX;
+    const int boxTop = top + (FILTER_ROW_HEIGHT - BOX) / 2;
+    if (count[0] != '\0') {
+      const int width = textWidth(Font::Size14, count);
+      ui::drawTextLeft(frame, Font::Size14, boxLeft - GAP - width, top, FILTER_ROW_HEIGHT, count);
+    }
+    drawRectOutline(frame, boxLeft, boxTop, BOX, BOX, ui::RULE);
+    if (on) fillRect(frame, boxLeft + 7, boxTop + 7, BOX - 14, BOX - 14, true);
+  }
+
+  void loadFilter() {
+    if (!storage::ready()) return;
+    uint8_t data[bgg::kFilterBytes];
+    uint8_t version = 0;
+    size_t size = 0;
+    if (storage::load(bgg::kFilterSave, version, data, sizeof(data), size) && !bgg::unpackFilter(version, data, size, filter_)) {
+      Serial.println("PocketBGG: ignoring the saved filter");
+    }
+  }
+
+  // On every change, as the save rules ask.
+  void saveFilter() {
+    if (!storage::ready()) {
+      filterSaveFailed_ = false;
+      return;
+    }
+    uint8_t data[bgg::kFilterBytes];
+    const size_t size = bgg::packFilter(filter_, data);
+    filterSaveFailed_ = !storage::save(bgg::kFilterSave, bgg::kFilterVersion, data, size);
   }
 
   // The rows stack from the top of the list, so a row's top is the sum of the ones above it on
@@ -472,10 +597,16 @@ class PocketBgg final : public App {
     // Size14, stepping down a cut for a long username rather than cutting it short.
     const Font font = textWidth(Font::Size14, status) <= INNER_WIDTH ? Font::Size14 : Font::Size10;
     drawTextInBox(frame, font, MARGIN, STATUS_TOP, INNER_WIDTH, STATUS_HEIGHT, status);
-    if (sync_ == Sync::Joining || sync_ == Sync::Waiting || sync_ == Sync::Downloading || sync_ == Sync::Stopping) {
-      ui::drawDimmedPill(frame, MARGIN, BUTTON_TOP, INNER_WIDTH, "SYNCING");
+    // FILTER is lesser, so outlined, and dimmed with nothing to filter.
+    if (games_.empty()) {
+      ui::drawDimmedPill(frame, FILTER_LEFT, BUTTON_TOP, BUTTON_WIDTH, "FILTER");
     } else {
-      ui::drawPill(frame, MARGIN, BUTTON_TOP, INNER_WIDTH, "SYNC", true);
+      ui::drawPill(frame, FILTER_LEFT, BUTTON_TOP, BUTTON_WIDTH, "FILTER", false);
+    }
+    if (sync_ == Sync::Joining || sync_ == Sync::Waiting || sync_ == Sync::Downloading || sync_ == Sync::Stopping) {
+      ui::drawDimmedPill(frame, SYNC_LEFT, BUTTON_TOP, BUTTON_WIDTH, "SYNCING");
+    } else {
+      ui::drawPill(frame, SYNC_LEFT, BUTTON_TOP, BUTTON_WIDTH, "SYNC", true);
     }
   }
 
@@ -486,12 +617,19 @@ class PocketBgg final : public App {
     return TapResult::Redraw;
   }
 
-  // How many games on the left, and which page this is on the right.
+  // How many games, "140 OF 203 GAMES" when the filter hides some, on the left, and which page
+  // this is on the right.
   void drawCaption(uint8_t* frame, bool withPage) const {
-    char count[24];
-    std::snprintf(count, sizeof(count), "%u %s", static_cast<unsigned>(games_.size()), games_.size() == 1 ? "GAME" : "GAMES");
+    char count[32];
+    const unsigned all = static_cast<unsigned>(games_.size());
+    const unsigned shown = static_cast<unsigned>(visible_.size());
+    if (shown == all) {
+      std::snprintf(count, sizeof(count), "%u %s", all, all == 1 ? "GAME" : "GAMES");
+    } else {
+      std::snprintf(count, sizeof(count), "%u OF %u %s", shown, all, all == 1 ? "GAME" : "GAMES");
+    }
     ui::drawTextLeft(frame, Font::Size14, MARGIN, CAPTION_TOP, CAPTION_HEIGHT, synced_ ? count : "NOT SYNCED");
-    if (!withPage || games_.empty()) return;
+    if (!withPage || visible_.empty()) return;
     char page[24];
     std::snprintf(page, sizeof(page), "PAGE %d OF %d", page_ + 1, pageCount());
     const int width = textWidth(Font::Size14, page);
@@ -500,14 +638,17 @@ class PocketBgg final : public App {
 
   void drawList(uint8_t* frame) const {
     drawCaption(frame, true);
-    if (games_.empty()) {
-      // Before the first sync, what to do; after one, that BGG had nothing.
-      const char* text = synced_ ? "YOUR BGG COLLECTION IS EMPTY." : "NO GAMES YET.\n\nPUT CONFIG.TXT IN /POCKETBGG ON THE CARD, THEN TAP SYNC.";
+    if (visible_.empty()) {
+      // Before the first sync, what to do; after one, that BGG had nothing, or the filter hides
+      // everything.
+      const char* text = !synced_         ? "NO GAMES YET.\n\nPUT CONFIG.TXT IN /POCKETBGG ON THE CARD, THEN TAP SYNC."
+                         : games_.empty() ? "YOUR BGG COLLECTION IS EMPTY."
+                                          : "NO GAMES MATCH THESE FILTERS.\n\nTAP FILTER TO CHANGE THEM.";
       const int height = wrappedHeight(Font::Size20, INNER_WIDTH, text);
       drawWrapped(frame, Font::Size20, MARGIN, LIST_TOP + (LIST_ROOM - height) / 2, INNER_WIDTH, text, Align::Center);
     }
     for (int row = firstRow(); row < endRow(); row++) {
-      const bgg::Game& game = games_[row];
+      const bgg::Game& game = games_[visible_[row]];
       const int top = rowTop(row);
       drawRectOutline(frame, MARGIN, top, INNER_WIDTH, heights_[row], ui::HAIRLINE);
       const int nameHeight = drawWrapped(frame, NAME_FONT, MARGIN + ROW_INSET, top + ROW_PAD_TOP, NAME_WIDTH, game.name.c_str());
@@ -565,10 +706,14 @@ class PocketBgg final : public App {
   bool synced_ = false;      // there's a collection, even an empty one
   uint32_t syncedAt_ = 0;    // when, in seconds since 1970 UTC
   bool saveFailed_ = false;
+  bgg::Filter filter_;  // owned only until the player chooses
+  bool filterSaveFailed_ = false;
+  std::vector<int> visible_;  // positions in games_ that the filter lets through
+  View view_ = View::List;
   std::vector<int> heights_;  // each row's height, measured once
   std::vector<int> pages_;    // the first row of each page
   int page_ = 0;
-  int selected_ = -1;  // the game whose details are showing, or -1 for the list
+  int selected_ = -1;  // the row, in visible_, whose details are showing
   Sync sync_ = Sync::Never;
   bgg::ConfigError configError_ = bgg::ConfigError::None;
   bgg::Config config_;         // the token is wiped as soon as it's in the header

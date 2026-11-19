@@ -5,15 +5,13 @@
 
 namespace pocketbgg {
 
+const StatusName kStatusNames[kStatusCount] = {
+    {kOwn, "OWNED"},           {kPreordered, "PREORDERED"}, {kForTrade, "FOR TRADE"}, {kWishlist, "WISHLIST"},
+    {kWantToBuy, "WANT TO BUY"}, {kWantToPlay, "WANT TO PLAY"}, {kWant, "WANT"},        {kPrevOwned, "PREV. OWNED"},
+};
+
 const char* statusLabel(uint16_t status) {
-  static const struct {
-    uint16_t flag;
-    const char* label;
-  } ORDER[] = {
-      {kOwn, "OWNED"},           {kPreordered, "PREORDERED"}, {kForTrade, "FOR TRADE"}, {kWishlist, "WISHLIST"},
-      {kWantToBuy, "WANT TO BUY"}, {kWantToPlay, "WANT TO PLAY"}, {kWant, "WANT"},        {kPrevOwned, "PREV. OWNED"},
-  };
-  for (const auto& entry : ORDER) {
+  for (const StatusName& entry : kStatusNames) {
     if (status & entry.flag) return entry.label;
   }
   return "";
