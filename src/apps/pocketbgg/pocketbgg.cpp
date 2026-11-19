@@ -3,14 +3,18 @@
 #include <Arduino.h>
 
 #include <cstdio>
+#include <cstring>
+#include <string>
 #include <vector>
 
 #include "core/clock.h"
 #include "core/download.h"
 #include "core/graphics.h"
 #include "core/network.h"
+#include "core/storage.h"
 #include "core/text.h"
 #include "pocketbgg_ca.h"
+#include "pocketbgg_config.h"
 #include "pocketbgg_list.h"
 #include "pocketbgg_sample.h"
 #include "ui/ui.h"
@@ -47,11 +51,12 @@ constexpr int STATUS_TOP = BUTTON_TOP - 6 - STATUS_HEIGHT;
 constexpr int LIST_BOTTOM = STATUS_TOP - 6;
 constexpr int LIST_ROOM = LIST_BOTTOM - LIST_TOP;
 
-// Until the collection download arrives (M5), a sync tests the certificate check: it asks BGG
-// for something small twice, with no token, first trusting BGG's real root and then a wrong
-// one. The first must reach BGG, which answers 401 for want of a token; the second must be
-// refused before a byte of HTTP is sent.
-constexpr const char* TEST_URL = "https://boardgamegeek.com/xmlapi2/thing?id=1";
+// Until the collection download arrives (M5), a sync checks the username and token on the card:
+// it asks BGG about that user, signed in with the token, over a connection whose certificate
+// must lead to BGG's root. The answer is small, and says both whether the token is accepted and
+// whether the user exists.
+constexpr const char* USER_URL = "https://boardgamegeek.com/xmlapi2/user?name=";
+constexpr size_t MAX_ANSWER_BYTES = 8192;  // a user answer is under 1 KB
 
 constexpr int THUMB = 216;  // BGG's thumbnails are up to 200 x 150, so this leaves a border
 constexpr int THUMB_LEFT = (SCREEN_WIDTH - THUMB) / 2;
@@ -67,6 +72,9 @@ class PocketBgg final : public App {
   const char* name() const override { return "POCKETBGG"; }
 
   void open() override {
+    // So the player can see where config.txt goes when the card is in a PC. Only the folder:
+    // the file is theirs to write.
+    if (storage::ready()) storage::ensureFolder(bgg::kConfigFolder);
     if (!heights_.empty()) return;
     for (int i = 0; i < bgg::kSampleCount; i++) heights_.push_back(rowHeight(bgg::kSampleGames[i]));
     pages_ = bgg::paginate(heights_, LIST_ROOM, ui::ROW_GAP);
@@ -116,27 +124,25 @@ class PocketBgg final : public App {
     }
   }
 
-  // Watches the test downloads, which run in their own task, and starts the next when one
-  // ends. Called every loop while the app is on screen; true asks for a redraw.
+  // Watches the request, which runs in its own task, and reads BGG's answer once it ends.
+  // Called every loop while the app is on screen; true asks for a redraw.
   bool update() override {
     if (sync_ != Sync::Working && sync_ != Sync::Stopping) return false;
     if (download::state() == download::State::Running) return false;
 
-    const int status = download::httpStatus();
     if (sync_ == Sync::Stopping) {
       finishSync(Sync::Never);
       return true;
     }
-    if (step_ == Step::RightRoot) {
-      rightRootStatus_ = status;
-      Serial.printf("PocketBGG: with BGG's root, HTTP %d\n", status);
-      step_ = Step::WrongRoot;
-      if (!startTest(bgg::kAmazonRootCa)) finishSync(Sync::Done);
-      return true;
+    status_ = download::httpStatus();
+    Serial.printf("PocketBGG: BGG answered HTTP %d, %u bytes\n", status_, static_cast<unsigned>(answer_.size()));
+    if (status_ == 200) {
+      finishSync(bgg::parseUserId(answer_.data(), answer_.size(), userId_) ? Sync::TokenOk : Sync::NoUser);
+    } else if (status_ == 401 || status_ == 403) {
+      finishSync(Sync::TokenRefused);
+    } else {
+      finishSync(Sync::Failed);
     }
-    wrongRootStatus_ = status;
-    Serial.printf("PocketBGG: with a wrong root, HTTP %d (0 means refused)\n", status);
-    finishSync(Sync::Done);
     return true;
   }
 
@@ -172,12 +178,17 @@ class PocketBgg final : public App {
     return top;
   }
 
-  enum class Sync { Never, Joining, Working, Stopping, Done, NoWifi, NoClock };
-  enum class Step { RightRoot, WrongRoot };
+  enum class Sync { Never, ConfigProblem, Joining, Working, Stopping, TokenOk, NoUser, TokenRefused, Failed, NoWifi, NoClock };
 
-  // SYNC: straight to work if Wi-Fi is already up, otherwise the Wi-Fi screen first.
+  // SYNC: the config first, so a missing or broken file never turns the radio on. Then straight
+  // to work if Wi-Fi is already up, otherwise the Wi-Fi screen first.
   TapResult startSync() {
     if (sync_ == Sync::Joining || sync_ == Sync::Working || sync_ == Sync::Stopping) return TapResult::Nothing;
+    configError_ = readConfig();
+    if (configError_ != bgg::ConfigError::None) {
+      sync_ = Sync::ConfigProblem;
+      return TapResult::Redraw;
+    }
     if (network::state() == network::State::Connected) {
       startWork();
       return TapResult::Redraw;
@@ -186,32 +197,68 @@ class PocketBgg final : public App {
     return TapResult::OpenWifi;
   }
 
+  // Read on each SYNC rather than at boot, so a corrected file counts at once, and the token is
+  // in memory only while it's needed.
+  bgg::ConfigError readConfig() {
+    size_t size = 0;
+    storage::Blob file = storage::readFile(bgg::kConfigPath, bgg::kMaxConfigBytes, size);
+    if (!file) {
+      // readFile() says nothing for a missing file and one too big, so look for it.
+      for (const std::string& name : storage::listFolder(bgg::kConfigFolder, 64)) {
+        if (strcasecmp(name.c_str(), bgg::kConfigFile) == 0) return bgg::ConfigError::Unreadable;
+      }
+      return bgg::ConfigError::Missing;
+    }
+    const bgg::ConfigError error = bgg::parseConfig(reinterpret_cast<const char*>(file.get()), size, config_);
+    std::memset(file.get(), 0, size);  // the file's copy of the token, before the memory is freed
+    if (error == bgg::ConfigError::None) {
+      // The token's length helps spot a bad paste; the token itself is never logged.
+      Serial.printf("PocketBGG config: username %s, token found (%u characters)\n", config_.username.c_str(),
+                    static_cast<unsigned>(config_.token.size()));
+    } else {
+      Serial.printf("PocketBGG config: %s\n", bgg::configErrorText(error));
+    }
+    return error;
+  }
+
   void startWork() {
     // A certificate is valid between two dates, so checking one needs the real date. Without
-    // it every certificate would look expired or not yet valid.
+    // it every certificate would look expired or not yet valid, and the token mustn't be sent
+    // unchecked.
     if (!wallClock::isSet()) {
       finishSync(Sync::NoClock);
       return;
     }
-    rightRootStatus_ = wrongRootStatus_ = -1;
-    step_ = Step::RightRoot;
-    sync_ = Sync::Working;
-    if (!startTest(bgg::kBggRootCa)) finishSync(Sync::Done);
-  }
+    url_ = std::string(USER_URL) + bgg::urlEncode(config_.username);
+    authorization_ = "Bearer " + config_.token;
+    bgg::wipe(config_.token);  // now only in the header
+    answer_.clear();
+    status_ = 0;
 
-  // The bytes BGG sends back aren't needed, only whether it answered.
-  static bool discard(void*, const uint8_t*, size_t) { return true; }
-  static void restart(void*) {}
-
-  bool startTest(const char* rootCa) {
     download::Options options;
-    options.rootCa = rootCa;
-    return download::start(TEST_URL, download::Sink{nullptr, discard, restart}, options);
+    options.rootCa = bgg::kBggRootCa;
+    options.headerName = "Authorization";
+    options.headerValue = authorization_.c_str();
+    sync_ = Sync::Working;
+    if (!download::start(url_.c_str(), download::Sink{this, keepAnswer, dropAnswer}, options)) finishSync(Sync::Failed);
   }
 
-  // Done with the network, so the radio goes off: a running radio drains the battery.
+  // The download task hands BGG's answer over here, in memory only: the card and panel share a
+  // bus, so nothing goes to the card from that task.
+  static bool keepAnswer(void* context, const uint8_t* data, size_t size) {
+    std::string& answer = static_cast<PocketBgg*>(context)->answer_;
+    if (answer.size() + size > MAX_ANSWER_BYTES) return false;
+    answer.append(reinterpret_cast<const char*>(data), size);
+    return true;
+  }
+  static void dropAnswer(void* context) { static_cast<PocketBgg*>(context)->answer_.clear(); }
+
+  // Done with the network, so the radio goes off: a running radio drains the battery. And done
+  // with the token.
   void finishSync(Sync result) {
     network::turnOff();
+    bgg::wipe(authorization_);
+    bgg::wipe(config_.token);
     sync_ = result;
   }
 
@@ -227,33 +274,44 @@ class PocketBgg final : public App {
         return "NOT SYNCED YET";
       case Sync::Joining:
         return "JOINING WI-FI";
+      case Sync::ConfigProblem:
+        return bgg::configErrorText(configError_);
       case Sync::Working:
-        return step_ == Step::RightRoot ? "CHECKING BGG'S CERTIFICATE" : "CHECKING A WRONG ROOT";
+        return "ASKING BGG ABOUT YOUR USER";
       case Sync::Stopping:
         return "STOPPING";
-      case Sync::Done: {
-        // Any HTTP answer means the certificate passed: the server spoke. 0 means refused.
-        char right[16], wrong[24];
-        if (rightRootStatus_ > 0) std::snprintf(right, sizeof(right), "HTTP %d", rightRootStatus_);
-        else if (rightRootStatus_ < 0) std::snprintf(right, sizeof(right), "NOT TRIED");
-        else std::snprintf(right, sizeof(right), "REFUSED");
-        if (wrongRootStatus_ == 0) std::snprintf(wrong, sizeof(wrong), "REFUSED");
-        else if (wrongRootStatus_ < 0) std::snprintf(wrong, sizeof(wrong), "NOT TRIED");
-        else std::snprintf(wrong, sizeof(wrong), "HTTP %d!", wrongRootStatus_);
-        std::snprintf(out, size, "BGG ROOT: %s. WRONG ROOT: %s", right, wrong);
+      case Sync::TokenOk:
+        return withName(out, size, "TOKEN OK FOR ", "TOKEN OK, USER FOUND");
+      case Sync::NoUser:
+        return withName(out, size, "BGG HAS NO USER ", "BGG HAS NO SUCH USER");
+      case Sync::TokenRefused:
+        std::snprintf(out, size, "BGG REFUSED THE TOKEN (HTTP %d)", status_);
         return out;
-      }
+      case Sync::Failed:
+        if (status_ == 0) return "NO ANSWER FROM BGG";
+        std::snprintf(out, size, "BGG ANSWERED HTTP %d", status_);
+        return out;
       case Sync::NoClock:
-        return "CLOCK NOT SET, SO NO CERTIFICATE CHECK";
+        return "CLOCK NOT SET: TOKEN NOT SENT";
       case Sync::NoWifi:
         return "NO WI-FI, SO NOT SYNCED";
     }
     return "";
   }
 
+  // A message naming the user, if it fits the status line in its smaller cut; a username can
+  // run to 64 characters, so otherwise the message goes without it.
+  const char* withName(char* out, size_t size, const char* lead, const char* without) const {
+    std::snprintf(out, size, "%s%s", lead, config_.username.c_str());
+    return textWidth(Font::Size10, out) <= INNER_WIDTH ? out : without;
+  }
+
   void drawActions(uint8_t* frame) const {
-    char buffer[64];
-    drawTextInBox(frame, Font::Size14, MARGIN, STATUS_TOP, INNER_WIDTH, STATUS_HEIGHT, statusText(buffer, sizeof(buffer)));
+    char buffer[96];
+    const char* status = statusText(buffer, sizeof(buffer));
+    // Size14, stepping down a cut for a long username rather than cutting it short.
+    const Font font = textWidth(Font::Size14, status) <= INNER_WIDTH ? Font::Size14 : Font::Size10;
+    drawTextInBox(frame, font, MARGIN, STATUS_TOP, INNER_WIDTH, STATUS_HEIGHT, status);
     if (sync_ == Sync::Joining || sync_ == Sync::Working || sync_ == Sync::Stopping) {
       ui::drawDimmedPill(frame, MARGIN, BUTTON_TOP, INNER_WIDTH, "SYNCING");
     } else {
@@ -319,9 +377,13 @@ class PocketBgg final : public App {
   int page_ = 0;
   int selected_ = -1;  // the game whose details are showing, or -1 for the list
   Sync sync_ = Sync::Never;
-  Step step_ = Step::RightRoot;
-  int rightRootStatus_ = -1;  // HTTP status of each test: 0 refused, -1 not tried
-  int wrongRootStatus_ = -1;
+  bgg::ConfigError configError_ = bgg::ConfigError::None;
+  bgg::Config config_;         // the token is wiped as soon as it's in the header
+  std::string url_;            // these three must outlive the download
+  std::string authorization_;  // "Bearer <token>", wiped when the request ends
+  std::string answer_;
+  int status_ = 0;
+  uint32_t userId_ = 0;
 };
 
 }  // namespace
