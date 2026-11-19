@@ -33,7 +33,7 @@ An app gets taps, Up and Down, and `update()`, as on the device, so `press:`, `h
 **README screenshots:** `tools/preview/screenshots.sh` draws the screenshot in every game's and app's `README.md`: a screen of it being played, saved as `screenshot.png` in its folder. Each game has one line in the script, with the commands that reach that screen. Run it after changing a screen, for all of them or for named folders (`tools/preview/screenshots.sh sudoku apps/calculator`), and look at what changed before committing. Games that need downloaded or card data get made-up data from `screenshot_data.py`: one Wordle answer, one Connections puzzle, Last Piece's example challenges and Think Alike's starter questions. Sudoku and Grid Gambit make a new puzzle each run, and Wordle and Word Ladder show the PC's date, so those screenshots change every time.
 
 **Limits:**
-- It links `core/graphics`, `core/text`, all of `ui/` (the keyboard too) and the game's folder. `net_stub.cpp` stands in for `core/network` and `core/download`: Wi-Fi is never connected, so a download stops at its Wi-Fi step. The clock is the PC's.
+- It links `core/graphics`, `core/text`, all of `ui/` (the keyboard too) and the game's folder. `net_stub.cpp` stands in for `core/network`, `core/download` and the clock's `isSet()`: Wi-Fi is never connected, so a download stops at its Wi-Fi step, and the clock counts as set. The clock is the PC's.
 - A game's downloaded data can be put on the in-memory card before the game opens. `PREVIEW_BLOB_<name>=<file>` loads a file as the blob `<name>`, with `_` in the name read as `-`:
 
   ```bash
