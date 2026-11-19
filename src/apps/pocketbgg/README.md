@@ -2,7 +2,7 @@
 
 Your BoardGameGeek collection, to browse on the device.
 
-**Work in progress.** It can't sync yet, so it shows sample games, marked `SAMPLE DATA` at the top. Five of them are real BGG games, chosen to test long names and unusual years; the rest are made up.
+**Work in progress.** Until you sync, it shows sample games, marked `SAMPLE DATA` at the top. Five of them are real BGG games, chosen to test long names and unusual years; the rest are made up.
 
 ## Setting up
 
@@ -24,10 +24,10 @@ If `SYNC` doesn't get as far as Wi-Fi, the line above it says what's wrong with 
 
 ## Getting around
 
-- The list shows each game's name, with the year and how many times it's been played under it. Long names wrap onto a second line rather than being cut short.
+- The list shows each game's name, with the year, how many times it's been played and its status under it, such as `OWNED` or `WISHLIST`. Long names wrap onto a second line rather than being cut short.
 - The Up and Down buttons turn the pages. `PAGE 1 OF 4` at the top says where you are.
-- `SYNC` will download your collection. For now it checks your username and token: it joins Wi-Fi, opening the Wi-Fi screen if it isn't already connected, asks BGG about your user, and turns the radio off again. The line above it says how it went, such as `TOKEN OK FOR ALICE`. `BACK` while it's asking stops it first.
-- Tap a game to see its details. `BACK` returns to the same page of the list.
+- `SYNC` downloads your whole collection from BGG: every game with any status (owned, wishlist, previously owned and the rest), expansions included. It joins Wi-Fi, opening the Wi-Fi screen if it isn't already connected, and turns the radio off again when it's done. BGG often answers "preparing it" first, so it waits 5 seconds and asks again, up to 6 times. The line above it says how it's going. `BACK` while it's downloading stops it first. For now the collection is kept only while PocketBGG is open.
+- Tap a game to see its details, with its player count and play time. `BACK` returns to the same page of the list.
 - `BACK` on the list returns to the APPS page.
 
 ## Saves

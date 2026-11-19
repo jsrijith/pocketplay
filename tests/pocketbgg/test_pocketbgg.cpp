@@ -19,6 +19,15 @@ void check(bool ok, const char* what) {
   }
 }
 
+Game make(int16_t year, uint16_t plays, uint16_t status = 0) {
+  Game g;
+  g.name = "A";
+  g.year = year;
+  g.plays = plays;
+  g.status = status;
+  return g;
+}
+
 bool describes(const Game& game, const char* expected) {
   char out[40];
   describe(game, out, sizeof(out));
@@ -28,12 +37,36 @@ bool describes(const Game& game, const char* expected) {
 }
 
 void testDescribe() {
-  check(describes({1, "A", 2020, 33}, "2020  -  33 PLAYS"), "a year and plays");
-  check(describes({1, "A", 2019, 1}, "2019  -  1 PLAY"), "one play is singular");
-  check(describes({1, "A", 2017, 0}, "2017  -  0 PLAYS"), "no plays yet");
-  check(describes({1, "A", -1400, 3}, "1400 BC  -  3 PLAYS"), "a year BC");
-  check(describes({1, "A", kNoYear, 2}, "2 PLAYS"), "no year leaves the year out");
-  check(describes({1, "A", 2020, 65535}, "2020  -  65535 PLAYS"), "the most plays a game can hold");
+  check(describes(make(2020, 33), "2020  -  33 PLAYS"), "a year and plays");
+  check(describes(make(2019, 1), "2019  -  1 PLAY"), "one play is singular");
+  check(describes(make(2017, 0), "2017  -  0 PLAYS"), "no plays yet");
+  check(describes(make(-1400, 3), "1400 BC  -  3 PLAYS"), "a year BC");
+  check(describes(make(kNoYear, 2), "2 PLAYS"), "no year leaves the year out");
+  check(describes(make(2020, 65535), "2020  -  65535 PLAYS"), "the most plays a game can hold");
+  check(describes(make(2020, 33, kOwn), "2020  -  33 PLAYS  -  OWNED"), "an owned game says so");
+  check(describes(make(kNoYear, 0, kWishlist), "0 PLAYS  -  WISHLIST"), "a wishlist game with no year");
+}
+
+void testStatus() {
+  check(std::strcmp(statusLabel(0), "") == 0, "no status, no label");
+  check(std::strcmp(statusLabel(kOwn | kForTrade), "OWNED") == 0, "owned comes before for trade");
+  check(std::strcmp(statusLabel(kPrevOwned | kWishlist), "WISHLIST") == 0, "wishlist comes before previously owned");
+  check(std::strcmp(statusLabel(kWant | kWantToPlay), "WANT TO PLAY") == 0, "want to play comes before want");
+  check(std::strcmp(statusLabel(kPrevOwned), "PREV. OWNED") == 0, "previously owned alone");
+}
+
+void testSort() {
+  std::vector<Game> games(4);
+  games[0].name = "Zeus on the Loose";
+  games[1].name = "The Crew";
+  games[1].sortSkip = 4;  // BGG's sortindex 5
+  games[2].name = "azul";
+  games[3].name = "Crew";
+  games[3].year = 1990;
+  games[1].year = 2019;
+  sortGames(games);
+  check(games[0].name == "azul" && games[1].name == "Crew" && games[2].name == "The Crew" && games[3].name == "Zeus on the Loose",
+        "by name, ignoring case and The, then by year");
 }
 
 void testPaginate() {
@@ -52,10 +85,11 @@ void testPaginate() {
 // The sample has every row on exactly one page, in order, whatever heights the screen measures.
 void testSampleCovered() {
   std::vector<int> heights;
-  for (int i = 0; i < kSampleCount; i++) heights.push_back(70 + (i % 3) * 42);
+  const int count = static_cast<int>(sampleGames().size());
+  for (int i = 0; i < count; i++) heights.push_back(70 + (i % 3) * 42);
   const std::vector<int> pages = paginate(heights, 572, 4);
   bool ordered = pages[0] == 0;
-  for (size_t p = 1; p < pages.size(); p++) ordered = ordered && pages[p] > pages[p - 1] && pages[p] < kSampleCount;
+  for (size_t p = 1; p < pages.size(); p++) ordered = ordered && pages[p] > pages[p - 1] && pages[p] < count;
   check(ordered && pages.size() > 1, "the sample splits into several pages, each starting after the last");
 }
 
@@ -63,6 +97,8 @@ void testSampleCovered() {
 
 int main() {
   testDescribe();
+  testStatus();
+  testSort();
   testPaginate();
   testSampleCovered();
   if (failures) {

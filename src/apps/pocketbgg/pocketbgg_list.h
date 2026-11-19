@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 // A collection of games, and how it splits into pages. No screen or card, so it can be tested
@@ -10,16 +11,44 @@ namespace pocketbgg {
 
 constexpr int16_t kNoYear = INT16_MIN;  // BGG sends no year for some games
 
-struct Game {
-  uint32_t id;       // BGG's objectid for the game
-  const char* name;  // ASCII: PocketPlay's font draws nothing else
-  int16_t year;      // negative is BC, as BGG has Nine Men's Morris at -1400
-  uint16_t plays;
+// A game's place in the collection, as BGG's <status> flags. A game can have several.
+enum Status : uint16_t {
+  kOwn = 1 << 0,
+  kPrevOwned = 1 << 1,
+  kForTrade = 1 << 2,
+  kWant = 1 << 3,
+  kWantToPlay = 1 << 4,
+  kWantToBuy = 1 << 5,
+  kWishlist = 1 << 6,
+  kPreordered = 1 << 7,
 };
 
-// The line under a game's name, such as "2020  -  33 PLAYS", "1400 BC  -  3 PLAYS", or
-// "1 PLAY" when there's no year.
+struct Game {
+  uint32_t id = 0;       // BGG's objectid for the game
+  uint32_t collId = 0;   // this copy's id in the collection, which a delta sync matches on
+  std::string name;      // ASCII: PocketPlay's font draws nothing else
+  uint8_t sortSkip = 0;  // leading characters to skip when sorting, such as "The " in The Crew
+  int16_t year = kNoYear;  // negative is BC, as BGG has Nine Men's Morris at -1400
+  uint16_t plays = 0;
+  uint8_t minPlayers = 0;  // 0 when BGG doesn't say
+  uint8_t maxPlayers = 0;
+  uint16_t playTime = 0;   // minutes, 0 when BGG doesn't say
+  uint16_t status = 0;     // Status flags
+  std::string thumbnail;   // its URL, for M6
+  std::string lastModified;  // "YYYY-MM-DD HH:MM:SS", as BGG sends it
+};
+
+// The status to show for a game: the first of owned, preordered, for trade, wishlist, want to
+// buy, want to play, want, previously owned. Empty if none.
+const char* statusLabel(uint16_t status);
+
+// The line under a game's name, such as "2020  -  33 PLAYS  -  OWNED", "1400 BC  -  3 PLAYS",
+// or "1 PLAY" when there's no year and no status.
 void describe(const Game& game, char* out, size_t size);
+
+// By name, ignoring case and the leading characters BGG says to skip, then by year, so the list
+// reads as BGG's collection page does.
+void sortGames(std::vector<Game>& games);
 
 // Splits rows of the given heights into pages, each holding as many whole rows as fit in `room`
 // with `gap` between them. Returns the first row of each page. A row taller than the room gets
