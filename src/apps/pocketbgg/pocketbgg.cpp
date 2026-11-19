@@ -5,6 +5,7 @@
 #include <atomic>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 #include <string>
 #include <vector>
 
@@ -18,7 +19,7 @@
 #include "pocketbgg_collection.h"
 #include "pocketbgg_config.h"
 #include "pocketbgg_list.h"
-#include "pocketbgg_sample.h"
+#include "pocketbgg_save.h"
 #include "ui/ui.h"
 
 namespace bgg = pocketbgg;
@@ -61,9 +62,9 @@ constexpr const char* COLLECTION_URL = "https://boardgamegeek.com/xmlapi2/collec
 // wait. One retry has been enough so far; six covers a busy day.
 constexpr uint32_t RETRY_WAIT_MS = 5000;
 constexpr int MAX_ATTEMPTS = 6;
-// The answer goes to PSRAM: malloc puts anything over 4 KB there. 143 games came to 192 KB with
-// only owned games, so this reserves room for more and stops at 1 MB, about 750 games.
-constexpr size_t EXPECTED_ANSWER_BYTES = 256 * 1024;
+// The answer goes to PSRAM: malloc puts anything over 4 KB there. 203 games came to 274 KB, so
+// this reserves room for more and stops at 1 MB, about 750 games.
+constexpr size_t EXPECTED_ANSWER_BYTES = 384 * 1024;
 constexpr size_t MAX_ANSWER_BYTES = 1024 * 1024;
 constexpr size_t PROGRESS_STEP_BYTES = 64 * 1024;  // a redraw each time this much more has come
 
@@ -84,8 +85,10 @@ class PocketBgg final : public App {
     // So the player can see where config.txt goes when the card is in a PC. Only the folder:
     // the file is theirs to write.
     if (storage::ready()) storage::ensureFolder(bgg::kConfigFolder);
-    if (!heights_.empty()) return;
-    showGames(bgg::sampleGames());
+    if (loaded_) return;
+    loaded_ = true;
+    showGames({});  // one empty page until a list is loaded or synced, so there's always a page 1
+    loadList();
   }
 
   TapResult onTap(int x, int y) override {
@@ -190,9 +193,8 @@ class PocketBgg final : public App {
     }
   }
 
-  // Nothing is saved yet: the games are made up, so there's nothing worth keeping.
-  bool saveFailed() const override { return false; }
-  void retrySave() override {}
+  bool saveFailed() const override { return saveFailed_; }
+  void retrySave() override { saveList(); }
 
  private:
   int pageCount() const { return static_cast<int>(pages_.size()); }
@@ -308,6 +310,46 @@ class PocketBgg final : public App {
     if (!download::start(url_.c_str(), download::Sink{this, keepAnswer, dropAnswer}, options)) finishSync(Sync::Failed);
   }
 
+  // The list as it was last synced, from the card, with no network. A damaged save is ignored,
+  // so the app starts empty rather than half-restored.
+  void loadList() {
+    if (!storage::ready()) return;
+    size_t size = 0;
+    const storage::Blob blob = storage::loadBlob(bgg::kListSave, size);
+    if (!blob) return;
+    bgg::SavedList list;
+    if (!bgg::unpackList(blob.get(), size, list)) {
+      Serial.println("PocketBGG: ignoring the saved list, which couldn't be read");
+      return;
+    }
+    Serial.printf("PocketBGG: %u games from the card, %u bytes\n", static_cast<unsigned>(list.games.size()), static_cast<unsigned>(size));
+    syncedAt_ = list.syncedAt;
+    synced_ = true;
+    showGames(std::move(list.games));
+  }
+
+  // Straight after a sync, in loop(): the card shares the panel's bus, so nothing is written from
+  // the download task. saveBlob() writes a temp file, reads it back and then replaces the old
+  // one, so a power cut leaves the old list or the new, never a broken one.
+  void saveList() {
+    if (!storage::ready()) {
+      saveFailed_ = false;
+      return;
+    }
+    bgg::SavedList list;
+    list.syncedAt = syncedAt_;
+    list.games = games_;
+    std::vector<uint8_t> bytes;
+    if (!bgg::packList(list, bytes)) {
+      // Something the parser let through that the save can't hold. Kept on screen, not saved.
+      Serial.println("PocketBGG: the list couldn't be packed to save");
+      saveFailed_ = true;
+      return;
+    }
+    saveFailed_ = !storage::saveBlob(bgg::kListSave, bytes.data(), bytes.size());
+    Serial.printf("PocketBGG: saved %u bytes%s\n", static_cast<unsigned>(bytes.size()), saveFailed_ ? ", FAILED" : "");
+  }
+
   // In loop(), once the download has ended: the parse is quick (7 ms for 143 games on a PC), so
   // it runs here rather than in a task of its own.
   void readCollection() {
@@ -320,6 +362,9 @@ class PocketBgg final : public App {
                       static_cast<unsigned>(collection.totalItems));
         showGames(std::move(collection.games));
         synced_ = true;
+        // The clock is set: the certificate check needed it.
+        syncedAt_ = static_cast<uint32_t>(std::time(nullptr));
+        saveList();
         finishSync(Sync::Synced);
         return;
       case bgg::ParseResult::BgError:
@@ -366,10 +411,21 @@ class PocketBgg final : public App {
     finishSync(Sync::Never);
   }
 
+  // "SYNCED 20 NOV, 22:53", in the time zone chosen in Settings.
+  const char* syncedText(char* out, size_t size) const {
+    if (syncedAt_ == 0) return "SYNCED";
+    static const char* const MONTHS[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+    const time_t when = static_cast<time_t>(syncedAt_);
+    tm local{};
+    localtime_r(&when, &local);
+    std::snprintf(out, size, "SYNCED %d %s, %02d:%02d", local.tm_mday, MONTHS[local.tm_mon % 12], local.tm_hour, local.tm_min);
+    return out;
+  }
+
   const char* statusText(char* out, size_t size) const {
     switch (sync_) {
       case Sync::Never:
-        return "NOT SYNCED YET";
+        return synced_ ? syncedText(out, size) : "NOT SYNCED YET";
       case Sync::Joining:
         return "JOINING WI-FI";
       case Sync::ConfigProblem:
@@ -387,8 +443,7 @@ class PocketBgg final : public App {
       case Sync::Stopping:
         return "STOPPING";
       case Sync::Synced:
-        std::snprintf(out, size, "SYNCED %u GAMES", static_cast<unsigned>(games_.size()));
-        return out;
+        return syncedText(out, size);
       case Sync::StillQueued:
         return "BGG IS STILL PREPARING IT. TRY AGAIN SOON";
       case Sync::BgError:
@@ -431,13 +486,12 @@ class PocketBgg final : public App {
     return TapResult::Redraw;
   }
 
-  // How many games, or "SAMPLE DATA" before the first sync so made-up games are never taken
-  // for a real collection, and which page this is on the right.
+  // How many games on the left, and which page this is on the right.
   void drawCaption(uint8_t* frame, bool withPage) const {
     char count[24];
-    if (synced_) std::snprintf(count, sizeof(count), "%u GAMES", static_cast<unsigned>(games_.size()));
-    ui::drawTextLeft(frame, Font::Size14, MARGIN, CAPTION_TOP, CAPTION_HEIGHT, synced_ ? count : "SAMPLE DATA");
-    if (!withPage) return;
+    std::snprintf(count, sizeof(count), "%u %s", static_cast<unsigned>(games_.size()), games_.size() == 1 ? "GAME" : "GAMES");
+    ui::drawTextLeft(frame, Font::Size14, MARGIN, CAPTION_TOP, CAPTION_HEIGHT, synced_ ? count : "NOT SYNCED");
+    if (!withPage || games_.empty()) return;
     char page[24];
     std::snprintf(page, sizeof(page), "PAGE %d OF %d", page_ + 1, pageCount());
     const int width = textWidth(Font::Size14, page);
@@ -446,12 +500,18 @@ class PocketBgg final : public App {
 
   void drawList(uint8_t* frame) const {
     drawCaption(frame, true);
+    if (games_.empty()) {
+      // Before the first sync, what to do; after one, that BGG had nothing.
+      const char* text = synced_ ? "YOUR BGG COLLECTION IS EMPTY." : "NO GAMES YET.\n\nPUT CONFIG.TXT IN /POCKETBGG ON THE CARD, THEN TAP SYNC.";
+      const int height = wrappedHeight(Font::Size20, INNER_WIDTH, text);
+      drawWrapped(frame, Font::Size20, MARGIN, LIST_TOP + (LIST_ROOM - height) / 2, INNER_WIDTH, text, Align::Center);
+    }
     for (int row = firstRow(); row < endRow(); row++) {
       const bgg::Game& game = games_[row];
       const int top = rowTop(row);
       drawRectOutline(frame, MARGIN, top, INNER_WIDTH, heights_[row], ui::HAIRLINE);
       const int nameHeight = drawWrapped(frame, NAME_FONT, MARGIN + ROW_INSET, top + ROW_PAD_TOP, NAME_WIDTH, game.name.c_str());
-      char meta[40];
+      char meta[64];
       bgg::describe(game, meta, sizeof(meta));
       ui::drawTextLeft(frame, META_FONT, MARGIN + ROW_INSET, top + ROW_PAD_TOP + nameHeight, META_HEIGHT, meta);
     }
@@ -469,7 +529,7 @@ class PocketBgg final : public App {
     if (wrappedHeight(font, INNER_WIDTH, game.name.c_str()) > 3 * lineHeight(font)) font = Font::Size20;
     const int nameHeight = drawWrapped(frame, font, MARGIN, DETAIL_NAME_TOP, INNER_WIDTH, game.name.c_str(), Align::Center);
 
-    char meta[40];
+    char meta[64];
     bgg::describe(game, meta, sizeof(meta));
     const int metaTop = DETAIL_NAME_TOP + nameHeight + GAP;
     const Font metaFont = textWidth(Font::Size20, meta) <= INNER_WIDTH ? Font::Size20 : Font::Size14;
@@ -500,8 +560,11 @@ class PocketBgg final : public App {
     return true;
   }
 
-  std::vector<bgg::Game> games_;  // the sample until the first sync, then the collection
-  bool synced_ = false;
+  std::vector<bgg::Game> games_;  // the collection, from the card or the last sync
+  bool loaded_ = false;
+  bool synced_ = false;      // there's a collection, even an empty one
+  uint32_t syncedAt_ = 0;    // when, in seconds since 1970 UTC
+  bool saveFailed_ = false;
   std::vector<int> heights_;  // each row's height, measured once
   std::vector<int> pages_;    // the first row of each page
   int page_ = 0;

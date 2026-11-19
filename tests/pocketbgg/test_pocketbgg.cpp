@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "pocketbgg_list.h"
-#include "pocketbgg_sample.h"
 
 using namespace pocketbgg;
 
@@ -82,15 +81,16 @@ void testPaginate() {
   check(paginate({50, 400, 50}, 300, 4) == std::vector<int>({0, 1, 2}), "a row too tall for the room gets a page of its own");
 }
 
-// The sample has every row on exactly one page, in order, whatever heights the screen measures.
-void testSampleCovered() {
+// A collection's rows land on pages in order, each page starting after the last, whatever
+// heights the screen measures.
+void testManyRows() {
   std::vector<int> heights;
-  const int count = static_cast<int>(sampleGames().size());
+  const int count = 203;
   for (int i = 0; i < count; i++) heights.push_back(70 + (i % 3) * 42);
   const std::vector<int> pages = paginate(heights, 572, 4);
   bool ordered = pages[0] == 0;
   for (size_t p = 1; p < pages.size(); p++) ordered = ordered && pages[p] > pages[p - 1] && pages[p] < count;
-  check(ordered && pages.size() > 1, "the sample splits into several pages, each starting after the last");
+  check(ordered && pages.size() > 1, "203 rows split into several pages, each starting after the last");
 }
 
 }  // namespace
@@ -100,7 +100,7 @@ int main() {
   testStatus();
   testSort();
   testPaginate();
-  testSampleCovered();
+  testManyRows();
   if (failures) {
     std::printf("pocketbgg: %d failed\n", failures);
     return 1;
