@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<items totalitems="5" termsofuse="https://boardgamegeek.com/xmlapi/termsofuse" pubdate="Thu, 19 Nov 2026 15:32:40 +0000">
+		<item objecttype="thing" objectid="310953" subtype="boardgame" collid="98065238">
+	<name sortindex="1">Pokémon Trading Card Game: Battle Academy</name>
+		<yearpublished>2020</yearpublished>			<image>https://cf.geekdo-images.com/i31-zA-O2NTo_pxN6xA7hQ__original/img/ZQ0ex0VfI8N09YIT2s3tp_K4WC4=/0x0/filters:format(jpeg)/pic5575798.jpg</image>
+		<thumbnail>https://cf.geekdo-images.com/i31-zA-O2NTo_pxN6xA7hQ__small/img/C-STnVEILe4Xbjd_cpf9cQq_-J0=/fit-in/200x150/filters:strip_icc()/pic5575798.jpg</thumbnail>
+		<stats minplayers="2"																	maxplayers="2"																	minplaytime="20"																	maxplaytime="45"																	playingtime="45"																	numowned="2742" >
+				<rating value="N/A">			<usersrated value="744" />			<average value="6.85439" />
+			<bayesaverage value="5.79626" />			<stddev value="1.3504" />
+			<median value="0" />			<ranks>
+												<rank type="subtype" id="1" name="boardgame" friendlyname="Board Game Rank" value="4931" bayesaverage="5.79626" />
+																<rank type="family" id="4667" name="cgs" friendlyname="Customizable Rank" value="118" bayesaverage="6.27861" />
+											</ranks>		</rating>
+			</stats>	<status own="1" prevowned="0" fortrade="0" want="0" wanttoplay="0" wanttobuy="0" wishlist="0"  preordered="0" lastmodified="2022-09-24 21:48:12" />
+	<numplays>33</numplays>							</item>
+		<item objecttype="thing" objectid="301919" subtype="boardgame" collid="88805793">
+	<name sortindex="1">Pandemic: Hot Zone – North America</name>
+		<yearpublished>2020</yearpublished>			<image>https://cf.geekdo-images.com/U9OFkdvdz3cKe7d48iP65Q__original/img/zZJwKHM4LoIBQy1_R4cFnwo-Cy0=/0x0/filters:format(png)/pic5483300.png</image>
+		<thumbnail>https://cf.geekdo-images.com/U9OFkdvdz3cKe7d48iP65Q__small/img/UWCsCXNVcdaTeqcJD9xp2hm76Ks=/fit-in/200x150/filters:strip_icc()/pic5483300.png</thumbnail>
+		<stats minplayers="2"																	maxplayers="4"																	minplaytime="30"																	maxplaytime="30"																	playingtime="30"																	numowned="10063" >
+				<rating value="N/A">			<usersrated value="2710" />			<average value="6.95473" />
+			<bayesaverage value="6.2358" />			<stddev value="1.23364" />
+			<median value="0" />			<ranks>
+												<rank type="subtype" id="1" name="boardgame" friendlyname="Board Game Rank" value="2127" bayesaverage="6.2358" />
+																<rank type="family" id="5499" name="familygames" friendlyname="Family Game Rank" value="656" bayesaverage="6.35612" />
+											</ranks>		</rating>
+			</stats>	<status own="1" prevowned="0" fortrade="0" want="0" wanttoplay="0" wanttobuy="0" wishlist="0"  preordered="0" lastmodified="2021-12-20 23:07:48" />
+	<numplays>5</numplays>							</item>
+		<item objecttype="thing" objectid="3886" subtype="boardgame" collid="72862049">
+	<name sortindex="1">Nine Men&#039;s Morris</name>
+		<yearpublished>-1400</yearpublished>			<image>https://cf.geekdo-images.com/_42qt4-sUNP6niR_H3l5iA__original/img/RvZnNGpEfluy1go0Spu8l2iDAMQ=/0x0/filters:format(png)/pic2204355.png</image>
+		<thumbnail>https://cf.geekdo-images.com/_42qt4-sUNP6niR_H3l5iA__small/img/6UM6xk1c_vwhcBKaQJ5jYN_06ec=/fit-in/200x150/filters:strip_icc()/pic2204355.png</thumbnail>
+		<stats minplayers="2"																	maxplayers="2"																	minplaytime="20"																	maxplaytime="20"																	playingtime="20"																	numowned="2572" >
+				<rating value="N/A">			<usersrated value="1958" />			<average value="5.39216" />
+			<bayesaverage value="5.42038" />			<stddev value="1.64168" />
+			<median value="0" />			<ranks>
+												<rank type="subtype" id="1" name="boardgame" friendlyname="Board Game Rank" value="31486" bayesaverage="5.42038" />
+																<rank type="family" id="4666" name="abstracts" friendlyname="Abstract Game Rank" value="1489" bayesaverage="5.26086" />
+											</ranks>		</rating>
+			</stats>	<status own="1" prevowned="0" fortrade="0" want="0" wanttoplay="0" wanttobuy="0" wishlist="0"  preordered="0" lastmodified="2020-07-20 10:33:11" />
+	<numplays>3</numplays>							</item>
+		<item objecttype="thing" objectid="270673" subtype="boardgame" collid="87921128">
+	<name sortindex="1">Silver &amp; Gold</name>
+		<yearpublished>2019</yearpublished>			<image>https://cf.geekdo-images.com/a6DA19Zb8GLJ3wxyamCiJw__original/img/0VTXqGyyc0PC_-AdDcOIllSQDMg=/0x0/filters:format(jpeg)/pic6974604.jpg</image>
+		<thumbnail>https://cf.geekdo-images.com/a6DA19Zb8GLJ3wxyamCiJw__small/img/YVYnsMuksuud8E7DfNenfuH5jis=/fit-in/200x150/filters:strip_icc()/pic6974604.jpg</thumbnail>
+		<stats minplayers="2"																	maxplayers="4"																	minplaytime="20"																	maxplaytime="20"																	playingtime="20"																	numowned="17475" >
+				<rating value="N/A">			<usersrated value="9145" />			<average value="7.15364" />
+			<bayesaverage value="6.79462" />			<stddev value="1.10749" />
+			<median value="0" />			<ranks>
+												<rank type="subtype" id="1" name="boardgame" friendlyname="Board Game Rank" value="771" bayesaverage="6.79462" />
+																<rank type="family" id="5499" name="familygames" friendlyname="Family Game Rank" value="195" bayesaverage="6.88843" />
+											</ranks>		</rating>
+			</stats>	<status own="1" prevowned="0" fortrade="0" want="0" wanttoplay="0" wanttobuy="0" wishlist="0"  preordered="0" lastmodified="2022-01-09 01:46:51" />
+	<numplays>6</numplays>							</item>
+		<item objecttype="thing" objectid="102750" subtype="boardgame" collid="73015358">
+	<name sortindex="1">Math Dice Jr.</name>
+					<image>https://cf.geekdo-images.com/81jECP6XAgs96Z1xol4Lqg__original/img/xPgUE-EQKWZKmIXj3VDKfmk9o5k=/0x0/filters:format(jpeg)/pic2047428.jpg</image>
+		<thumbnail>https://cf.geekdo-images.com/81jECP6XAgs96Z1xol4Lqg__small/img/GuaHwgGe_SoGOlfHn5oqbF9ibGg=/fit-in/200x150/filters:strip_icc()/pic2047428.jpg</thumbnail>
+		<stats minplayers="2"																																		minplaytime="10"																	maxplaytime="10"																	playingtime="10"																	numowned="317" >
+				<rating value="N/A">			<usersrated value="62" />			<average value="5.40665" />
+			<bayesaverage value="5.49755" />			<stddev value="1.36973" />
+			<median value="0" />			<ranks>
+												<rank type="subtype" id="1" name="boardgame" friendlyname="Board Game Rank" value="27464" bayesaverage="5.49755" />
+											</ranks>		</rating>
+			</stats>	<status own="1" prevowned="0" fortrade="0" want="0" wanttoplay="0" wanttobuy="0" wishlist="0"  preordered="0" lastmodified="2020-07-26 01:25:08" />
+	<numplays>2</numplays>							</item>
+</items>
