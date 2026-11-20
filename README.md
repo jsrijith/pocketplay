@@ -115,12 +115,12 @@ Plug in the device and look in Device Manager under "Ports (COM & LPT)" to find 
 
 ### 3. Back up your current firmware
 
-Flashing replaces whatever is on the device, so save a copy first. You only need to do this once. It takes about 10 to 15 minutes, so keep the file somewhere safe.
+Flashing replaces whatever is on the device, so save a copy first. You only need to do this once. It reads the whole 32 MB flash and takes about 20 to 30 minutes, so keep the file somewhere safe.
 
 ```powershell
 cd $HOME\Downloads
 python -m esptool --chip esp32s3 --port COM8 flash-id
-python -m esptool --chip esp32s3 --port COM8 --baud 230400 read-flash 0 0x1000000 sticky-backup.bin
+python -m esptool --chip esp32s3 --port COM8 --baud 230400 read-flash 0 0x2000000 sticky-backup.bin
 ```
 
 The first command only checks the connection. If it fails, press OK to wake the device and try again.
@@ -279,7 +279,7 @@ Every push to `main` and every pull request is also built and tested on GitHub. 
 
 | Part | Details |
 |---|---|
-| Chip | ESP32-S3: dual-core, 16MB flash, 8MB PSRAM |
+| Chip | ESP32-S3: dual-core, 32MB flash, 8MB PSRAM |
 | Screen | 3.97" 800x480 black and white e-ink, SSD1677 controller, SPI |
 | USB-C | Goes through a CH343 USB-serial chip to UART0, not the S3's native USB |
 | Buttons | OK/Power on GPIO4, Up on GPIO5, Down on GPIO6, all active low |
