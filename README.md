@@ -133,6 +133,14 @@ python -m esptool --chip esp32s3 --port COM8 --baud 460800 write-flash 0x0 pocke
 
 The device restarts into the PocketPlay home page. Always flash at `0x0`, because this one file includes everything the device needs to start.
 
+**Optional, if the device ran another firmware before:** clear the area where PocketPlay keeps crash reports. You only need to do this once.
+
+```powershell
+python -m esptool --chip esp32s3 --port COM8 --baud 460800 erase-region 0xff0000 0x10000
+```
+
+PocketPlay checks that 64 KB area at every boot. Whatever the earlier firmware left there fails the check, so each boot logs `Core dump data check failed`. That's harmless, but erasing the area once stops it. It touches nothing else: not the firmware, your settings or your saves, which are on the SD card.
+
 ### 5. First-time setup
 
 1. Put in the SD card and restart the device. A card put in later is only seen after a restart.
@@ -177,6 +185,7 @@ The boot screen shows the logo, with the version and build along the bottom, suc
 | No COM port appears | Use a data cable, then install the WCH CH343 driver |
 | esptool can't connect | Press OK to wake the device, close anything else using the port, and try again |
 | esptool doesn't recognise `write-flash` | Run `python -m pip install --upgrade esptool` |
+| The log shows `Core dump data check failed` at every boot | It's left over from an earlier firmware and harmless. Clear it once with the optional `erase-region` step under [Flash PocketPlay](#4-flash-pocketplay) |
 | Wordle shows yesterday's date | Today's word didn't download, so tap **GET PUZZLES** again |
 | A win didn't change the record | The record only counts a puzzle finished on its own date, so archive days don't add to it |
 

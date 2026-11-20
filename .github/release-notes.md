@@ -14,6 +14,8 @@ python -m esptool --chip esp32s3 --port COM8 --baud 460800 write-flash 0x0 pocke
 
 Always flash this whole image at `0x0`, never only part of it. Your saves are kept.
 
+Coming from another firmware? The [README](https://github.com/jsrijith/pocketplay#4-flash-pocketplay) has an optional one-time step that stops a harmless `Core dump data check failed` message at boot.
+
 **SHA-256:** `{SHA256}`
 
 The boot screen should show `{BOOT_LINE}`.
