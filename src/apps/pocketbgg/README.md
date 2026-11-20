@@ -36,6 +36,7 @@ If `SYNC` doesn't get as far as Wi-Fi, the line above it says what's wrong with 
 
   `SHOWING 99 OF 203` at the top says what the choices leave, and `BACK` returns to the list. The list's count then reads `99 OF 203 GAMES`. A sync keeps the filter.
 - Tap a game to see its details, with its player count, play time and the date it was last played. `BACK` returns to the same page of the list.
+- For now, while thumbnails are being built, a picture copied onto the card as `/pocketbgg/test.jpg` (or `test.png`) shows on every game's details, dithered to black and white. Without one the details show `NO IMAGE YET`.
 - `BACK` on the list returns to the APPS page.
 
 ## Saves

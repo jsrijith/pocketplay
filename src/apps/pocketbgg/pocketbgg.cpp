@@ -19,6 +19,7 @@
 #include "pocketbgg_collection.h"
 #include "pocketbgg_config.h"
 #include "pocketbgg_filter.h"
+#include "pocketbgg_image.h"
 #include "pocketbgg_plays.h"
 #include "pocketbgg_list.h"
 #include "pocketbgg_save.h"
@@ -31,7 +32,7 @@ namespace {
 // The list: a caption line saying where the data came from and which page this is, then one
 // row per game (the name, wrapped, and a line under it with the year and plays), then a status
 // line and SYNC along the bottom. The Up and Down buttons turn the pages. The details: the same
-// caption, a box where the thumbnail will go, the name large, and the year and plays.
+// caption, the thumbnail (for now a test one from the card), the name large, and the year and plays.
 constexpr int MARGIN = 16;
 constexpr int GAP = 12;
 constexpr int INNER_WIDTH = SCREEN_WIDTH - 2 * MARGIN;
@@ -95,6 +96,12 @@ constexpr int THUMB = 216;  // BGG's thumbnails are up to 200 x 150, so this lea
 constexpr int THUMB_LEFT = (SCREEN_WIDTH - THUMB) / 2;
 constexpr int THUMB_TOP = LIST_TOP;
 constexpr int DETAIL_NAME_TOP = THUMB_TOP + THUMB + 2 * GAP;
+constexpr int PICTURE_BOX = 200;  // the picture fits inside this, in the middle of the box
+
+// M6a: one thumbnail the player copies onto the card, shown on every game's details, to try
+// decoding and dithering before the app downloads its own. A thumbnail is about 10-25 KB.
+constexpr const char* TEST_IMAGES[] = {"/pocketbgg/test.jpg", "/pocketbgg/test.png"};
+constexpr size_t MAX_IMAGE_FILE_BYTES = 512 * 1024;
 
 int rowHeight(const bgg::Game& game) {
   return ROW_PAD_TOP + wrappedHeight(NAME_FONT, NAME_WIDTH, game.name.c_str()) + META_HEIGHT + ROW_PAD_BOTTOM;
@@ -148,6 +155,7 @@ class PocketBgg final : public App {
       if (ui::isInBox(x, y, MARGIN, rowTop(row), INNER_WIDTH, heights_[row])) {
         selected_ = row;
         view_ = View::Details;
+        if (!pictureTried_) loadTestPicture();
         return TapResult::RedrawFull;
       }
     }
@@ -803,9 +811,17 @@ class PocketBgg final : public App {
 
   void drawDetails(uint8_t* frame, const bgg::Game& game) const {
     drawCaption(frame, false);
-    // Where the thumbnail goes once the app can download one (M6).
-    ui::drawDimmedPill(frame, THUMB_LEFT, THUMB_TOP, THUMB, "", THUMB);
-    drawTextInBox(frame, Font::Size14, THUMB_LEFT, THUMB_TOP, THUMB, THUMB, "NO IMAGE YET");
+    if (!picture_.empty()) {
+      // In the middle of the box, with a thin frame so a white cover still shows its edge.
+      const int left = THUMB_LEFT + (THUMB - picture_.width) / 2;
+      const int top = THUMB_TOP + (THUMB - picture_.height) / 2;
+      drawRectOutline(frame, left - 2, top - 2, picture_.width + 4, picture_.height + 4, 1);
+      drawIcon(frame, picture_.bits.data(), picture_.width, picture_.height, left, top);
+    } else {
+      ui::drawDimmedPill(frame, THUMB_LEFT, THUMB_TOP, THUMB, "", THUMB);
+      drawTextInBox(frame, Font::Size14, THUMB_LEFT, THUMB_TOP, THUMB, THUMB,
+                    pictureFailed_ ? "CAN'T READ IMAGE" : "NO IMAGE YET");
+    }
 
     // The name as large as fits in three lines, never cut short.
     Font font = Font::Size30;
@@ -839,6 +855,34 @@ class PocketBgg final : public App {
     }
     std::snprintf(line, sizeof(line), "BGG ID %u", static_cast<unsigned>(game.id));
     drawTextInBox(frame, Font::Size14, MARGIN, lineTop, INNER_WIDTH, lineHeight(Font::Size14), line);
+  }
+
+  // Reads the test thumbnail from the card and turns it into a 1-bit picture, once. This runs
+  // in loop(), as everything that uses the card must: it shares the SPI bus with the panel.
+  // The decode holds up loop() too, so the log says how long it took.
+  void loadTestPicture() {
+    pictureTried_ = true;
+    for (const char* path : TEST_IMAGES) {
+      size_t size = 0;
+      storage::Blob file = storage::readFile(path, MAX_IMAGE_FILE_BYTES, size);
+      if (!file) continue;
+      const bgg::ImageFormat format = bgg::imageFormat(file.get(), size);
+      const uint32_t startMs = millis();
+      const bgg::PictureResult result = bgg::makePicture(file.get(), size, PICTURE_BOX, PICTURE_BOX, picture_);
+      const unsigned took = static_cast<unsigned>(millis() - startMs);
+      if (result == bgg::PictureResult::Ok) {
+        // The least stack loop() has had left so far, to see how close the decoder came.
+        Serial.printf("PocketBGG: %s, %s, %u bytes, %d x %d in %u ms, stack never below %u bytes free\n", path,
+                      bgg::formatName(format), static_cast<unsigned>(size), picture_.width, picture_.height, took,
+                      static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
+        return;
+      }
+      Serial.printf("PocketBGG: %s, %s, %u bytes: %s\n", path, bgg::formatName(format), static_cast<unsigned>(size),
+                    bgg::pictureErrorText(result));
+      pictureFailed_ = true;
+      return;
+    }
+    Serial.println("PocketBGG: no test image on the card");
   }
 
   // "2-7 PLAYERS  -  30 MIN", or as much of it as BGG gave. False if it gave none.
@@ -887,6 +931,9 @@ class PocketBgg final : public App {
   int playsPage_ = 0;
   int playsPages_ = 0;  // 0 until the first page says how many
   bool waitingForBgg_ = false;  // a wait after 202, not the pause between pages
+  bgg::Picture picture_;        // the test thumbnail, 1-bit, about 5 KB
+  bool pictureTried_ = false;
+  bool pictureFailed_ = false;  // a file was there but wouldn't decode
 };
 
 }  // namespace
