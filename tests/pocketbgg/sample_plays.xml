@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Eight plays from a real /xmlapi2/plays answer (page 1 of 34), for PocketBGG's tests. The players and comments are removed, and the last play's date is blanked to test a play with no date. -->
+<plays username="itsmenon" userid="2635584" total="3396" page="1" termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
+<play id="121085332" date="2026-11-17" quantity="1" length="0" incomplete="0" nowinstats="0" location="">
+			<item name="L.L.A.M.A." objecttype="thing" objectid="266083">
+				<subtypes>
+										<subtype value="boardgame" />
+									</subtypes>
+			</item>
+					</play>
+<play id="121085328" date="2026-11-17" quantity="1" length="0" incomplete="0" nowinstats="0" location="">
+			<item name="Point Salad" objecttype="thing" objectid="274960">
+				<subtypes>
+										<subtype value="boardgame" />
+									</subtypes>
+			</item>
+					</play>
+<play id="121085337" date="2026-11-09" quantity="1" length="0" incomplete="0" nowinstats="0" location="">
+			<item name="Flip 7" objecttype="thing" objectid="420087">
+				<subtypes>
+										<subtype value="boardgame" />
+									</subtypes>
+			</item>
+					</play>
+<play id="121085335" date="2026-11-09" quantity="1" length="0" incomplete="0" nowinstats="0" location="">
+			<item name="Leo" objecttype="thing" objectid="191538">
+				<subtypes>
+										<subtype value="boardgame" />
+									</subtypes>
+			</item>
+					</play>
+<play id="120719629" date="2026-11-08" quantity="1" length="0" incomplete="0" nowinstats="0" location="">
+			<item name="Azul" objecttype="thing" objectid="230802">
+				<subtypes>
+										<subtype value="boardgame" />
+									</subtypes>
+			</item>
+					</play>
+<play id="119818776" date="2026-10-16" quantity="1" length="0" incomplete="0" nowinstats="0" location="Home">
+			<item name="Honga" objecttype="thing" objectid="255805">
+				<subtypes>
+										<subtype value="boardgame" />
+									</subtypes>
+			</item>
+					</play>
+<play id="117201054" date="2026-08-07" quantity="1" length="0" incomplete="0" nowinstats="0" location="">
+			<item name="Azul" objecttype="thing" objectid="230802">
+				<subtypes>
+										<subtype value="boardgame" />
+									</subtypes>
+			</item>
+					</play>
+<play id="116864528" date="" quantity="1" length="0" incomplete="0" nowinstats="0" location="">
+			<item name="Labyrinth" objecttype="thing" objectid="1219">
+				<subtypes>
+										<subtype value="boardgame" />
+									</subtypes>
+			</item>
+					</play>
+</plays>

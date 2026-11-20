@@ -20,6 +20,11 @@
 #include "shell/shell.h"
 #include "ui/logo.h"
 
+// loop() runs on Arduino's loopTask, whose stack is 8 KB unless set here. PocketBGG's PNG
+// decoder (stb_image's inflate) keeps three Huffman tables on the stack, about 6 KB, below the
+// shell's own calls, and overflowed 8 KB. 16 KB costs 8 KB more of the internal RAM.
+SET_LOOP_TASK_STACK_SIZE(16 * 1024);
+
 namespace {
 
 // InputManager doesn't debounce buttons on this board. Sampling further apart

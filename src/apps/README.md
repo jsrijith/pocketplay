@@ -11,9 +11,9 @@ apps/
 
 ## What an app provides
 
-`App` in `app.h` is smaller than `Game`: a name, an icon, `open()`, `onTap()`, `draw()`, the save-failed pair, and the Up and Down buttons. Apps get no holds, swipes, Wi-Fi, landscape or work between taps, because no app has needed them yet. When one does, add the call to `App` and to `shell.cpp` in a change of its own, as `Game` has them.
+`App` in `app.h` is smaller than `Game`: a name, an icon, `open()`, `onTap()`, `draw()`, the save-failed pair, the Up and Down buttons, and Wi-Fi with work between taps (`OpenWifi`, `onWifiClosed()`, `update()` and `busy()`, which work as a game's do). Apps get no holds, swipes or landscape, because no app has needed them yet. When one does, add the call to `App` and to `shell.cpp` in a change of its own, as `Game` has them.
 
-`TapResult` works as a game's does: `Nothing` for a tap that changes nothing, `Redraw` for a change, `RedrawFull` for a change big enough to clear ghosts, and `Leave` for BACK.
+`TapResult` works as a game's does: `Nothing` for a tap that changes nothing, `Redraw` for a change, `RedrawFull` for a change big enough to clear ghosts, `Leave` for BACK, and `OpenWifi` to show the Wi-Fi screen. That screen closes by itself once it joins, and the app gets `onWifiClosed()` whether it joined or the player went BACK.
 
 ## Adding an app
 

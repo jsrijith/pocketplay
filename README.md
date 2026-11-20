@@ -76,6 +76,7 @@ Opened from the grid icon beside the Settings cog.
 | App | What it is |
 |---|---|
 | [**Calculator**](src/apps/calculator/README.md) | A pocket calculator with + − × ÷, percent and backspace, working each step out as you go, as a desk calculator does. |
+| [**PocketBGG**](src/apps/pocketbgg/README.md) | Your BoardGameGeek collection: syncs over Wi-Fi with your own BGG token, then browses offline with each game's cover, plays and last-played date, filtered by status, plays and player count. |
 
 ## Disclaimer
 
@@ -292,7 +293,9 @@ PocketPlay builds on other people's work, each under its own licence, kept besid
 - [CrossPlay](https://github.com/ma-r-s/crossplay) by Mario Ruiz: the project that inspired PocketPlay. Several games began as ports of its games, and the font headers come from it (MIT)
 - [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel: the rules and puzzles behind Lights Out, Suguru, Sokoban, Queens, Peg Solitaire, Text Adventures, Word Ladder, Nonograms, Kakuro and Chess Puzzles (MIT)
 - [Lichess puzzle database](https://database.lichess.org/#puzzles): Chess Puzzles' puzzles (CC0)
-- [Lucide](https://lucide.dev): home-page icons, the apps icon, Calculator's keys, and the chess pieces in Grid Gambit and Last Piece (ISC)
+- [Lucide](https://lucide.dev): home-page icons, the apps icon, Calculator's keys, PocketBGG's icon, and the chess pieces in Grid Gambit and Last Piece (ISC)
+- [stb_image](https://github.com/nothings/stb) by Sean Barrett: PocketBGG's cover decoding (public domain or MIT, in `src/apps/pocketbgg/third_party/LICENSE-stb.txt`)
+- [BoardGameGeek](https://boardgamegeek.com): PocketBGG's data, through BGG's XML API and under its terms
 - [FreeInk SDK](https://github.com/ma-r-s/freeink-sdk): hardware libraries (MIT)
 - [wolfSSL](https://www.wolfssl.com/): HTTPS (GPLv2 or later, or commercial)
 - [SdFat](https://github.com/greiman/SdFat): SD card access (MIT)

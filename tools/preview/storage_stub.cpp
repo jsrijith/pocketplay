@@ -86,6 +86,11 @@ bool erase(const char* name) {
 
 void BlobDeleter::operator()(uint8_t* data) const { delete[] data; }
 
+bool eraseBlob(const char* name) {
+  blobs.erase(name);
+  return true;
+}
+
 bool saveBlob(const char* name, const uint8_t* data, size_t size) {
   blobs[name] = std::vector<uint8_t>(data, data + size);
   return true;
@@ -113,6 +118,16 @@ bool ensureFolder(const char*) { return true; }
 
 std::vector<std::string> listFolder(const char* folder, int max) {
   std::vector<std::string> names;
+  // The save folder is the in-memory card: its blobs and saves, as the device names them.
+  if (strcmp(folder, SAVE_FOLDER) == 0) {
+    for (const auto& blob : blobs) {
+      if (static_cast<int>(names.size()) < max) names.push_back(blob.first + ".bin");
+    }
+    for (const auto& save : saves) {
+      if (static_cast<int>(names.size()) < max) names.push_back(save.first + ".sav");
+    }
+    return names;
+  }
   const std::string path = cardPath(folder);
   if (path.empty()) return names;
   DIR* dir = opendir(path.c_str());

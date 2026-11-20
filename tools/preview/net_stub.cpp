@@ -1,8 +1,9 @@
 // The radio and downloads, standing still: Wi-Fi is never connected, so a game that
 // offers a download shows its Wi-Fi step and goes no further. Only the drawing is
-// being previewed.
+// being previewed. The clock counts as set, as the PC's is.
 #include <cstdio>
 
+#include "core/clock.h"
 #include "core/download.h"
 #include "core/network.h"
 
@@ -29,10 +30,16 @@ Internet internet() { return Internet::Waiting; }
 
 namespace download {
 
-bool start(const char*, const Sink&) { return false; }
+bool start(const char*, const Sink&, const Options&) { return false; }
 State state() { return State::Idle; }
 int httpStatus() { return 0; }
 void requestCancel() {}
 void stopForSleep() {}
 
 }  // namespace download
+
+namespace wallClock {
+
+bool isSet() { return true; }
+
+}  // namespace wallClock

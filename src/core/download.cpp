@@ -29,6 +29,7 @@ std::atomic<int> lastStatus{0};
 TaskHandle_t task = nullptr;
 const char* currentUrl = nullptr;
 Sink currentSink{};
+Options currentOptions{};
 
 // Modem sleep adds seconds to a TLS handshake and can stall a transfer.
 class FullPowerRadio {
@@ -53,18 +54,27 @@ bool fetch() {
     return true;
   };
 
-  // The answers aren't secret and nothing private is sent, so like CrossPlay this
-  // doesn't check the server's certificate.
-  const auto configure = [](freeink::SecureHttpClient& http, bool) {
+  // Without a root, the answers aren't secret and nothing private is sent, so like
+  // CrossPlay this doesn't check the server's certificate. sameOrigin is false once a
+  // redirect has left the starting server, and the header stays behind then.
+  const auto configure = [](freeink::SecureHttpClient& http, bool sameOrigin) {
     http.setTimeout(TIMEOUT_MS);
-    http.setInsecure();
+    if (currentOptions.rootCa != nullptr) {
+      http.setCACert(currentOptions.rootCa);
+    } else {
+      http.setInsecure();
+    }
     http.setUserAgent(USER_AGENT);
+    if (sameOrigin && currentOptions.headerName != nullptr && currentOptions.headerValue != nullptr) {
+      http.addHeader(currentOptions.headerName, currentOptions.headerValue);
+    }
   };
 
   const freeink::FetchResult result = freeink::fetchResumable(currentUrl, freeink::FetchOptions{}, configure, sink, [] { return cancelRequested.load(); });
 
   lastStatus = result.status < 0 ? 0 : result.status;
-  Serial.printf("Fetched %u bytes, status %d, from %s\n", static_cast<unsigned>(result.bytes), result.status, currentUrl);
+  Serial.printf("Fetched %u bytes, status %d, from %s (certificate %s)\n", static_cast<unsigned>(result.bytes), result.status,
+                currentUrl, currentOptions.rootCa != nullptr ? "checked" : "not checked");
   return result.complete && !result.aborted && !result.stopped && result.status >= 200 && result.status < 300;
 }
 
@@ -77,7 +87,7 @@ void runTask(void*) {
 
 }  // namespace
 
-bool start(const char* url, const Sink& sink) {
+bool start(const char* url, const Sink& sink, const Options& options) {
   if (currentState == State::Running) return false;
 
   // Entering the socket layer with Wi-Fi never started crashes the device.
@@ -88,6 +98,7 @@ bool start(const char* url, const Sink& sink) {
 
   currentUrl = url;
   currentSink = sink;
+  currentOptions = options;
   cancelRequested = false;
   lastStatus = 0;
   currentState = State::Running;

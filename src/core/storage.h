@@ -36,6 +36,13 @@ bool saveBlob(const char* name, const uint8_t* data, size_t size);
 // Returns nothing if there's no valid blob or no memory for it.
 Blob loadBlob(const char* name, size_t& size);
 
+// Returns true once no blob by this name is left on the card.
+bool eraseBlob(const char* name);
+
+// The folder blobs and saves are kept in, for listFolder(): a blob named "x" is the file
+// "x.bin" there, and "x.bit" while it's being replaced.
+constexpr const char* SAVE_FOLDER = "/.pocketplay";
+
 // Files the player copies onto the card, outside the save folder, such as a game's story
 // files. Read only: nothing here writes or removes them.
 //

@@ -49,11 +49,13 @@ SHOTS=(
   "wordladder wordLadderGame tap:86,758 tap:86,758"
   "wordle wordleGame tap:150,150 tap:194,746 tap:171,587 tap:59,664 tap:329,746 tap:127,587 tap:47,746 tap:104,664 tap:419,664 tap:59,664 tap:216,587 tap:127,587 tap:47,746 tap:441,587 tap:419,664"
   "apps/calculator calculatorApp tap:67,632 tap:182,632 tap:412,422 tap:297,632"
+  "apps/pocketbgg pocketBggApp"
 )
 
 export PREVIEW_BLOB_wordle_answers="$DATA/wordle-answers"
 export PREVIEW_BLOB_wordle_words="$DATA/wordle-words"
 export PREVIEW_BLOB_connections_pack="$DATA/connections-pack"
+export PREVIEW_BLOB_pocketbgg_list="$DATA/pocketbgg-list"
 export PREVIEW_CARD="$DATA/card"
 
 failed=0

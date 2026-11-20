@@ -1,7 +1,7 @@
 // Draws a game on the PC, so its screens can be compared with CrossPlay's before the
 // device is flashed. Built by run.sh, which names the game with -DPREVIEW_GAME, or an
 // app with -DPREVIEW_APP. An app is wrapped as a game, and the commands it has no
-// calls for (press:, hold:, release, swipe:, update) stop with an error.
+// calls for (press:, hold:, release, swipe:) stop with an error.
 //
 // Commands, run in order:
 //   tap:X,Y     a tap at a screen position (480 x 800, or 800 x 480 for a landscape game); prints what it returned
@@ -42,6 +42,9 @@ class AppAsGame final : public Game {
   void retrySave() override { app_.retrySave(); }
   TapResult onUpPressed() override { return convert(app_.onUpPressed()); }
   TapResult onDownPressed() override { return convert(app_.onDownPressed()); }
+  bool update() override { return app_.update(); }
+  bool busy() const override { return app_.busy(); }
+  void onWifiClosed() override { app_.onWifiClosed(); }
 
  private:
   static TapResult convert(App::TapResult result) {
@@ -54,6 +57,8 @@ class AppAsGame final : public Game {
         return TapResult::RedrawFull;
       case App::TapResult::Leave:
         return TapResult::Leave;
+      case App::TapResult::OpenWifi:
+        return TapResult::OpenWifi;
     }
     return TapResult::Nothing;
   }
@@ -136,8 +141,8 @@ int main(int argc, char** argv) {
   for (int i = 2; i < argc; i++) {
     const std::string command = argv[i];
     if (IS_APP && (command.rfind("press:", 0) == 0 || command.rfind("hold:", 0) == 0 || command == "release" ||
-                   command.rfind("swipe:", 0) == 0 || command == "update")) {
-      fprintf(stderr, "%s: apps don't get holds, swipes or update()\n", command.c_str());
+                   command.rfind("swipe:", 0) == 0)) {
+      fprintf(stderr, "%s: apps don't get holds or swipes\n", command.c_str());
       return 2;
     }
     if (command.rfind("press:", 0) == 0 || command.rfind("hold:", 0) == 0) {
