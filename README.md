@@ -309,6 +309,7 @@ PocketPlay builds on other people's work, each under its own licence, kept besid
 - [wolfSSL](https://www.wolfssl.com/): HTTPS (GPLv2 or later, or commercial)
 - [SdFat](https://github.com/greiman/SdFat): SD card access (MIT)
 - Jersey 25: the font (SIL Open Font License)
+- [epdiy](https://github.com/vroland/epdiy) by Valentin Roland: the glyph and character-range layout the font headers are stored in, in `src/core/fonts/EpdFontData.h` (LGPL-3.0)
 - Noto Sans Symbols 2: Solitaire's suit marks, drawn from its card-suit glyphs (SIL Open Font License, in `src/games/solitaire/OFL-Noto.txt`)
 
 Zork I, II and III are © Microsoft, released under the MIT licence. Sokoban's level packs are by David W. Skinner and Aymeric du Peloux, published with their permission. Word Ladder's word lists come from Alan Beale's 12dicts and Kevin Atkinson's AGID.

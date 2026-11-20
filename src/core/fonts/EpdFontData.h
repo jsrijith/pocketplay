@@ -1,5 +1,8 @@
 // From
 // https://github.com/vroland/epdiy/blob/c61e9e923ce2418150d54f88cea5d196cdc40c54/src/epd_internals.h
+// epdiy is by Valentin Roland, under the LGPL-3.0: the EpdGlyph and EpdUnicodeInterval
+// layouts below come from it. The rest of this file is CrossPlay's (MIT). See the README
+// in this folder.
 
 #pragma once
 #include <cstdint>
