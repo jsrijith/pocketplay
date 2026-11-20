@@ -112,6 +112,7 @@ These cause silent failures, and the build won't catch them:
 - **Waking is a full chip reset.** Every wake runs `setup()` again. Only the OK button (GPIO4) can wake the device, since touch power is cut during sleep. OK must be released once after boot before a hold counts as sleep.
 - **USB-C reaches UART0 through a CH343 chip, not native USB.** That's why `ARDUINO_USB_CDC_ON_BOOT=0` is set, which differs from CrossPlay. Opening the serial port resets the device.
 - **GPIO0 is a strapping pin** and also the SCL of the sensor bus the clock chip is on. Don't leave a pull on it that disturbs boot mode.
+- **`loop()` has a 16 KB stack**, set by `SET_LOOP_TASK_STACK_SIZE` in `main.cpp` (Arduino's default is 8 KB). Large buffers go on the heap, where anything over 4 KB lands in PSRAM, not in locals. An overflow shows as `Stack canary watchpoint triggered (loopTask)`.
 - **Keep the device recoverable.** Never write eFuses or enable secure boot or flash encryption, since those can permanently lock the chip.
 
 ## Porting a game

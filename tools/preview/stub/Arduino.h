@@ -13,3 +13,5 @@ inline PreviewSerial Serial;
 
 inline unsigned long micros() { return 0; }
 inline unsigned long millis() { return 0; }
+// FreeRTOS: the least stack the current task has had free, in bytes on the ESP32.
+inline unsigned uxTaskGetStackHighWaterMark(void*) { return 0; }
