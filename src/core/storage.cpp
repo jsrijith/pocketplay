@@ -10,8 +10,9 @@
 namespace storage {
 namespace {
 
-constexpr const char* DIRECTORY = "/.pocketplay";
-constexpr size_t PATH_BYTES = 48;
+constexpr const char* DIRECTORY = SAVE_FOLDER;
+// The folder, a name of up to 44 characters and its extension. A longer name is cut short.
+constexpr size_t PATH_BYTES = 64;
 
 // 'B', 'B', format, data version, 16-bit length, 32-bit checksum, least significant
 // byte first. The checksum covers the version, the length and the data.
@@ -211,6 +212,18 @@ bool erase(const char* name) {
   char path[PATH_BYTES];
   bool erased = true;
   for (const char* extension : {"sav", "tmp"}) {
+    makePath(path, name, extension);
+    if (SdMan.exists(path) && !SdMan.remove(path)) erased = false;
+  }
+  return erased;
+}
+
+bool eraseBlob(const char* name) {
+  if (!mounted) return false;
+
+  char path[PATH_BYTES];
+  bool erased = true;
+  for (const char* extension : {"bin", "bit"}) {
     makePath(path, name, extension);
     if (SdMan.exists(path) && !SdMan.remove(path)) erased = false;
   }
