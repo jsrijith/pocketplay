@@ -2,7 +2,7 @@
 
 Your BoardGameGeek collection, to browse on the device.
 
-**Work in progress.** It syncs, keeps and filters your collection; thumbnails are still to come.
+**Work in progress.** It syncs, keeps and filters your collection, with each game's cover.
 
 ## Setting up
 
@@ -35,8 +35,8 @@ If `SYNC` doesn't get as far as Wi-Fi, the line above it says what's wrong with 
   - `ORDER`, A-Z or last played: the most recently played first, and games never played last.
 
   `SHOWING 99 OF 203` at the top says what the choices leave, and `BACK` returns to the list. The list's count then reads `99 OF 203 GAMES`. A sync keeps the filter.
-- Tap a game to see its details, with its player count, play time and the date it was last played. `BACK` returns to the same page of the list.
-- For now, while thumbnails are being built, a picture copied onto the card as `/pocketbgg/test.jpg` (or `test.png`) shows on every game's details, dithered to black and white. Without one the details show `NO IMAGE YET`.
+- Last, a sync fetches each game's cover from BGG's image server and keeps it on the card, dithered to black and white: about 2 seconds a cover, so 7 minutes or so for 200 games the first time. After that only new games' covers, and covers changed on BGG, are fetched. The line above `SYNC` says `FETCHING COVERS, 12 OF 41`. `BACK` stops it, the covers fetched so far are kept, and the next sync carries on with the rest. Covers of games that have left your collection are deleted.
+- Tap a game to see its details: its cover, player count, play time and the date it was last played. `NO COVER YET` means it hasn't been fetched, and `NO COVER ON BGG` that BGG has no picture of it. `BACK` returns to the same page of the list.
 - `BACK` on the list returns to the APPS page.
 
 ## Saves
@@ -47,5 +47,6 @@ All in `/.pocketplay/`:
 |---|---|
 | `pocketbgg-list` | The collection as it was last synced, and when, with each game's last-played date. It's replaced only once a new sync has fully arrived and been read, so a failed sync keeps the old list. About 200 bytes a game. |
 | `pocketbgg-filter` | The filter's choices and the order, saved on every change. |
+| `pocketbgg-t<game>-<picture>` | One game's cover, 1 bit a pixel, up to 200 by 200: about 4 KB, so under 1 MB for 200 games. The second number is BGG's picture id, so a changed cover is fetched again. |
 
 Your username and token stay in `/pocketbgg/config.txt`, which PocketBGG only ever reads.

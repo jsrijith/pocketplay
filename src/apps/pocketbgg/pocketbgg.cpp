@@ -23,6 +23,7 @@
 #include "pocketbgg_plays.h"
 #include "pocketbgg_list.h"
 #include "pocketbgg_save.h"
+#include "pocketbgg_thumbs.h"
 #include "ui/ui.h"
 
 namespace bgg = pocketbgg;
@@ -32,7 +33,7 @@ namespace {
 // The list: a caption line saying where the data came from and which page this is, then one
 // row per game (the name, wrapped, and a line under it with the year and plays), then a status
 // line and SYNC along the bottom. The Up and Down buttons turn the pages. The details: the same
-// caption, the thumbnail (for now a test one from the card), the name large, and the year and plays.
+// caption, the game's cover, the name large, and the year and plays.
 constexpr int MARGIN = 16;
 constexpr int GAP = 12;
 constexpr int INNER_WIDTH = SCREEN_WIDTH - 2 * MARGIN;
@@ -98,10 +99,15 @@ constexpr int THUMB_TOP = LIST_TOP;
 constexpr int DETAIL_NAME_TOP = THUMB_TOP + THUMB + 2 * GAP;
 constexpr int PICTURE_BOX = 200;  // the picture fits inside this, in the middle of the box
 
-// M6a: one thumbnail the player copies onto the card, shown on every game's details, to try
-// decoding and dithering before the app downloads its own. A thumbnail is about 10-25 KB.
-constexpr const char* TEST_IMAGES[] = {"/pocketbgg/test.jpg", "/pocketbgg/test.png"};
-constexpr size_t MAX_IMAGE_FILE_BYTES = 512 * 1024;
+// Last in a sync, each game's cover from BGG's image server, a CDN: no token, so no pause
+// between them as the XML API asks. Its certificate must lead to Amazon's root all the same, so
+// nothing else can hand the decoder a file. A cover is about 10 KB.
+constexpr size_t EXPECTED_COVER_BYTES = 32 * 1024;
+// The list's status line is redrawn this often while covers come, not after every one.
+constexpr uint32_t COVER_PROGRESS_MS = 10000;
+// Covers that got no answer at all, one after another, mean Wi-Fi has gone: stop rather than try
+// every other game.
+constexpr int MAX_COVERS_UNANSWERED = 5;
 
 int rowHeight(const bgg::Game& game) {
   return ROW_PAD_TOP + wrappedHeight(NAME_FONT, NAME_WIDTH, game.name.c_str()) + META_HEIGHT + ROW_PAD_BOTTOM;
@@ -155,7 +161,7 @@ class PocketBgg final : public App {
       if (ui::isInBox(x, y, MARGIN, rowTop(row), INNER_WIDTH, heights_[row])) {
         selected_ = row;
         view_ = View::Details;
-        if (!pictureTried_) loadTestPicture();
+        loadCover(games_[visible_[row]]);
         return TapResult::RedrawFull;
       }
     }
@@ -204,6 +210,7 @@ class PocketBgg final : public App {
       finishSync(Sync::Never);
       return true;
     }
+    if (phase_ == Phase::Covers) return readCover();
     status_ = download::httpStatus();
     Serial.printf("PocketBGG: attempt %d, HTTP %d, %u bytes\n", attempt_, status_, static_cast<unsigned>(answer_.size()));
     if (status_ == 202) {
@@ -257,7 +264,7 @@ class PocketBgg final : public App {
   int endRow() const { return page_ + 1 < pageCount() ? pages_[page_ + 1] : static_cast<int>(visible_.size()); }
 
   enum class View { List, Details, Filters };
-  enum class Phase { Collection, Plays };
+  enum class Phase { Collection, Plays, Covers };
 
   // A new collection, shown through the filter.
   void showGames(std::vector<bgg::Game> games) {
@@ -385,6 +392,7 @@ class PocketBgg final : public App {
     Stopping,
     Synced,
     PlaysStopped,  // the collection synced, but not every page of plays
+    CoversStopped,  // the collection and plays synced, but not every cover
     StillQueued,  // still 202 after every attempt
     BgError,      // BGG answered with an error, such as an unknown username
     BadAnswer,    // an answer the parser couldn't read, such as one cut off
@@ -446,6 +454,7 @@ class PocketBgg final : public App {
       return;
     }
     username_ = config_.username;
+    coversFailed_ = 0;
     url_ = std::string(COLLECTION_URL) + bgg::urlEncode(username_);
     authorization_ = "Bearer " + config_.token;
     bgg::wipe(config_.token);  // now only in the header, which every request reuses
@@ -590,7 +599,141 @@ class PocketBgg final : public App {
     unsigned dated = 0;
     for (const bgg::Game& g : games_) dated += g.lastPlayed != 0;
     Serial.printf("PocketBGG: last-played dates for %u of %u games\n", dated, static_cast<unsigned>(games_.size()));
+    saveList();
+    refreshOrder();
+    startCovers();
+  }
+
+  // --- The covers ---
+
+  // The covers saved on the card, from one listing of the save folder: each one's name says
+  // which game and which picture it is.
+  static std::vector<bgg::SavedThumb> savedCovers() {
+    std::vector<bgg::SavedThumb> saved;
+    bgg::SavedThumb thumb;
+    for (const std::string& file : storage::listFolder(storage::SAVE_FOLDER, 8192)) {
+      if (bgg::parseThumbFile(file, thumb)) saved.push_back(thumb);
+    }
+    return saved;
+  }
+
+  // Every game whose cover isn't saved yet, or has changed on BGG. A sync that stopped partway
+  // carries on here next time, with only what's still missing.
+  void startCovers() {
+    phase_ = Phase::Covers;
+    bgg::wipe(authorization_);  // the image server needs no token, so it's done with
+    covers_.clear();
+    const std::vector<bgg::SavedThumb> saved = savedCovers();
+    for (const int i : bgg::thumbsToFetch(games_, saved)) {
+      covers_.push_back(Cover{games_[i].id, bgg::picId(games_[i].thumbnail), games_[i].thumbnail});
+    }
+    coverAt_ = 0;
+    coversFetched_ = 0;
+    coversUnanswered_ = 0;
+    coversStartMs_ = millis();
+    lastCoverDrawMs_ = millis();
+    Serial.printf("PocketBGG: %u covers to fetch, %u saved already\n", static_cast<unsigned>(covers_.size()),
+                  static_cast<unsigned>(saved.size()));
+    if (covers_.empty()) {
+      finishCovers();
+    } else {
+      startCover();
+    }
+  }
+
+  void startCover() {
+    answer_.clear();
+    answer_.reserve(EXPECTED_COVER_BYTES);
+    received_ = 0;
+    shownBytes_ = 0;
+    status_ = 0;
+    url_ = covers_[coverAt_].url;
+    coverStartMs_ = millis();
+
+    download::Options options;
+    options.rootCa = bgg::kAmazonRootCa;
+    sync_ = Sync::Downloading;
+    if (!download::start(url_.c_str(), download::Sink{this, keepAnswer, dropAnswer}, options)) finishSync(Sync::Failed);
+  }
+
+  // In loop(), once a cover has come: decoded, dithered and saved straight away, so a sync
+  // stopped later keeps it. One that can't be had is counted and skipped. True asks for a redraw.
+  bool readCover() {
+    const Cover& cover = covers_[coverAt_];
+    status_ = download::httpStatus();
+    const unsigned fetchMs = static_cast<unsigned>(millis() - coverStartMs_);
+    bool redraw = false;
+    if (status_ == 200) {
+      coversUnanswered_ = 0;
+      const uint32_t decodeStartMs = millis();
+      bgg::Picture picture;
+      const bgg::PictureResult result = bgg::makePicture(reinterpret_cast<const uint8_t*>(answer_.data()), answer_.size(),
+                                                         PICTURE_BOX, PICTURE_BOX, picture);
+      const unsigned decodeMs = static_cast<unsigned>(millis() - decodeStartMs);
+      std::vector<uint8_t> bytes;
+      if (result == bgg::PictureResult::Ok) bgg::packPicture(picture, bytes);
+      if (result == bgg::PictureResult::Ok && storage::saveBlob(bgg::thumbName(cover.gameId, cover.pic).c_str(), bytes.data(), bytes.size())) {
+        coversFetched_++;
+        Serial.printf("PocketBGG: cover %u of %u, game %u, %u bytes in %u ms, decoded in %u ms\n", coverAt_ + 1,
+                      static_cast<unsigned>(covers_.size()), static_cast<unsigned>(cover.gameId),
+                      static_cast<unsigned>(answer_.size()), fetchMs, decodeMs);
+        // The game on screen got its cover: show it now.
+        if (view_ == View::Details && games_[visible_[selected_]].id == cover.gameId) {
+          picture_ = std::move(picture);
+          redraw = true;
+        }
+      } else {
+        coversFailed_++;
+        Serial.printf("PocketBGG: cover for game %u: %s\n", static_cast<unsigned>(cover.gameId),
+                      result == bgg::PictureResult::Ok ? "couldn't be saved" : bgg::pictureErrorText(result));
+      }
+    } else {
+      coversFailed_++;
+      if (status_ == 0) coversUnanswered_++;
+      Serial.printf("PocketBGG: cover for game %u: HTTP %d\n", static_cast<unsigned>(cover.gameId), status_);
+    }
+    std::string().swap(answer_);
+
+    if (coversUnanswered_ >= MAX_COVERS_UNANSWERED) {
+      finishSync(Sync::Failed);
+      return true;
+    }
+    coverAt_++;
+    if (coverAt_ >= static_cast<int>(covers_.size())) {
+      finishCovers();
+      return true;
+    }
+    startCover();
+    // The status line shows on the list only, and every few seconds is enough.
+    if (view_ == View::List && millis() - lastCoverDrawMs_ >= COVER_PROGRESS_MS) {
+      lastCoverDrawMs_ = millis();
+      redraw = true;
+    }
+    return redraw;
+  }
+
+  // After every cover has been tried: the saved ones no game shows any more are deleted, the
+  // covers of games that left the collection and the old ones of games whose cover changed.
+  void finishCovers() {
+    unsigned deleted = 0;
+    for (const bgg::SavedThumb& old : bgg::staleThumbs(games_, savedCovers())) {
+      deleted += storage::eraseBlob(bgg::thumbName(old.gameId, old.pic).c_str()) ? 1 : 0;
+    }
+    Serial.printf("PocketBGG: covers: %d fetched, %d failed, %u old ones deleted, in %u s\n", coversFetched_, coversFailed_,
+                  deleted, static_cast<unsigned>((millis() - coversStartMs_) / 1000));
     finishSync(Sync::Synced);
+  }
+
+  // A game's cover from the card, when its details open: a few KB, already dithered.
+  void loadCover(const bgg::Game& game) {
+    picture_ = bgg::Picture();
+    const uint32_t pic = bgg::picId(game.thumbnail);
+    if (pic == 0 || !storage::ready()) return;
+    size_t size = 0;
+    const storage::Blob blob = storage::loadBlob(bgg::thumbName(game.id, pic).c_str(), size);
+    if (blob && !bgg::unpackPicture(blob.get(), size, picture_)) {
+      Serial.printf("PocketBGG: ignoring game %u's saved cover, which couldn't be read\n", static_cast<unsigned>(game.id));
+    }
   }
 
   // A sort by last played has to be redone once the dates change. The list is redone at once;
@@ -633,6 +776,8 @@ class PocketBgg final : public App {
       refreshOrder();
       if (result != Sync::Synced && result != Sync::Never) result = Sync::PlaysStopped;
     }
+    // The dates were saved before the covers began, and each cover as it came.
+    if (phase_ == Phase::Covers && result != Sync::Synced && result != Sync::Never) result = Sync::CoversStopped;
     phase_ = Phase::Collection;
     sync_ = result;
   }
@@ -674,6 +819,10 @@ class PocketBgg final : public App {
         return bgg::configErrorText(configError_);
       case Sync::Downloading:
         if (phase_ == Phase::Plays) return playsText(out, size);
+        if (phase_ == Phase::Covers) {
+          std::snprintf(out, size, "FETCHING COVERS, %d OF %u", coverAt_ + 1, static_cast<unsigned>(covers_.size()));
+          return out;
+        }
         if (received_.load() == 0) {
           std::snprintf(out, size, attempt_ == 1 ? "ASKING BGG FOR YOUR COLLECTION" : "ASKING AGAIN (%d OF %d)", attempt_, MAX_ATTEMPTS);
         } else {
@@ -689,10 +838,17 @@ class PocketBgg final : public App {
       case Sync::Stopping:
         return "STOPPING";
       case Sync::Synced:
+        if (coversFailed_ > 0) {
+          std::snprintf(out, size, "SYNCED. %d %s COULDN'T BE FETCHED", coversFailed_, coversFailed_ == 1 ? "COVER" : "COVERS");
+          return out;
+        }
         return syncedText(out, size);
       case Sync::PlaysStopped:
         if (playsPages_ == 0) return "SYNCED, BUT THE PLAYS COULDN'T BE READ";
         std::snprintf(out, size, "SYNCED. PLAYS STOPPED AT PAGE %d OF %d", playsPage_, playsPages_);
+        return out;
+      case Sync::CoversStopped:
+        std::snprintf(out, size, "SYNCED. COVERS STOPPED AT %d OF %u", coverAt_ + 1, static_cast<unsigned>(covers_.size()));
         return out;
       case Sync::StillQueued:
         return "BGG IS STILL PREPARING IT. TRY AGAIN SOON";
@@ -818,9 +974,10 @@ class PocketBgg final : public App {
       drawRectOutline(frame, left - 2, top - 2, picture_.width + 4, picture_.height + 4, 1);
       drawIcon(frame, picture_.bits.data(), picture_.width, picture_.height, left, top);
     } else {
+      // Not fetched yet, or BGG has no picture of it.
       ui::drawDimmedPill(frame, THUMB_LEFT, THUMB_TOP, THUMB, "", THUMB);
       drawTextInBox(frame, Font::Size14, THUMB_LEFT, THUMB_TOP, THUMB, THUMB,
-                    pictureFailed_ ? "CAN'T READ IMAGE" : "NO IMAGE YET");
+                    bgg::picId(game.thumbnail) != 0 ? "NO COVER YET" : "NO COVER ON BGG");
     }
 
     // The name as large as fits in three lines, never cut short.
@@ -855,34 +1012,6 @@ class PocketBgg final : public App {
     }
     std::snprintf(line, sizeof(line), "BGG ID %u", static_cast<unsigned>(game.id));
     drawTextInBox(frame, Font::Size14, MARGIN, lineTop, INNER_WIDTH, lineHeight(Font::Size14), line);
-  }
-
-  // Reads the test thumbnail from the card and turns it into a 1-bit picture, once. This runs
-  // in loop(), as everything that uses the card must: it shares the SPI bus with the panel.
-  // The decode holds up loop() too, so the log says how long it took.
-  void loadTestPicture() {
-    pictureTried_ = true;
-    for (const char* path : TEST_IMAGES) {
-      size_t size = 0;
-      storage::Blob file = storage::readFile(path, MAX_IMAGE_FILE_BYTES, size);
-      if (!file) continue;
-      const bgg::ImageFormat format = bgg::imageFormat(file.get(), size);
-      const uint32_t startMs = millis();
-      const bgg::PictureResult result = bgg::makePicture(file.get(), size, PICTURE_BOX, PICTURE_BOX, picture_);
-      const unsigned took = static_cast<unsigned>(millis() - startMs);
-      if (result == bgg::PictureResult::Ok) {
-        // The least stack loop() has had left so far, to see how close the decoder came.
-        Serial.printf("PocketBGG: %s, %s, %u bytes, %d x %d in %u ms, stack never below %u bytes free\n", path,
-                      bgg::formatName(format), static_cast<unsigned>(size), picture_.width, picture_.height, took,
-                      static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
-        return;
-      }
-      Serial.printf("PocketBGG: %s, %s, %u bytes: %s\n", path, bgg::formatName(format), static_cast<unsigned>(size),
-                    bgg::pictureErrorText(result));
-      pictureFailed_ = true;
-      return;
-    }
-    Serial.println("PocketBGG: no test image on the card");
   }
 
   // "2-7 PLAYERS  -  30 MIN", or as much of it as BGG gave. False if it gave none.
@@ -931,9 +1060,21 @@ class PocketBgg final : public App {
   int playsPage_ = 0;
   int playsPages_ = 0;  // 0 until the first page says how many
   bool waitingForBgg_ = false;  // a wait after 202, not the pause between pages
-  bgg::Picture picture_;        // the test thumbnail, 1-bit, about 5 KB
-  bool pictureTried_ = false;
-  bool pictureFailed_ = false;  // a file was there but wouldn't decode
+  bgg::Picture picture_;  // the open game's cover, 1-bit, about 5 KB
+  // The covers this sync fetches, and how it's going.
+  struct Cover {
+    uint32_t gameId;
+    uint32_t pic;
+    std::string url;
+  };
+  std::vector<Cover> covers_;
+  int coverAt_ = 0;
+  int coversFetched_ = 0;
+  int coversFailed_ = 0;
+  int coversUnanswered_ = 0;  // one after another
+  uint32_t coversStartMs_ = 0;
+  uint32_t coverStartMs_ = 0;
+  uint32_t lastCoverDrawMs_ = 0;
 };
 
 }  // namespace
