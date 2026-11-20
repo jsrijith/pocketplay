@@ -123,12 +123,13 @@ void formatVersion(char* out, int size) {
   std::snprintf(out, static_cast<size_t>(size), "VERSION %s  BUILD %d (%s)", version::NUMBER, version::BUILD, commit);
 }
 
-void drawSplash(uint8_t* frame, const char* line) {
+void drawSplash(uint8_t* frame, const char* line, bool showVersion) {
   constexpr int LOGO_TOP = 150;
   drawLogo(frame, SCREEN_WIDTH / 2, LOGO_TOP);
   const int nameTop = LOGO_TOP + LOGO_HEIGHT + 30;
   drawTextInBox(frame, Font::Size44, 0, nameTop, SCREEN_WIDTH, 60, "POCKETPLAY");
   if (line) drawTextInBox(frame, Font::Size20, 0, nameTop + 66, SCREEN_WIDTH, 30, line);
+  if (!showVersion) return;
   char text[64];
   formatVersion(text, sizeof(text));
   drawTextInBox(frame, Font::Size14, 0, SCREEN_HEIGHT - 16 - 24, SCREEN_WIDTH, 24, text);

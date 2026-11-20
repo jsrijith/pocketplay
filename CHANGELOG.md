@@ -4,6 +4,10 @@ What's new in each release, written for players. Each release's notes on GitHub 
 
 Before a release, add what changed under `## Unreleased` at the top, and commit it. `scripts/release.sh` renames that heading to the version it makes. A release without a section here falls back to the list of commits.
 
+## Unreleased
+
+- **Sleep screen:** no version and build line along the bottom, just the logo and `PRESS OK TO WAKE`. The boot screen and Settings' About page still show the version.
+
 ## 0.7.0
 
 - **PocketBGG**, a new app on the APPS page: your BoardGameGeek collection on the device. Put your BGG username and your own API token in `/pocketbgg/config.txt` on the card, and `SYNC` downloads your collection, each game's last-played date from your logged plays, and each game's cover, dithered to black and white. It all stays on the card, so the list works offline. Filter by status, played or not and player count, sort by name or last played, and step through games' details with Up and Down. A first sync takes about 7 minutes, and later ones about 4.

@@ -144,16 +144,19 @@ void startRefresh(shell::Redraw redraw) {
   }
 }
 
-// The logo, the name, `line` and the version, in portrait whatever was open.
-void drawSplash(const char* line) {
+// The logo, the name, `line` and, if `showVersion`, the version, in portrait whatever
+// was open.
+void drawSplash(const char* line, bool showVersion) {
   display.clearScreen(0xFF);
   setOrientation(Orientation::Portrait);
-  ui::drawSplash(display.getFrameBuffer(), line);
+  ui::drawSplash(display.getFrameBuffer(), line, showVersion);
 }
 
 void showAsleep() {
   // Always portrait, even from a landscape game: a wake starts there.
-  drawSplash("PRESS OK TO WAKE");
+  // No version here: this image stays up for as long as the device sleeps, so it's kept
+  // plain. The boot screen and Settings' About page still show it.
+  drawSplash("PRESS OK TO WAKE", false);
 
   // Async even though it waits: after an async refresh the panel's stored
   // previous frame is out of date, and only this path sends the correct one. A full
@@ -220,7 +223,7 @@ void setup() {
   // The boot screen first, then the screen the shell has open. Both are full refreshes:
   // the first paint after a boot must clear the old image, and the second clears the logo.
   Serial.printf("PocketPlay %s, build %d (%s)\n", version::NUMBER, version::BUILD, version::COMMIT);
-  drawSplash("GAMES IN YOUR POCKET");
+  drawSplash("GAMES IN YOUR POCKET", true);
   display.displayBufferAsync(EInkDisplay::FULL_REFRESH);
   display.waitRefreshComplete();
   delay(SPLASH_MS);

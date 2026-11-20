@@ -151,7 +151,7 @@ The device restarts into the PocketPlay home page. Always flash at `0x0`, becaus
 | Sleep | Hold OK for 1 second, or leave it idle for the sleep time |
 | Wake | Press OK. A game that was open comes back; otherwise you return to the home page |
 
-The boot and sleep screens show the logo, with the version and build along the bottom, such as `VERSION 0.1.0  BUILD 57 (A1B2C3D)`. Quote that when reporting a problem.
+The boot screen shows the logo, with the version and build along the bottom, such as `VERSION 0.1.0  BUILD 57 (A1B2C3D)`. Quote that when reporting a problem. Settings' About page shows it too.
 
 **Settings:**
 

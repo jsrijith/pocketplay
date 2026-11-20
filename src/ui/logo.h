@@ -12,9 +12,9 @@ constexpr int LOGO_HEIGHT = 400;  // from the die's top corner to the pocket's p
 // The logo with its top centre at (centerX, top).
 void drawLogo(uint8_t* frame, int centerX, int top);
 
-// The boot and sleep screen: the logo, POCKETPLAY under it, `line` under that, and the
-// version along the bottom.
-void drawSplash(uint8_t* frame, const char* line);
+// The boot and sleep screen: the logo, POCKETPLAY under it, `line` under that, and, if
+// `showVersion`, the version along the bottom.
+void drawSplash(uint8_t* frame, const char* line, bool showVersion);
 
 // "VERSION 0.1.0  BUILD 55 (F851F9C)".
 void formatVersion(char* out, int size);
