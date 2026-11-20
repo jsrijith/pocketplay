@@ -8,7 +8,8 @@
 #
 # Each line below is a folder, its function, and the commands that reach the screen to show.
 # The screenshot is taken after the last command, into <folder>/screenshot.png. Games that read
-# downloaded or card data get made-up data from screenshot_data.py.
+# downloaded or card data get made-up data from screenshot_data.py. frame.py puts a thin black
+# border around each one, so a white screen doesn't fade into a white page.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 HERE="$ROOT/tools/preview"
@@ -69,6 +70,7 @@ for line in "${SHOTS[@]}"; do
   out="$WORK/$(basename "$folder")"
   # shellcheck disable=SC2086
   if "$HERE/run.sh" "$folder" "$function" "$out" $commands shot:screenshot >"$out.log" 2>&1; then
+    python3 -I "$HERE/frame.py" "$out/screenshot.png"
     cp "$out/screenshot.png" "$target/screenshot.png"
     echo "ok    $folder"
   else
