@@ -28,13 +28,16 @@ case "$FOLDER" in
     ;;
 esac
 
+# The SDK's image tone mapper, which the firmware links from lib_deps.
+TONE="$ROOT/freeink-sdk/libs/assets/ImageToneMapper"
+
 mkdir -p "$OUT_DIR"
 BUILD="$(mktemp -d)"
 trap 'rm -rf "$BUILD"' EXIT
 
 "${CXX:-c++}" -std=c++17 -Wall -Wextra -Wno-missing-field-initializers -g -fsanitize=address,undefined \
-  "$DEFINE" -I"$HERE/stub" -I"$ROOT/src" -I"$SOURCE" \
-  "$HERE/preview.cpp" "$HERE/storage_stub.cpp" "$HERE/net_stub.cpp" \
+  "$DEFINE" -I"$HERE/stub" -I"$ROOT/src" -I"$SOURCE" -I"$TONE/include" \
+  "$HERE/preview.cpp" "$HERE/storage_stub.cpp" "$HERE/net_stub.cpp" "$TONE/src/ImageToneMapper.cpp" \
   "$ROOT/src/core/graphics.cpp" "$ROOT/src/core/text.cpp" "$ROOT"/src/ui/*.cpp \
   "$SOURCE"/*.cpp -o "$BUILD/preview"
 

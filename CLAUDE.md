@@ -53,7 +53,7 @@ Always flash the merged image at `0x0`, never the app alone: the merged image in
 
 Never include a file from another game or app, or from a higher row. Include a file in the same folder by its bare name, and anything else by its path from `src/`, such as `core/text.h`, never with `../`. Shared files are where branches conflict, so a game's change should stay in its own folder: `src/games/README.md` has the steps and rules.
 
-It runs on top of eight `freeink-sdk` libraries (BatteryMonitor, BoardConfig, EInkDisplay, InputManager, PowerManager, Rtc, SDCardManager, SecureNet), which are symlinked through `lib_deps` in `platformio.ini`. `-DFREEINK_DEVICE_STICKY=1` makes the SDK's `BoardConfig::ACTIVE` resolve to the Sticky's pins and panel settings, so take pins from `ACTIVE` rather than hardcoding them. To use another SDK library (touch, input, sensors), add it to `lib_deps`. Its API is in `freeink-sdk/libs/*/*/include/`.
+It runs on top of nine `freeink-sdk` libraries (BatteryMonitor, BoardConfig, EInkDisplay, ImageToneMapper, InputManager, PowerManager, Rtc, SDCardManager, SecureNet), which are symlinked through `lib_deps` in `platformio.ini`. `-DFREEINK_DEVICE_STICKY=1` makes the SDK's `BoardConfig::ACTIVE` resolve to the Sticky's pins and panel settings, so take pins from `ACTIVE` rather than hardcoding them. To use another SDK library (touch, input, sensors), add it to `lib_deps`. Its API is in `freeink-sdk/libs/*/*/include/`.
 
 `freeink-sdk/` is a submodule pinned to the commit CrossPlay builds against. Don't edit it.
 
