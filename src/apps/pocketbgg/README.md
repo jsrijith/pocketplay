@@ -1,8 +1,12 @@
 # PocketBGG
 
-Your BoardGameGeek collection, to browse on the device.
+Your BoardGameGeek collection, to browse on the device, with each game's cover, plays and the date you last played it. It's kept on the SD card, so it works without Wi-Fi once synced.
 
-**Work in progress.** It syncs, keeps and filters your collection, with each game's cover.
+## Screenshot
+
+<img src="screenshot.png" alt="PocketBGG's list of games on PocketPlay" width="240">
+
+Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel shows, from a made-up collection.
 
 ## Setting up
 
@@ -35,8 +39,9 @@ If `SYNC` doesn't get as far as Wi-Fi, the line above it says what's wrong with 
   - `ORDER`, A-Z or last played: the most recently played first, and games never played last.
 
   `SHOWING 99 OF 203` at the top says what the choices leave, and `BACK` returns to the list. The list's count then reads `99 OF 203 GAMES`. A sync keeps the filter.
-- Last, a sync fetches each game's cover from BGG's image server and keeps it on the card, dithered to black and white: about 2 seconds a cover, so 7 minutes or so for 200 games the first time. After that only new games' covers, and covers changed on BGG, are fetched. The line above `SYNC` says `FETCHING COVERS, 12 OF 41`. `BACK` stops it, the covers fetched so far are kept, and the next sync carries on with the rest. Covers of games that have left your collection are deleted.
-- Tap a game to see its details: its cover, player count, play time and the date it was last played. `NO COVER YET` means it hasn't been fetched, and `NO COVER ON BGG` that BGG has no picture of it. `BACK` returns to the same page of the list.
+- Last, a sync fetches each game's cover from BGG's image server and keeps it on the card, dithered to black and white: under a second a cover, so about 2.5 minutes for 200 games the first time, and a first sync about 7 minutes in all. After that only new games' covers, and covers changed on BGG, are fetched, so a sync is about 4 minutes, nearly all of it the plays. The line above `SYNC` says `FETCHING COVERS, 12 OF 41`. `BACK` stops it, the covers fetched so far are kept, and the next sync carries on with the rest. Covers of games that have left your collection are deleted.
+- Tap a game to see its details: its cover, year, plays and status, player count, play time and the date it was last played. `NO COVER YET` means it hasn't been fetched, and `NO COVER ON BGG` that BGG has no picture of it.
+- On a game's details, Down shows the next game and Up the one before, in the list's order and through its filter: `GAME 12 OF 99` at the top says where you are. `BACK` returns to the list, on the page holding the game you ended on.
 - `BACK` on the list returns to the APPS page.
 
 ## Saves
@@ -50,3 +55,9 @@ All in `/.pocketplay/`:
 | `pocketbgg-t<game>-<picture>` | One game's cover, 1 bit a pixel, up to 200 by 200: about 4 KB, so under 1 MB for 200 games. The second number is BGG's picture id, so a changed cover is fetched again. |
 
 Your username and token stay in `/pocketbgg/config.txt`, which PocketBGG only ever reads.
+
+## Credits
+
+- The collection, plays and covers come from [BoardGameGeek](https://boardgamegeek.com) through its XML API, under BGG's terms for it, and each game's details say `POWERED BY BGG`.
+- Covers are decoded with [stb_image](https://github.com/nothings/stb) by Sean Barrett (public domain or MIT, in `third_party/LICENSE-stb.txt`), and dithered with the FreeInk SDK's image tone mapper.
+- The icon is "dices" from [Lucide](https://lucide.dev) (ISC).

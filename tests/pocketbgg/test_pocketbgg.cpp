@@ -86,6 +86,9 @@ void testPaginate() {
   check(pages == std::vector<int>({0, 3, 6}), "three rows a page, and the last page holds the one left");
   check(pageOf(pages, 0) == 0 && pageOf(pages, 2) == 0 && pageOf(pages, 3) == 1 && pageOf(pages, 6) == 2,
         "each row is found on its page");
+  check(stepRow(0, 1, 5) == 1 && stepRow(3, -1, 5) == 2, "a step to the next and the previous game");
+  check(stepRow(4, 1, 5) == -1 && stepRow(0, -1, 5) == -1, "no step past the last or the first");
+  check(stepRow(0, 1, 1) == -1 && stepRow(0, 1, 0) == -1 && stepRow(-1, 1, 5) == -1, "one game, none, or none shown");
 
   check(paginate({100, 100, 100}, 308, 4) == std::vector<int>({0}), "rows that exactly fill the room share a page");
   check(paginate({100, 150, 100, 50}, 260, 4) == std::vector<int>({0, 2}), "rows of different heights");

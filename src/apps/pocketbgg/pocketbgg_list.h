@@ -25,7 +25,7 @@ enum Status : uint16_t {
 
 struct Game {
   uint32_t id = 0;       // BGG's objectid for the game
-  uint32_t collId = 0;   // this copy's id in the collection, which a delta sync matches on
+  uint32_t collId = 0;   // this copy's id in the collection, as one game can be in it twice
   std::string name;      // ASCII: PocketPlay's font draws nothing else
   uint8_t sortSkip = 0;  // leading characters to skip when sorting, such as "The " in The Crew
   int16_t year = kNoYear;  // negative is BC, as BGG has Nine Men's Morris at -1400
@@ -34,7 +34,7 @@ struct Game {
   uint8_t maxPlayers = 0;
   uint16_t playTime = 0;   // minutes, 0 when BGG doesn't say
   uint16_t status = 0;     // Status flags
-  std::string thumbnail;   // its URL, for M6
+  std::string thumbnail;   // its cover's URL, empty when BGG has no picture
   std::string lastModified;  // "YYYY-MM-DD HH:MM:SS", as BGG sends it
   uint32_t lastPlayed = 0;   // the latest logged play as YYYYMMDD, or 0 for none
 };
@@ -70,5 +70,9 @@ std::vector<int> paginate(const std::vector<int>& heights, int room, int gap);
 
 // Which page a row is on, given paginate()'s answer.
 int pageOf(const std::vector<int>& firstRows, int row);
+
+// The row `by` away from `row` among `count`, for stepping through the games on their details,
+// or -1 past either end.
+int stepRow(int row, int by, int count);
 
 }  // namespace pocketbgg

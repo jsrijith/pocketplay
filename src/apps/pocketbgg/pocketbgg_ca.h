@@ -27,8 +27,8 @@ constexpr const char* kBggRootCa =
     "-----END CERTIFICATE-----\n";
 
 // Amazon Root CA 1, valid until 2038-01-17. The root of cf.geekdo-images.com, where BGG's
-// thumbnails are, kept for downloading them (M6). It isn't BGG's root: trusting it alone, the
-// device refuses boardgamegeek.com (wolfSSL -188), as tested on the device in M3. From Ubuntu's ca-certificates. SHA-256
+// covers are, checked for each one downloaded. It isn't BGG's root: trusting it alone, the
+// device refuses boardgamegeek.com (wolfSSL -188), as tested on the device. From Ubuntu's ca-certificates. SHA-256
 // fingerprint 8E:CD:E6:88:4F:3D:87:B1:12:5B:A3:1A:C3:FC:B1:3D:70:16:DE:7F:57:CC:90:4F:E1:CB:97:C6:AE:98:19:6E.
 constexpr const char* kAmazonRootCa =
     "-----BEGIN CERTIFICATE-----\n"

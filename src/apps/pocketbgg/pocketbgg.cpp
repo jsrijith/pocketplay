@@ -19,6 +19,7 @@
 #include "pocketbgg_collection.h"
 #include "pocketbgg_config.h"
 #include "pocketbgg_filter.h"
+#include "pocketbgg_icon.h"
 #include "pocketbgg_image.h"
 #include "pocketbgg_plays.h"
 #include "pocketbgg_list.h"
@@ -30,10 +31,12 @@ namespace bgg = pocketbgg;
 
 namespace {
 
-// The list: a caption line saying where the data came from and which page this is, then one
-// row per game (the name, wrapped, and a line under it with the year and plays), then a status
-// line and SYNC along the bottom. The Up and Down buttons turn the pages. The details: the same
-// caption, the game's cover, the name large, and the year and plays.
+// The list: a caption line saying how many games and which page this is, then one row per
+// game (the name, wrapped, and a line under it with the plays, status and last-played date),
+// then a status line and FILTER and SYNC along the bottom. The Up and Down buttons turn the
+// pages. The details: the same caption with which game this is, the game's cover, the name
+// large, the year, plays and status, players and time, and the date last played; Up and Down
+// step through the games.
 constexpr int MARGIN = 16;
 constexpr int GAP = 12;
 constexpr int INNER_WIDTH = SCREEN_WIDTH - 2 * MARGIN;
@@ -116,6 +119,7 @@ int rowHeight(const bgg::Game& game) {
 class PocketBgg final : public App {
  public:
   const char* name() const override { return "POCKETBGG"; }
+  const uint8_t* icon() const override { return pocketbggIcon::APP; }
 
   void open() override {
     // So the player can see where config.txt goes when the card is in a PC. Only the folder:
@@ -132,9 +136,15 @@ class PocketBgg final : public App {
     if (view_ == View::Filters) return tapFilters(x, y);
     if (ui::isOnBack(x, y)) {
       if (view_ == View::Details) {
-        view_ = View::List;
-        // Dates that came in while the details were open may have changed the order.
+        // Back to the page holding the game shown last, which Up and Down may have moved on
+        // from the one tapped. Dates that came in meanwhile may have changed the order, so it's
+        // found again by its place in games_.
+        const int game = visible_[selected_];
         if (needsRefresh_) applyFilter();
+        view_ = View::List;
+        for (int row = 0; row < static_cast<int>(visible_.size()); row++) {
+          if (visible_[row] == game) page_ = bgg::pageOf(pages_, row);
+        }
         return TapResult::RedrawFull;
       }
       // A download has to stop before the radio can go off, so the first BACK asks it to, and
@@ -168,10 +178,10 @@ class PocketBgg final : public App {
     return TapResult::Nothing;
   }
 
-  // Up and Down turn the list's pages, and do nothing past the first or last. On a game's
-  // details they do nothing yet.
-  TapResult onUpPressed() override { return view_ == View::List ? turnPage(-1) : TapResult::Nothing; }
-  TapResult onDownPressed() override { return view_ == View::List ? turnPage(1) : TapResult::Nothing; }
+  // Up and Down turn the list's pages, and on a game's details step to the game before or
+  // after it in the list as it's shown. Both do nothing past the first or last.
+  TapResult onUpPressed() override { return step(-1); }
+  TapResult onDownPressed() override { return step(1); }
 
   void draw(uint8_t* frame) override {
     ui::drawBand(frame, name(), nullptr, true);
@@ -891,6 +901,16 @@ class PocketBgg final : public App {
     }
   }
 
+  TapResult step(int by) {
+    if (view_ == View::List) return turnPage(by);
+    if (view_ != View::Details) return TapResult::Nothing;
+    const int next = bgg::stepRow(selected_, by, static_cast<int>(visible_.size()));
+    if (next < 0) return TapResult::Nothing;
+    selected_ = next;
+    loadCover(games_[visible_[selected_]]);
+    return TapResult::Redraw;
+  }
+
   TapResult turnPage(int step) {
     const int next = page_ + step;
     if (next < 0 || next >= pageCount()) return TapResult::Nothing;
@@ -898,8 +918,8 @@ class PocketBgg final : public App {
     return TapResult::Redraw;
   }
 
-  // How many games, "140 OF 203 GAMES" when the filter hides some, on the left, and which page
-  // this is on the right.
+  // How many games, "140 OF 203 GAMES" when the filter hides some, on the left, and on the
+  // right which page this is, or on a game's details which game.
   void drawCaption(uint8_t* frame, bool withPage) const {
     char count[32];
     const unsigned all = static_cast<unsigned>(games_.size());
@@ -910,9 +930,13 @@ class PocketBgg final : public App {
       std::snprintf(count, sizeof(count), "%u OF %u %s", shown, all, all == 1 ? "GAME" : "GAMES");
     }
     ui::drawTextLeft(frame, Font::Size14, MARGIN, CAPTION_TOP, CAPTION_HEIGHT, synced_ ? count : "NOT SYNCED");
-    if (!withPage || visible_.empty()) return;
+    if (visible_.empty()) return;
     char page[24];
-    std::snprintf(page, sizeof(page), "PAGE %d OF %d", page_ + 1, pageCount());
+    if (withPage) {
+      std::snprintf(page, sizeof(page), "PAGE %d OF %d", page_ + 1, pageCount());
+    } else {
+      std::snprintf(page, sizeof(page), "GAME %d OF %u", selected_ + 1, shown);
+    }
     const int width = textWidth(Font::Size14, page);
     ui::drawTextLeft(frame, Font::Size14, MARGIN + INNER_WIDTH - width, CAPTION_TOP, CAPTION_HEIGHT, page);
   }
@@ -1012,6 +1036,9 @@ class PocketBgg final : public App {
     }
     std::snprintf(line, sizeof(line), "BGG ID %u", static_cast<unsigned>(game.id));
     drawTextInBox(frame, Font::Size14, MARGIN, lineTop, INNER_WIDTH, lineHeight(Font::Size14), line);
+    lineTop += lineHeight(Font::Size14) + GAP;
+    // BGG asks apps that use its data to say so.
+    drawTextInBox(frame, Font::Size10, MARGIN, lineTop, INNER_WIDTH, lineHeight(Font::Size10), "POWERED BY BGG");
   }
 
   // "2-7 PLAYERS  -  30 MIN", or as much of it as BGG gave. False if it gave none.

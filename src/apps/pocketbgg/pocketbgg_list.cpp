@@ -87,4 +87,10 @@ int pageOf(const std::vector<int>& firstRows, int row) {
   return page;
 }
 
+int stepRow(int row, int by, int count) {
+  if (row < 0 || row >= count) return -1;
+  const int next = row + by;
+  return next >= 0 && next < count ? next : -1;
+}
+
 }  // namespace pocketbgg
