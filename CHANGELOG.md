@@ -7,6 +7,7 @@ Before a release, add what changed under `## Unreleased` at the top, and commit 
 ## Unreleased
 
 - **Karuba Tiles:** a new companion for the Karuba board game. `DRAW`, or the Down button, draws one of the 36 jungle tiles at random with no repeats, shows its paths, its number in large type and its crystal or gold, lists the three drawn before it, and keeps a board of every tile that's out.
+- **Crown & Crest:** a crown for its home-page icon, so it no longer looks like Authority Tracker's shield.
 - **Sleep screen:** no version and build line along the bottom, just the logo and `PRESS OK TO WAKE`. The boot screen and Settings' About page still show the version.
 
 ## 0.7.0

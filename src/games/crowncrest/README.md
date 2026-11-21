@@ -42,4 +42,4 @@ All in `/.pocketplay/`:
 
 ## Credits
 
-Inspired by Bruno Cathala and Ludovic Maublanc's [Kingdomino Duel](https://boardgamegeek.com/boardgame/281960/kingdomino-duel). The dice faces are original line art, drawn by [`tools/crowncrest_faces.py`](../../../tools/crowncrest_faces.py). The icon is Lucide's shield (ISC licence).
+Inspired by Bruno Cathala and Ludovic Maublanc's [Kingdomino Duel](https://boardgamegeek.com/boardgame/281960/kingdomino-duel). The dice faces are original line art, drawn by [`tools/crowncrest_faces.py`](../../../tools/crowncrest_faces.py). The icon is Lucide's crown (ISC licence).
