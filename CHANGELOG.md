@@ -4,7 +4,7 @@ What's new in each release, written for players. Each release's notes on GitHub 
 
 Before a release, add what changed under `## Unreleased` at the top, and commit it. `scripts/release.sh` renames that heading to the version it makes. A release without a section here falls back to the list of commits.
 
-## Unreleased
+## 0.8.0
 
 - **Karuba Tiles:** a new companion for the Karuba board game. `DRAW`, or the Down button, draws one of the 36 jungle tiles at random with no repeats, shows its paths, its number in large type and its crystal or gold, lists the three drawn before it, and keeps a board of every tile that's out.
 - **Crown & Crest:** a crown for its home-page icon, so it no longer looks like Authority Tracker's shield.
