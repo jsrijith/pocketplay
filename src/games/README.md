@@ -27,6 +27,7 @@ Each folder's `README.md` is for players. "From" says where a port came from; it
 | [`dungeon/`](dungeon/) | D&Diagrams | CrossPlay | The worked example of a port, with a layout struct for taps |
 | [`gridgambit/`](gridgambit/) | Grid Gambit | Original | Puzzles made between taps (`Game::update`), graded by a solver |
 | [`islandmaps/`](islandmaps/) | Island Maps | Original | Up and Down stepping through a built-in list |
+| [`karubatiles/`](karubatiles/) | Karuba Tiles | Original | A tile drawn pixel by pixel from a table of its paths |
 | [`kakuro/`](kakuro/) | Kakuro | touch-licorice-apps | Digit keys for the selected cell, and the ways to make each run |
 | [`knucklebones/`](knucklebones/) | Knucklebones | CrossPlay | A computer opponent that plays between taps |
 | [`lastpiece/`](lastpiece/) | Last Piece | Original | Levels the player copies onto the card, checked as they're read |

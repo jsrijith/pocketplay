@@ -2,7 +2,7 @@
 
 # PocketPlay
 
-A pocket games console for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. PocketPlay replaces the device's firmware with a home page of 30 games, from daily word puzzles to logic puzzles, card games and text adventures. Everything is played by tapping the screen, and everything is designed for e-ink: black and white, few refreshes, and nothing that moves unless you touch it.
+A pocket games console for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. PocketPlay replaces the device's firmware with a home page of 31 games, from daily word puzzles to logic puzzles, card games and text adventures. Everything is played by tapping the screen, and everything is designed for e-ink: black and white, few refreshes, and nothing that moves unless you touch it.
 
 PocketPlay drew heavy inspiration from [CrossPlay](https://github.com/ma-r-s/crossplay), and while it has since grown to include its own unique design, games, and features, most of its games were ported from two open-source projects: nine from CrossPlay, including the very first ones, and ten from [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel. I would like to extend my sincere thanks to the authors of both: CrossPlay laid the foundation that made this possible, and touch-licorice-apps brought many of the puzzle games and their puzzles.
 
@@ -62,6 +62,7 @@ I have also credited all the open-source projects referenced here. If I have mis
 | [**Symbol Dice**](src/games/symboldice/README.md) | Two dice of six symbols for a 12-turn roll-and-write game played on paper, with a turn counter. |
 | [**Dice Roller**](src/games/diceroller/README.md) | Two dice and their total, with one button to roll again, for any board game. |
 | [**Bingo Caller**](src/games/bingocaller/README.md) | Calls 30, 75, 80 or 90-ball bingo for players with paper cards, one random number a tap with no repeats, and a board of every number called. |
+| [**Karuba Tiles**](src/games/karubatiles/README.md) | Draws the 36 jungle tiles of the Karuba board game for the leading player, one at random a tap with no repeats, shows the tile's paths and treasure, and keeps a board of every tile drawn. |
 | [**Island Maps**](src/games/islandmaps/README.md) | 55 official and fan-made island layouts for laying out the tiles of the Forbidden Island board game, stepped through with Up and Down or picked at random. |
 | [**Authority Tracker**](src/games/authoritytracker/README.md) | Two players' scores on one screen, starting at 50, with buttons for ±1, ±5 and ±10. The game ends when a score reaches 0. |
 | [**Polyomino Panic**](src/games/polyominopanic/README.md) | Holds the decks for the paper game: deals a different starting shape to each player, then flips two shapes a round from the 40-card deck until it runs out. Plotting and scoring stay on paper. |
@@ -313,6 +314,8 @@ PocketPlay builds on other people's work, each under its own licence, kept besid
 - Noto Sans Symbols 2: Solitaire's suit marks, drawn from its card-suit glyphs (SIL Open Font License, in `src/games/solitaire/OFL-Noto.txt`)
 
 Zork I, II and III are © Microsoft, released under the MIT licence. Sokoban's level packs are by David W. Skinner and Aymeric du Peloux, published with their permission. Word Ladder's word lists come from Alan Beale's 12dicts and Kevin Atkinson's AGID.
+
+Karuba Tiles draws for Karuba, a game by Rüdiger Dorn published by HABA. This project isn't affiliated with either, and its tile drawings are its own.
 
 Island Maps' layouts are the official islands of Forbidden Island, a game by Matt Leacock published by Gamewright, and fan-made islands by the players named in [its README](src/games/islandmaps/README.md). This project isn't affiliated with either.
 

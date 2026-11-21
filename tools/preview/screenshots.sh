@@ -29,6 +29,7 @@ SHOTS=(
   "dungeon dungeonGame tap:240,756"
   "gridgambit gridGambitGame update"
   "islandmaps islandMapsGame"
+  "karubatiles karubaTilesGame tap:300,758 tap:300,758 tap:300,758 tap:300,758 tap:300,758 tap:300,758 tap:300,758"
   "kakuro kakuroGame tap:182,758 tap:182,758 tap:182,758 tap:276,336"
   "knucklebones knucklebonesGame tap:240,686 tap:164,570 update tap:240,570 update tap:164,570 update"
   "lastpiece lastPieceGame tap:81,248"
