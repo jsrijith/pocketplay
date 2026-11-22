@@ -4,7 +4,7 @@ What's new in each release, written for players. Each release's notes on GitHub 
 
 Before a release, add what changed under `## Unreleased` at the top, and commit it. `scripts/release.sh` renames that heading to the version it makes. A release without a section here falls back to the list of commits.
 
-## Unreleased
+## 0.9.0
 
 - **PocketBGG:** a `RANDOM` button beside `FILTER`, which opens one of the games the filter shows, picked at random. Set the filter to owned games for 4 players, say, and let it choose tonight's game. Tapping it again never picks the same game twice in a row.
 - **PocketBGG:** Up and Down wrap around. On a game's details, Down on the last game goes to the first and Up on the first to the last, and on the list, Down on the last page goes back to page 1.
