@@ -29,7 +29,7 @@ If `SYNC` doesn't get as far as Wi-Fi, the line above it says what's wrong with 
 ## Getting around
 
 - The list shows each game's name, with how many times it's been played and its status under it, such as `33 PLAYS - OWNED`, and at the right of that line, smaller, when it was last played: `LAST 17 NOV 2026`. The year is on the game's details. Long names wrap onto a second line rather than being cut short.
-- The Up and Down buttons turn the pages. `PAGE 1 OF 25` at the top says where you are, and the count on the left how many games there are.
+- The Up and Down buttons turn the pages, and wrap around: Down on the last page goes back to page 1, and Up on page 1 to the last. `PAGE 1 OF 25` at the top says where you are, and the count on the left how many games there are.
 - The list is kept on the card, so it's there without Wi-Fi, after sleep and after a restart. The line above `SYNC` says when it was last synced, in the time zone chosen in Settings.
 - `SYNC` downloads your whole collection from BGG: every game with any status (owned, wishlist, previously owned and the rest), expansions included. It joins Wi-Fi, opening the Wi-Fi screen if it isn't already connected, and turns the radio off again when it's done. BGG often answers "preparing it" first, so it waits 5 seconds and asks again, up to 6 times. After the collection it reads every play you've logged, 100 a page with a 5 second pause between pages as BGG asks, for each game's last-played date: about 4 minutes for 3,400 plays. The list can be browsed meanwhile, and the line above `SYNC` says how far it's got, such as `READING PLAYS, PAGE 12 OF 34`. `BACK` stops it, and the dates read so far are kept. `BACK` while it's downloading stops it first.
 - `FILTER` chooses which games the list shows, and starts at owned games only. Tap a row to switch it:
@@ -41,7 +41,8 @@ If `SYNC` doesn't get as far as Wi-Fi, the line above it says what's wrong with 
   `SHOWING 99 OF 203` at the top says what the choices leave, and `BACK` returns to the list. The list's count then reads `99 OF 203 GAMES`. A sync keeps the filter.
 - Last, a sync fetches each game's cover from BGG's image server and keeps it on the card, dithered to black and white: under a second a cover, so about 2.5 minutes for 200 games the first time, and a first sync about 7 minutes in all. After that only new games' covers, and covers changed on BGG, are fetched, so a sync is about 4 minutes, nearly all of it the plays. The line above `SYNC` says `FETCHING COVERS, 12 OF 41`. `BACK` stops it, the covers fetched so far are kept, and the next sync carries on with the rest. Covers of games that have left your collection are deleted.
 - Tap a game to see its details: its cover, year, plays and status, player count, play time and the date it was last played. `NO COVER YET` means it hasn't been fetched, and `NO COVER ON BGG` that BGG has no picture of it.
-- On a game's details, Down shows the next game and Up the one before, in the list's order and through its filter: `GAME 12 OF 99` at the top says where you are. `BACK` returns to the list, on the page holding the game you ended on.
+- `RANDOM` opens the details of one of the games the list shows, picked at random, so set `FILTER` first to choose among owned games for 4 players, say. `BACK` and `RANDOM` again for another: it never picks the same game twice in a row.
+- On a game's details, Down shows the next game and Up the one before, in the list's order and through its filter, wrapping from the last game to the first and back: `GAME 12 OF 99` at the top says where you are. `BACK` returns to the list, on the page holding the game you ended on.
 - `BACK` on the list returns to the APPS page.
 
 ## Saves

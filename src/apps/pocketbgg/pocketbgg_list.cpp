@@ -88,9 +88,9 @@ int pageOf(const std::vector<int>& firstRows, int row) {
 }
 
 int stepRow(int row, int by, int count) {
-  if (row < 0 || row >= count) return -1;
-  const int next = row + by;
-  return next >= 0 && next < count ? next : -1;
+  if (count <= 1 || row < 0 || row >= count) return -1;
+  const int next = ((row + by) % count + count) % count;  // C++'s % keeps the sign, so add count
+  return next == row ? -1 : next;
 }
 
 }  // namespace pocketbgg

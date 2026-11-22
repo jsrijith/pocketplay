@@ -71,8 +71,43 @@ std::vector<int> paginate(const std::vector<int>& heights, int room, int gap);
 // Which page a row is on, given paginate()'s answer.
 int pageOf(const std::vector<int>& firstRows, int row);
 
-// The row `by` away from `row` among `count`, for stepping through the games on their details,
-// or -1 past either end.
+// The row `by` away from `row` among `count`, for stepping through the games on their details or
+// the list's pages. It wraps around: past the last comes the first, and before the first the
+// last. -1 when there's nowhere else to go: one row, none, or `row` out of range.
 int stepRow(int row, int by, int count);
+
+// SplitMix64's finaliser, as Bingo Caller's: every input bit flips about half the output bits,
+// so entropy that arrives in a few low bits, such as a tap's microsecond, spreads through all 64.
+inline uint64_t mix(uint64_t z) {
+  z += 0x9E3779B97F4A7C15ull;
+  z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
+  z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+  return z ^ (z >> 31);
+}
+
+// 0 to n-1 from `next`, a source of 32-bit values, all exactly equally likely: values above the
+// largest multiple of n that fits in 32 bits are thrown back, so no result gets the leftover.
+template <typename Next>
+uint32_t uniform(uint32_t n, Next&& next) {
+  const uint32_t limit = 0xFFFFFFFFu - (0xFFFFFFFFu % n + 1) % n;
+  uint32_t v;
+  do {
+    v = next();
+  } while (v > limit);
+  return v % n;
+}
+
+// A row among `count` for a random pick, drawn from `next`, or -1 for none. It isn't `avoid`,
+// the last pick, unless that's the only row, so a second pick always shows another game. Pass
+// -1 to allow every row.
+template <typename Next>
+int randomRow(int count, int avoid, Next&& next) {
+  if (count <= 0) return -1;
+  if (count == 1) return 0;
+  if (avoid < 0 || avoid >= count) return static_cast<int>(uniform(static_cast<uint32_t>(count), next));
+  // One of the other rows: pick among count - 1, then step over the one to avoid.
+  const int row = static_cast<int>(uniform(static_cast<uint32_t>(count - 1), next));
+  return row >= avoid ? row + 1 : row;
+}
 
 }  // namespace pocketbgg

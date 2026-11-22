@@ -87,8 +87,34 @@ void testPaginate() {
   check(pageOf(pages, 0) == 0 && pageOf(pages, 2) == 0 && pageOf(pages, 3) == 1 && pageOf(pages, 6) == 2,
         "each row is found on its page");
   check(stepRow(0, 1, 5) == 1 && stepRow(3, -1, 5) == 2, "a step to the next and the previous game");
-  check(stepRow(4, 1, 5) == -1 && stepRow(0, -1, 5) == -1, "no step past the last or the first");
+  check(stepRow(4, 1, 5) == 0 && stepRow(0, -1, 5) == 4, "past the last comes the first, and before the first the last");
+  check(stepRow(1, 1, 2) == 0 && stepRow(0, -1, 2) == 1, "with two, each step goes to the other");
   check(stepRow(0, 1, 1) == -1 && stepRow(0, 1, 0) == -1 && stepRow(-1, 1, 5) == -1, "one game, none, or none shown");
+
+  // A source that hands out a fixed run of values, then repeats the last.
+  auto fixed = [](std::vector<uint32_t> values) {
+    return [values, i = size_t(0)]() mutable { return values[i < values.size() ? i++ : values.size() - 1]; };
+  };
+  check(randomRow(0, -1, fixed({12345})) == -1, "no random pick with no games");
+  check(randomRow(1, -1, fixed({12345})) == 0 && randomRow(1, 0, fixed({12345})) == 0, "one game is always the pick, even again");
+  bool inRange = true, neverAvoided = true, seen[5] = {};
+  for (uint32_t r = 0; r < 1000; r++) {
+    const int any = randomRow(5, -1, fixed({r * 2654435761u}));
+    inRange = inRange && any >= 0 && any < 5;
+    if (any >= 0 && any < 5) seen[any] = true;
+    const int other = randomRow(5, 2, fixed({r * 2654435761u}));
+    neverAvoided = neverAvoided && other != 2 && other >= 0 && other < 5;
+  }
+  check(inRange && seen[0] && seen[1] && seen[2] && seen[3] && seen[4], "a random pick reaches every game and no further");
+  check(neverAvoided, "a second pick is never the last one");
+  check(randomRow(5, 9, fixed({0xFFFFFFF0u})) >= 0 && randomRow(5, 9, fixed({0xFFFFFFF0u})) < 5, "a last pick that's no longer shown is ignored");
+  check(randomRow(2, 0, fixed({0})) == 1 && randomRow(2, 1, fixed({7})) == 0, "with two games, the other one");
+
+  // 2^32 isn't a multiple of 3, so the top value would give 0 one time too many: it's thrown back.
+  check(uniform(3, fixed({0xFFFFFFFFu, 4})) == 1, "a value past the last whole multiple is drawn again");
+  check(uniform(3, fixed({0xFFFFFFFEu})) == 0xFFFFFFFEu % 3, "the last value inside it is kept");
+  check(uniform(4, fixed({0xFFFFFFFFu})) == 3, "nothing is thrown back when n divides 2^32");
+  check(mix(1) != mix(2) && (mix(1) ^ mix(2)) >> 32 != 0, "a one-bit change reaches the top half");
 
   check(paginate({100, 100, 100}, 308, 4) == std::vector<int>({0}), "rows that exactly fill the room share a page");
   check(paginate({100, 150, 100, 50}, 260, 4) == std::vector<int>({0, 2}), "rows of different heights");

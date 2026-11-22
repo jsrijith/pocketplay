@@ -2,6 +2,8 @@
 
 #include <Arduino.h>
 
+#include <esp_random.h>
+
 #include <atomic>
 #include <cstdio>
 #include <cstring>
@@ -33,7 +35,7 @@ namespace {
 
 // The list: a caption line saying how many games and which page this is, then one row per
 // game (the name, wrapped, and a line under it with the plays, status and last-played date),
-// then a status line and FILTER and SYNC along the bottom. The Up and Down buttons turn the
+// then a status line and FILTER, RANDOM and SYNC along the bottom. The Up and Down buttons turn the
 // pages. The details: the same caption with which game this is, the game's cover, the name
 // large, the year, plays and status, players and time, and the date last played; Up and Down
 // step through the games.
@@ -53,12 +55,13 @@ constexpr int ROW_PAD_BOTTOM = 8;
 constexpr int NAME_WIDTH = INNER_WIDTH - 2 * ROW_INSET;
 constexpr int META_HEIGHT = 26;
 
-// The bottom row holds the actions, FILTER and SYNC. The status line above it says how the last
-// sync went.
+// The bottom row holds the actions, FILTER, RANDOM and SYNC. The status line above it says how
+// the last sync went.
 constexpr int BUTTON_TOP = SCREEN_HEIGHT - MARGIN - ui::PILL_HEIGHT;
-constexpr int BUTTON_WIDTH = (INNER_WIDTH - GAP) / 2;
+constexpr int BUTTON_WIDTH = (INNER_WIDTH - 2 * GAP) / 3;
 constexpr int FILTER_LEFT = MARGIN;
-constexpr int SYNC_LEFT = MARGIN + BUTTON_WIDTH + GAP;
+constexpr int RANDOM_LEFT = FILTER_LEFT + BUTTON_WIDTH + GAP;
+constexpr int SYNC_LEFT = RANDOM_LEFT + BUTTON_WIDTH + GAP;
 constexpr int STATUS_HEIGHT = 24;
 constexpr int STATUS_TOP = BUTTON_TOP - 6 - STATUS_HEIGHT;
 constexpr int LIST_BOTTOM = STATUS_TOP - 6;
@@ -166,6 +169,7 @@ class PocketBgg final : public App {
       view_ = View::Filters;
       return TapResult::RedrawFull;
     }
+    if (ui::isInBox(x, y, RANDOM_LEFT, BUTTON_TOP, BUTTON_WIDTH, ui::PILL_HEIGHT)) return pickRandom();
 
     for (int row = firstRow(); row < endRow(); row++) {
       if (ui::isInBox(x, y, MARGIN, rowTop(row), INNER_WIDTH, heights_[row])) {
@@ -179,7 +183,7 @@ class PocketBgg final : public App {
   }
 
   // Up and Down turn the list's pages, and on a game's details step to the game before or
-  // after it in the list as it's shown. Both do nothing past the first or last.
+  // after it in the list as it's shown. Both wrap around, from the last to the first and back.
   TapResult onUpPressed() override { return step(-1); }
   TapResult onDownPressed() override { return step(1); }
 
@@ -894,11 +898,42 @@ class PocketBgg final : public App {
     } else {
       ui::drawPill(frame, FILTER_LEFT, BUTTON_TOP, BUTTON_WIDTH, "FILTER", false);
     }
+    // RANDOM too, and dimmed when the filter leaves no games to pick from.
+    if (visible_.empty()) {
+      ui::drawDimmedPill(frame, RANDOM_LEFT, BUTTON_TOP, BUTTON_WIDTH, "RANDOM");
+    } else {
+      ui::drawPill(frame, RANDOM_LEFT, BUTTON_TOP, BUTTON_WIDTH, "RANDOM", false);
+    }
     if (sync_ == Sync::Joining || sync_ == Sync::Waiting || sync_ == Sync::Downloading || sync_ == Sync::Stopping) {
       ui::drawDimmedPill(frame, SYNC_LEFT, BUTTON_TOP, BUTTON_WIDTH, "SYNCING");
     } else {
       ui::drawPill(frame, SYNC_LEFT, BUTTON_TOP, BUTTON_WIDTH, "SYNC", true);
     }
+  }
+
+  // RANDOM: one of the games the filter shows, opened as a tap on its row would. It mixes the
+  // chip's random number with the microsecond of the tap, as Bingo Caller does: esp_random() is
+  // only truly random while the radio is on, and the radio is usually off, so the tap's timing
+  // covers the rest. Nothing depends on the order of the picks, so there's no state to keep. It
+  // avoids the last pick, found by its collection id as a sync may have moved it.
+  TapResult pickRandom() {
+    const int count = static_cast<int>(visible_.size());
+    int avoid = -1;
+    for (int row = 0; row < count; row++) {
+      if (games_[visible_[row]].collId == lastPickCollId_) avoid = row;
+    }
+    const uint64_t state = bgg::mix((static_cast<uint64_t>(esp_random()) << 32) ^ static_cast<uint64_t>(micros()));
+    uint64_t drawn = 0;
+    const int row = bgg::randomRow(count, avoid, [&] {
+      drawn++;
+      return static_cast<uint32_t>(bgg::mix(state + drawn * 0xD1B54A32D192ED03ull) >> 32);
+    });
+    if (row < 0) return TapResult::Nothing;
+    selected_ = row;
+    lastPickCollId_ = games_[visible_[row]].collId;
+    view_ = View::Details;
+    loadCover(games_[visible_[row]]);
+    return TapResult::RedrawFull;
   }
 
   TapResult step(int by) {
@@ -912,8 +947,8 @@ class PocketBgg final : public App {
   }
 
   TapResult turnPage(int step) {
-    const int next = page_ + step;
-    if (next < 0 || next >= pageCount()) return TapResult::Nothing;
+    const int next = bgg::stepRow(page_, step, pageCount());
+    if (next < 0) return TapResult::Nothing;
     page_ = next;
     return TapResult::Redraw;
   }
@@ -1064,6 +1099,7 @@ class PocketBgg final : public App {
   bool filterSaveFailed_ = false;
   std::vector<int> visible_;  // positions in games_ that the filter lets through
   View view_ = View::List;
+  uint32_t lastPickCollId_ = 0;  // the last RANDOM game's collection id, 0 before any
   bool needsRefresh_ = false;  // the order by last played is out of date, to redo on leaving
   std::vector<int> heights_;  // each row's height, measured once
   std::vector<int> pages_;    // the first row of each page
