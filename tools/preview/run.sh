@@ -28,6 +28,10 @@ case "$FOLDER" in
     ;;
 esac
 
+# Two-device play, apart from the radio and the device name, which link_stub.cpp
+# stands in for.
+LINK="$ROOT/src/core/link"
+
 # The SDK's image tone mapper, which the firmware links from lib_deps.
 TONE="$ROOT/freeink-sdk/libs/assets/ImageToneMapper"
 
@@ -37,8 +41,9 @@ trap 'rm -rf "$BUILD"' EXIT
 
 "${CXX:-c++}" -std=c++17 -Wall -Wextra -Wno-missing-field-initializers -g -fsanitize=address,undefined \
   "$DEFINE" -I"$HERE/stub" -I"$ROOT/src" -I"$SOURCE" -I"$TONE/include" \
-  "$HERE/preview.cpp" "$HERE/storage_stub.cpp" "$HERE/net_stub.cpp" "$TONE/src/ImageToneMapper.cpp" \
-  "$ROOT/src/core/graphics.cpp" "$ROOT/src/core/text.cpp" "$ROOT"/src/ui/*.cpp \
+  "$HERE/preview.cpp" "$HERE/storage_stub.cpp" "$HERE/net_stub.cpp" "$HERE/link_stub.cpp" \
+  "$TONE/src/ImageToneMapper.cpp" "$ROOT/src/core/graphics.cpp" "$ROOT/src/core/text.cpp" "$ROOT"/src/ui/*.cpp \
+  "$ROOT"/src/ui/link/*.cpp "$LINK/protocol.cpp" "$LINK/session.cpp" "$LINK/play.cpp" "$LINK/match.cpp" \
   "$SOURCE"/*.cpp -o "$BUILD/preview"
 
 (cd "$OUT_DIR" && "$BUILD/preview" . "$@")
