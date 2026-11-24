@@ -36,9 +36,11 @@ struct MenuModel {
   int best = 0;
   int fives = 0;     // five of a kinds rolled
   int lastFace = 0;  // the last one's face, or 0
+  // A line above the rows, such as why PLAY NEARBY didn't start, or nullptr.
+  const char* notice = nullptr;
 };
 
-enum class MenuTap : uint8_t { Nothing, Play, Resume, NewGame, HowTo };
+enum class MenuTap : uint8_t { Nothing, Play, Resume, NewGame, Nearby, HowTo };
 
 void drawMenu(uint8_t* frame, const MenuModel& model);
 MenuTap menuTapAt(const MenuModel& model, int x, int y);

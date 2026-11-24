@@ -11,3 +11,10 @@ SRC=../../src/games/yachtdice
 "$OUT/test_yachtdice"
 "${CXX:-c++}" -std=c++17 $FLAGS -I"$SRC" test_yachtdice_save.cpp "$SRC/yachtdice_save.cpp" -o "$OUT/test_yachtdice_save"
 "$OUT/test_yachtdice_save"
+
+# Nearby: whole games between two devices over tests/link/FakeLink.h, with the link's
+# real code and the stand-in radio from tests/link.
+LINK=../../src/core/link
+"${CXX:-c++}" -std=c++17 $FLAGS -O1 -I"$SRC" -I../../src -I../link test_yachtdice_link.cpp \
+  $LINK/protocol.cpp $LINK/session.cpp $LINK/play.cpp $LINK/match.cpp ../link/radio_stub.cpp -o "$OUT/test_yachtdice_link"
+"$OUT/test_yachtdice_link"

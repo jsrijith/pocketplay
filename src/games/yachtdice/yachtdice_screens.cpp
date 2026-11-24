@@ -236,26 +236,28 @@ bool isOnAction(int x, int y) { return ui::isInBox(x, y, SIDE, PILL_TOP, BODY_WI
 namespace {
 
 struct MenuRows {
-  int count = 2;
-  const char* labels[3] = {};
-  MenuTap taps[3] = {};
+  static constexpr int MAX = 4;
+  int count = 0;
+  const char* labels[MAX] = {};
+  MenuTap taps[MAX] = {};
   int topOf(int i) const { return BOTTOM - ui::ROW_HEIGHT - (count - 1 - i) * (ui::ROW_HEIGHT + ui::ROW_GAP); }
+  void add(const char* label, MenuTap tap) {
+    labels[count] = label;
+    taps[count] = tap;
+    ++count;
+  }
 };
 
 MenuRows menuRows(const MenuModel& model) {
   MenuRows rows;
   if (model.inProgress) {
-    rows.count = 3;
-    rows.labels[0] = "RESUME";
-    rows.taps[0] = MenuTap::Resume;
-    rows.labels[1] = "NEW GAME";
-    rows.taps[1] = MenuTap::NewGame;
+    rows.add("RESUME", MenuTap::Resume);
+    rows.add("NEW GAME", MenuTap::NewGame);
   } else {
-    rows.labels[0] = "PLAY";
-    rows.taps[0] = MenuTap::Play;
+    rows.add("PLAY", MenuTap::Play);
   }
-  rows.labels[rows.count - 1] = "HOW TO PLAY";
-  rows.taps[rows.count - 1] = MenuTap::HowTo;
+  rows.add("PLAY NEARBY", MenuTap::Nearby);
+  rows.add("HOW TO PLAY", MenuTap::HowTo);
   return rows;
 }
 
@@ -286,6 +288,9 @@ void drawMenu(uint8_t* frame, const MenuModel& model) {
       ui::drawRow(frame, rows.topOf(i), rows.labels[i], nullptr);
     }
   }
+  constexpr int NOTICE = 26;
+  const int noticeTop = rows.topOf(0) - 12 - NOTICE;
+  if (model.notice != nullptr) drawTextInBox(frame, Font::Size14, SIDE, noticeTop, BODY_WIDTH, NOTICE, model.notice);
   if (model.played == 0) return;
 
   // The personal best, and under it the hand of the last five of a kind, once there
@@ -296,7 +301,7 @@ void drawMenu(uint8_t* frame, const MenuModel& model) {
   constexpr int CAPTION = 26;
   const int block = LABEL + BEST + (hasHand ? 18 + DIE + 12 + CAPTION : 0);
   const int roomTop = ruleTop + ui::RULE;
-  const int room = rows.topOf(0) - 12 - roomTop;
+  const int room = noticeTop - roomTop;
   const int top = roomTop + (room > block ? (room - block) / 2 : 12);
 
   drawTextInBox(frame, Font::Size14, SIDE, top, BODY_WIDTH, LABEL, "PERSONAL BEST");

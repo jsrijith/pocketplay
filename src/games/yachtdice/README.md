@@ -1,6 +1,6 @@
 # Yacht Dice
 
-Five dice, three rolls a turn and a scorecard of thirteen boxes, against the computer. Fill every box, and the higher total wins.
+Five dice, three rolls a turn and a scorecard of thirteen boxes, against the computer or against a second Sticky nearby. Fill every box, and the higher total wins.
 
 ## Screenshot
 
@@ -19,9 +19,10 @@ Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel 
 
 ## Getting around
 
-- **Menu:** games played and won, your personal best, and the dice of your last five of a kind with how many you've rolled. `PLAY` starts a game. While a game is unfinished, it shows `RESUME` and `NEW GAME` instead.
+- **Menu:** games played and won, your personal best, and the dice of your last five of a kind with how many you've rolled. `PLAY` starts a game against the computer. While one is unfinished, it shows `RESUME` and `NEW GAME` instead. `PLAY NEARBY` plays another device.
 - **Card:** the dice across the top, then your column and the computer's. Each of your free boxes shows what it would score with the dice now, so the choice is there to read. A held die has a frame around it; tap it again to let it go. The button under the card reads `ROLL`, then `ROLL AGAIN (2 LEFT)`, then `TAKE A BOX`. The bonus line counts down to 63, then shows `+35`, or `GONE` once it can't be reached. The computer plays its turn straight after yours, a roll at a time.
 - **Result:** who won and the totals, and the boxes where the game was won or lost. Then `PLAY AGAIN` or `DONE`.
+- **Play nearby:** tap `PLAY NEARBY` on two Stickies close to each other, and they find each other in a second or two, with no Wi-Fi network or setup. A coin toss decides who goes first. You see your own rolls as you make them, and the other player's card fills in when they take a box. When the game ends, both are asked `PLAY AGAIN`. `BACK` or `LEAVE` ends the match, and the other device is told straight away; one that goes out of range shows `LOST CONNECTION` after about ten seconds. Looking for a player turns Wi-Fi off. The device doesn't sleep by itself while looking or playing.
 - **How to play:** four pages. `NEXT`, or the Up and Down buttons, turns them.
 - `BACK` in the header goes from the card, result or how to play to the menu, and from the menu to the home page.
 
@@ -32,7 +33,9 @@ All in `/.pocketplay/`:
 | Name | Holds |
 |---|---|
 | `yachtdice` | The game in play. Written after every roll, hold and box, so sleep or a flat battery brings you back to it, and erased when the game ends. |
-| `yachtdice-record` | Games played and won, your best total, and your five of a kinds. |
+| `yachtdice-record` | Games played and won, your best total, and your five of a kinds, solo and nearby. |
+
+A game played nearby isn't saved: it lasts while both devices have the game open, as in CrossPlay. It doesn't touch the game against the computer, which is still there to resume.
 
 ## Credits
 
