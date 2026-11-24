@@ -5,214 +5,158 @@
 #include <cstdio>
 
 #include "core/graphics.h"
+#include "core/link/match.h"
 #include "core/link/name.h"
-#include "core/link/radio.h"
-#include "core/link/session.h"
+#include "core/link/play.h"
 #include "core/text.h"
+#include "ui/link/link_screens.h"
 #include "ui/ui.h"
 
 namespace {
 
-// CrossPlay's id for tests, which no real game uses. Step 3 brings the full table.
-constexpr uint16_t kGameId = 0xFF01;
+using linkplay::GameId;
+
+// The game: take turns adding one, and whoever reaches kEnd ends it.
+constexpr uint8_t kEnd = 10;
+
+struct Counter {
+  uint8_t count;
+  uint8_t lastBySecond;  // 1 if the player who went second made the last move
+};
 
 constexpr int MARGIN = 16;
 constexpr int INNER_WIDTH = SCREEN_WIDTH - 2 * MARGIN;
-constexpr int YOU_TOP = ui::CONTENT_TOP;
 constexpr int LINE_HEIGHT = 36;
+constexpr int YOU_TOP = ui::CONTENT_TOP;
 constexpr int HEADLINE_TOP = YOU_TOP + LINE_HEIGHT + 24;
 constexpr int HEADLINE_HEIGHT = 48;
 constexpr int COUNTER_TOP = HEADLINE_TOP + HEADLINE_HEIGHT + 24;
 constexpr int COUNTER_HEIGHT = 200;
 constexpr int TURN_TOP = COUNTER_TOP + COUNTER_HEIGHT + 16;
-constexpr int FIRST_TOP = TURN_TOP + LINE_HEIGHT;
 constexpr int PILL_TOP = SCREEN_HEIGHT - 16 - ui::PILL_HEIGHT;
 
-using Session = linkplay::Session;
-
-void goodbye();
-
-class LinkTest final : public App {
+class LinkTest final : public App, public linkplay::MatchHost {
  public:
   const char* name() const override { return "LINK TEST"; }
 
-  void open() override { stop(); }
+  void open() override {
+    match_.leave();
+    failed_ = false;
+  }
 
   TapResult onTap(int x, int y) override {
-    if (ui::isOnBack(x, y)) {
-      stop();
-      return TapResult::Leave;
+    if (match_.ownsScreen()) {
+      switch (linkui::tapAt(match_, x, y)) {
+        case linkui::Tap::PlayAgain:
+          match_.proposeRematch();
+          return TapResult::Redraw;
+        case linkui::Tap::Leave:
+          match_.leave();
+          return TapResult::RedrawFull;
+        case linkui::Tap::Nothing:
+          return TapResult::Nothing;
+      }
+      return TapResult::Nothing;
     }
+
+    if (match_.active()) {
+      // BACK leaves the match, not the app.
+      if (ui::isOnBack(x, y)) {
+        match_.leave();
+        return TapResult::RedrawFull;
+      }
+      if (!ui::isInBox(x, y, MARGIN, PILL_TOP, INNER_WIDTH, ui::PILL_HEIGHT)) return TapResult::Nothing;
+      return send();
+    }
+
+    if (ui::isOnBack(x, y)) return TapResult::Leave;
     if (!ui::isInBox(x, y, MARGIN, PILL_TOP, INNER_WIDTH, ui::PILL_HEIGHT)) return TapResult::Nothing;
-
-    switch (session_.state()) {
-      case Session::State::Idle:
-      case Session::State::Ended:
-        return search();
-      case Session::State::Searching:
-        stop();
-        return TapResult::Redraw;
-      case Session::State::Playing:
-        return send();
-    }
-    return TapResult::Nothing;
+    failed_ = !match_.enter(GameId::Test, linkplay::deviceName());
+    return TapResult::Redraw;
   }
 
-  bool update() override {
-    if (!radio_.started()) return false;
-    session_.tick(millis());
+  bool update() override { return match_.update(millis()); }
 
-    bool changed = false;
-    uint8_t payload[2];
-    uint8_t length = 0;
-    if (session_.takeIncoming(payload, sizeof(payload), length) && length == sizeof(payload)) {
-      counter_ = static_cast<uint16_t>(payload[0] | (payload[1] << 8));
-      Serial.printf("Link test: got %u from %s\n", counter_, session_.peerName());
-      changed = true;
-    }
-
-    const Session::State state = session_.state();
-    if (state != shownState_) {
-      if (state == Session::State::Playing) {
-        counter_ = 0;
-        wentFirst_ = session_.isHost();
-        Serial.printf("Link test: playing %s, %s first\n", session_.peerName(), wentFirst_ ? "we go" : "they go");
-      }
-      if (state == Session::State::Ended) {
-        // They left or went quiet. Nothing more to hear, so the radio goes off now
-        // rather than draining the battery.
-        Serial.printf("Link test: ended (%d)\n", static_cast<int>(session_.endReason()));
-        radio_.end();
-        linkplay::setBeforeSleep(nullptr);
-      }
-      shownState_ = state;
-      changed = true;
-    }
-    if (session_.myTurn() != shownMyTurn_) {
-      shownMyTurn_ = session_.myTurn();
-      changed = true;
-    }
-    return changed;
-  }
-
-  // Searching or playing: a sleep would end the match.
-  bool busy() const override {
-    return session_.state() == Session::State::Searching || session_.state() == Session::State::Playing;
-  }
+  bool busy() const override { return match_.keepAwake(); }
 
   void draw(uint8_t* frame) override {
+    if (match_.ownsScreen()) {
+      linkui::draw(frame, match_, name(), resultHeadline());
+      return;
+    }
     ui::drawBand(frame, name(), nullptr, true);
-
     char line[48];
     snprintf(line, sizeof(line), "YOU ARE %s", linkplay::deviceName());
     drawTextInBox(frame, Font::Size20, MARGIN, YOU_TOP, INNER_WIDTH, LINE_HEIGHT, line);
-    drawTextInBox(frame, Font::Size30, MARGIN, HEADLINE_TOP, INNER_WIDTH, HEADLINE_HEIGHT, headline(line, sizeof(line)));
 
-    const Session::State state = session_.state();
-    if (state == Session::State::Playing) {
-      drawRectOutline(frame, MARGIN, COUNTER_TOP, INNER_WIDTH, COUNTER_HEIGHT, ui::RULE);
-      char count[8];
-      snprintf(count, sizeof(count), "%u", counter_);
-      drawTextInBox(frame, Font::Size64, MARGIN, COUNTER_TOP, INNER_WIDTH, COUNTER_HEIGHT, count);
-      drawTextInBox(frame, Font::Size20, MARGIN, TURN_TOP, INNER_WIDTH, LINE_HEIGHT,
-                    session_.myTurn() ? "YOUR TURN" : "THEIR TURN");
-      drawTextInBox(frame, Font::Size14, MARGIN, FIRST_TOP, INNER_WIDTH, LINE_HEIGHT,
-                    wentFirst_ ? "THE COIN TOSS SAID YOU GO FIRST" : "THE COIN TOSS SAID THEY GO FIRST");
+    if (!match_.active()) {
+      drawTextInBox(frame, Font::Size30, MARGIN, HEADLINE_TOP, INNER_WIDTH, HEADLINE_HEIGHT,
+                    failed_ ? "RADIO WOULD NOT START" : "NOT CONNECTED");
+      ui::drawPill(frame, MARGIN, PILL_TOP, INNER_WIDTH, "FIND A PLAYER", true);
+      return;
     }
 
-    switch (state) {
-      case Session::State::Idle:
-      case Session::State::Ended:
-        ui::drawPill(frame, MARGIN, PILL_TOP, INNER_WIDTH, "FIND A PLAYER", true);
-        break;
-      case Session::State::Searching:
-        ui::drawPill(frame, MARGIN, PILL_TOP, INNER_WIDTH, "CANCEL", false);
-        break;
-      case Session::State::Playing:
-        if (session_.myTurn()) {
-          ui::drawPill(frame, MARGIN, PILL_TOP, INNER_WIDTH, "SEND +1", true);
-        } else {
-          ui::drawDimmedPill(frame, MARGIN, PILL_TOP, INNER_WIDTH, "SEND +1");
-        }
-        break;
+    snprintf(line, sizeof(line), "PLAYING %s", match_.opponentName());
+    drawTextInBox(frame, Font::Size30, MARGIN, HEADLINE_TOP, INNER_WIDTH, HEADLINE_HEIGHT, line);
+    drawRectOutline(frame, MARGIN, COUNTER_TOP, INNER_WIDTH, COUNTER_HEIGHT, ui::RULE);
+    char count[8];
+    snprintf(count, sizeof(count), "%u", state_.count);
+    drawTextInBox(frame, Font::Size64, MARGIN, COUNTER_TOP, INNER_WIDTH, COUNTER_HEIGHT, count);
+
+    const char* status = matchGameOver() ? resultHeadline() : match_.yourTurn() ? "YOUR TURN" : "THEIR TURN";
+    drawTextInBox(frame, Font::Size20, MARGIN, TURN_TOP, INNER_WIDTH, LINE_HEIGHT, status);
+    if (match_.yourTurn() && !matchGameOver()) {
+      ui::drawPill(frame, MARGIN, PILL_TOP, INNER_WIDTH, "SEND +1", true);
+    } else {
+      ui::drawDimmedPill(frame, MARGIN, PILL_TOP, INNER_WIDTH, "SEND +1");
     }
+    match_.notePainted(millis());
   }
 
   bool saveFailed() const override { return false; }
   void retrySave() override {}
 
-  // Tells the other device, if there is one, then turns the radio off. Safe to call
-  // in any state.
-  void stop() {
-    session_.leave();
-    radio_.end();
-    session_.reset();
-    linkplay::setBeforeSleep(nullptr);
-    failed_ = false;
-    shownState_ = Session::State::Idle;
-    shownMyTurn_ = false;
+  // MatchHost
+  void onMatchStart(bool goesFirst) override {
+    state_ = Counter{};
+    wentFirst_ = goesFirst;
+    Serial.printf("Link test: new game, %s first\n", goesFirst ? "we go" : "they go");
   }
+  bool takeOpponentState() override {
+    if (!play_.takeOpponent(state_)) return false;
+    Serial.printf("Link test: got %u\n", state_.count);
+    return true;
+  }
+  bool matchGameOver() const override { return state_.count >= kEnd; }
+  void onMatchEnded() override { Serial.printf("Link test: game over, %s\n", resultHeadline()); }
+  void onLinkEnded() override { state_ = Counter{}; }
 
  private:
-  TapResult search() {
-    stop();
-    if (!radio_.begin()) {
-      failed_ = true;
-      return TapResult::Redraw;
-    }
-    session_.begin(radio_, kGameId, linkplay::deviceName(), millis());
-    linkplay::setBeforeSleep(&goodbye);
-    shownState_ = session_.state();
-    return TapResult::Redraw;
-  }
-
   TapResult send() {
-    if (!session_.myTurn()) return TapResult::Nothing;
-    const uint16_t next = static_cast<uint16_t>(counter_ + 1);
-    const uint8_t payload[2] = {static_cast<uint8_t>(next), static_cast<uint8_t>(next >> 8)};
-    if (!session_.submit(payload, sizeof(payload))) return TapResult::Nothing;
-    counter_ = next;
-    shownMyTurn_ = session_.myTurn();
+    if (!match_.yourTurn() || matchGameOver()) return TapResult::Nothing;
+    state_.count++;
+    state_.lastBySecond = wentFirst_ ? 0 : 1;
+    if (!play_.play(state_)) {
+      state_.count--;
+      return TapResult::Nothing;
+    }
     return TapResult::Redraw;
   }
 
-  const char* headline(char* buffer, size_t size) const {
-    if (failed_) return "RADIO WOULD NOT START";
-    switch (session_.state()) {
-      case Session::State::Idle:
-        return "NOT CONNECTED";
-      case Session::State::Searching:
-        return "LOOKING FOR A PLAYER";
-      case Session::State::Playing:
-        snprintf(buffer, size, "PLAYING %s", session_.peerName());
-        return buffer;
-      case Session::State::Ended:
-        switch (session_.endReason()) {
-          case Session::EndReason::PeerLeft:
-            return "THEY LEFT";
-          case Session::EndReason::PeerLost:
-            return "LOST THEM";
-          case Session::EndReason::LocalLeft:
-          case Session::EndReason::None:
-            return "NOT CONNECTED";
-        }
-    }
-    return "";
+  const char* resultHeadline() const {
+    const bool mine = (state_.lastBySecond == 1) != wentFirst_;
+    return mine ? "YOU REACHED 10" : "THEY REACHED 10";
   }
 
-  linkplay::Radio radio_;
-  Session session_;
-  uint16_t counter_ = 0;
+  // The Play before the Match, so it outlives it.
+  linkplay::Play<Counter> play_;
+  linkplay::Match match_{play_, *this};
+  Counter state_{};
   bool wentFirst_ = false;
   bool failed_ = false;
-  // What the screen last showed, so update() redraws only when something changes.
-  Session::State shownState_ = Session::State::Idle;
-  bool shownMyTurn_ = false;
 };
 
 LinkTest app;
-
-void goodbye() { app.stop(); }
 
 }  // namespace
 
