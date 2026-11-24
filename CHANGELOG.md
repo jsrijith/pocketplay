@@ -4,6 +4,10 @@ What's new in each release, written for players. Each release's notes on GitHub 
 
 Before a release, add what changed under `## Unreleased` at the top, and commit it. `scripts/release.sh` renames that heading to the version it makes. A release without a section here falls back to the list of commits.
 
+## Unreleased
+
+- **Yacht Dice:** a new game against the computer, ported from CrossPlay. Five dice, three rolls a turn and a scorecard of thirteen boxes: tap the dice to keep, roll the rest, then put the hand in a box. Every free box shows what it would score, the bonus line counts down to 63, and the computer plays its turn a roll at a time so you can follow it. A game in progress is saved on every move, and the menu keeps your record, your personal best and your last five of a kind.
+
 ## 0.9.0
 
 - **PocketBGG:** a `RANDOM` button beside `FILTER`, which opens one of the games the filter shows, picked at random. Set the filter to owned games for 4 players, say, and let it choose tonight's game. Tapping it again never picks the same game twice in a row.

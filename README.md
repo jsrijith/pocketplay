@@ -2,9 +2,9 @@
 
 # PocketPlay
 
-A pocket games console for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. PocketPlay replaces the device's firmware with a home page of 31 games, from daily word puzzles to logic puzzles, card games and text adventures. Everything is played by tapping the screen, and everything is designed for e-ink: black and white, few refreshes, and nothing that moves unless you touch it.
+A pocket games console for the [Seeed reTerminal Sticky](https://www.seeedstudio.com/), an e-ink device with a touch screen. PocketPlay replaces the device's firmware with a home page of 32 games, from daily word puzzles to logic puzzles, card games and text adventures. Everything is played by tapping the screen, and everything is designed for e-ink: black and white, few refreshes, and nothing that moves unless you touch it.
 
-PocketPlay drew heavy inspiration from [CrossPlay](https://github.com/ma-r-s/crossplay), and while it has since grown to include its own unique design, games, and features, most of its games were ported from two open-source projects: nine from CrossPlay, including the very first ones, and ten from [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel. I would like to extend my sincere thanks to the authors of both: CrossPlay laid the foundation that made this possible, and touch-licorice-apps brought many of the puzzle games and their puzzles.
+PocketPlay drew heavy inspiration from [CrossPlay](https://github.com/ma-r-s/crossplay), and while it has since grown to include its own unique design, games, and features, most of its games were ported from two open-source projects: ten from CrossPlay, including the very first ones, and ten from [touch-licorice-apps](https://github.com/omer-faruq-xteink/touch-licorice-apps) by Omer Faruk Inel. I would like to extend my sincere thanks to the authors of both: CrossPlay laid the foundation that made this possible, and touch-licorice-apps brought many of the puzzle games and their puzzles.
 
 This entire project was also developed using Claude. Having no background in firmware development or C++, I could not have built this independently—Claude was instrumental in turning the idea into reality.
 
@@ -50,6 +50,7 @@ I have also credited all the open-source projects referenced here. If I have mis
 |---|---|
 | [**Solitaire**](src/games/solitaire/README.md) | Klondike, drawing one or three, with undo and your record. It plays in landscape, with the USB edge at the top. |
 | [**Knucklebones**](src/games/knucklebones/README.md) | A dice game against the computer: drop each roll into a column, where matching dice multiply and knock out the opponent's. |
+| [**Yacht Dice**](src/games/yachtdice/README.md) | Five dice, three rolls a turn and a scorecard of thirteen boxes, against the computer. |
 | [**Connect Four**](src/games/connectfour/README.md) | Drop discs against the computer to get four in a line, across, up or on a diagonal. |
 | [**Tic Tac Toe**](src/games/tictactoe/README.md) | Two players on one device. |
 

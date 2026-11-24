@@ -48,6 +48,7 @@ Each folder's `README.md` is for players. "From" says where a port came from; it
 | [`tictactoe/`](tictactoe/) | Tic Tac Toe | CrossPlay | The smallest game: the example to copy |
 | [`wordladder/`](wordladder/) | Word Ladder | touch-licorice-apps | A word list in a blob and a daily puzzle |
 | [`wordle/`](wordle/) | Wordle | CrossPlay | A larger example: several views, downloads and big saves |
+| [`yachtdice/`](yachtdice/) | Yacht Dice | CrossPlay | A turn of several steps, and a computer opponent paced so its rolls can be seen |
 
 Read `DESIGN.md` before drawing anything, and use `tools/preview/run.sh` to see the screens on the PC.
 

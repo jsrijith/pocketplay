@@ -50,6 +50,7 @@ SHOTS=(
   "tictactoe ticTacToe tap:240,450 tap:100,320 tap:380,320"
   "wordladder wordLadderGame tap:86,758 tap:86,758"
   "wordle wordleGame tap:150,150 tap:194,746 tap:171,587 tap:59,664 tap:329,746 tap:127,587 tap:47,746 tap:104,664 tap:419,664 tap:59,664 tap:216,587 tap:127,587 tap:47,746 tap:441,587 tap:419,664"
+  "yachtdice yachtDiceGame tap:240,690 tap:240,758 tap:92,143 tap:240,143 tap:240,758"
   "apps/calculator calculatorApp tap:67,632 tap:182,632 tap:412,422 tap:297,632"
   "apps/pocketbgg pocketBggApp"
 )
