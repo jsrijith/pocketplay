@@ -62,6 +62,18 @@ Read `DESIGN.md` before drawing anything, and use `tools/preview/run.sh` to see 
 
 PlatformIO compiles every file under `src/`, so the build needs no changes. The game then appears on the home page and reopens after waking.
 
+## Making a game multiplayer
+
+Two devices can play a game over the radio (`core/link/`, from CrossPlay). Yacht Dice is the worked example: its `PLAY NEARBY` is in `yachtdice.cpp`, and `tests/yachtdice/test_yachtdice_link.cpp` plays whole games between two devices on the PC.
+
+1. **Choose the shared state:** usually the whole game, as a struct that is trivially copyable and at most 192 bytes. For a CrossPlay port, use CrossPlay's struct unchanged and its `GameId`, and `static_assert` the struct's size, so the game also plays CrossPlay devices. Otherwise take a `GameId` in `0xE0xx`, add it to `kAllGameIds` in `core/link/play.h`, and raise it whenever the struct's layout changes.
+2. **Hold a `linkplay::Play<State>` and then a `linkplay::Match`**, in that order, and implement `linkplay::MatchHost`: `onMatchStart(goesFirst)` sets up a fresh game; `takeOpponentState()` takes the state with `play.takeOpponent()` into a scratch copy and keeps it only if the rules could have made it; `matchGameOver()`; `onMatchEnded()` records the result and shows the final board; `onLinkEnded()` goes back to the menu.
+3. **Keep the match apart from the solo game**, in its own state, so a match never overwrites a game that's saved to resume. A match isn't saved.
+4. **Wire it in:** a `PLAY NEARBY` row calls `match.enter(gameId, linkplay::deviceName())` and says so if it returns false. `update()` returns `match.update(millis())` while `match.active()`. `onTap()` and `draw()` hand over to `ui/link/link_screens.h` while `match.ownsScreen()`, and `draw()` calls `match.notePainted(millis())` after the game's own screen. After your move, `play.play(state)`, and only while `match.yourTurn()`. `BACK` calls `match.leave()`. `busy()` returns `match.keepAwake()`.
+5. **Test it** over `tests/link/FakeLink.h`, with a lossy link as well as a clean one, and check both devices end on the same state.
+
+Only one device's random numbers may count: the side that moves first deals, and its state carries the seed.
+
 ## What a game's folder holds
 
 | File | Purpose | May use |
