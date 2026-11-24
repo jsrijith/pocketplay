@@ -6,6 +6,7 @@
 #include "apps_screen.h"
 #include "core/download.h"
 #include "core/graphics.h"
+#include "core/link/radio.h"
 #include "core/network.h"
 #include "core/storage.h"
 #include "games/games.h"
@@ -372,6 +373,10 @@ int updatesPerCleanup() { return settingsScreen::updatesPerCleanup(); }
 uint32_t idleSleepMs() { return settingsScreen::idleSleepMinutes() * 60UL * 1000UL; }
 
 void beforeSleep() {
+  // First, while the radio is still up, so the other device is told we're going
+  // rather than waiting out the silence. Does nothing outside a match.
+  linkplay::stopForSleep();
+
   // Before the radio, which a running download is using.
   download::stopForSleep();
 
