@@ -4,3 +4,4 @@
 // sides (see .gitattributes), so two branches can each add an app without a conflict.
 APP(calculatorApp)
 APP(pocketBggApp)
+APP(linkTestApp)
