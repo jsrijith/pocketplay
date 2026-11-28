@@ -79,6 +79,9 @@ enum class GameId : uint16_t {
   // last move to two, which moved every field after them.
   Go = 0x0A02,
   Hex = 0x0B01,
+  // PocketPlay's own games take 0xE0xx, which CrossPlay doesn't use, so neither
+  // firmware's game can match one of the other's.
+  TicTacToe = 0xE001,
   // Reserved for host tests, which need an id no real game will ever use.
   Test = 0xFF01,
 };
@@ -96,6 +99,7 @@ enum class GameId : uint16_t {
 constexpr GameId kAllGameIds[] = {
     GameId::Chess,        GameId::ConnectFour, GameId::Battleship, GameId::Jaipur, GameId::Checkers, GameId::Yahtzee,
     GameId::Knucklebones, GameId::SeaSalt,     GameId::ToyBattle,  GameId::Go,     GameId::Hex,      GameId::Test,
+    GameId::TicTacToe,
 };
 
 constexpr bool gameIdsAreDistinct() {
