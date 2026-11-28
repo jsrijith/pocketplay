@@ -4,7 +4,7 @@ What's new in each release, written for players. Each release's notes on GitHub 
 
 Before a release, add what changed under `## Unreleased` at the top, and commit it. `scripts/release.sh` renames that heading to the version it makes. A release without a section here falls back to the list of commits.
 
-## Unreleased
+## 0.10.0
 
 - **Yacht Dice:** a new game against the computer, ported from CrossPlay. Five dice, three rolls a turn and a scorecard of thirteen boxes: tap the dice to keep, roll the rest, then put the hand in a box. Every free box shows what it would score, the bonus line counts down to 63, and the computer plays its turn a roll at a time so you can follow it. A game in progress is saved on every move, and the menu keeps your record, your personal best and your last five of a kind.
 - **Yacht Dice: `PLAY NEARBY`**, the first game for two devices. Tap it on two Stickies near each other and they find each other in a second or two over the radio, with no Wi-Fi network or setup, and a coin toss picks who goes first. When the game ends, both are asked to play again.
