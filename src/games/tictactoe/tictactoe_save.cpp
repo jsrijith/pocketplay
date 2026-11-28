@@ -2,17 +2,20 @@
 
 namespace tictactoe {
 
-size_t packGame(const Game& game, uint8_t* out) {
+size_t packGame(const Saved& saved, uint8_t* out) {
   for (int i = 0; i < kCells; i++) {
-    out[i] = game.cell[i];
+    out[i] = saved.game.cell[i];
   }
-  out[kCells] = game.turn;
+  out[kCells] = saved.game.turn;
+  out[kCells + 1] = static_cast<uint8_t>(saved.mode);
+  out[kCells + 2] = saved.computer;
   return SAVE_BYTES;
 }
 
-bool unpackGame(uint8_t version, const uint8_t* in, size_t size, Game& game) {
-  if (version != SAVE_VERSION || size != SAVE_BYTES) return false;
+namespace {
 
+// The board and turn, which both versions start with.
+bool unpackBoard(const uint8_t* in, Game& game) {
   Game loaded;
   int xCount = 0;
   int oCount = 0;
@@ -39,6 +42,31 @@ bool unpackGame(uint8_t version, const uint8_t* in, size_t size, Game& game) {
   if (winningLine(loaded, kX, nullptr) || winningLine(loaded, kO, nullptr) || boardFull(loaded)) return false;
 
   game = loaded;
+  return true;
+}
+
+}  // namespace
+
+bool unpackGame(uint8_t version, const uint8_t* in, size_t size, Saved& saved) {
+  Saved loaded;
+  if (version == 1 && size == SAVE_BYTES_V1) {
+    if (!unpackBoard(in, loaded.game)) return false;
+    loaded.mode = Mode::TwoPlayers;
+    loaded.computer = kEmpty;
+    saved = loaded;
+    return true;
+  }
+  if (version != SAVE_VERSION || size != SAVE_BYTES) return false;
+  if (!unpackBoard(in, loaded.game)) return false;
+
+  const uint8_t mode = in[kCells + 1];
+  const uint8_t computer = in[kCells + 2];
+  if (mode >= kModeCount) return false;
+  loaded.mode = static_cast<Mode>(mode);
+  if (loaded.mode == Mode::TwoPlayers ? computer != kEmpty : computer != kX && computer != kO) return false;
+  loaded.computer = computer;
+
+  saved = loaded;
   return true;
 }
 
