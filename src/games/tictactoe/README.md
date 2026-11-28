@@ -1,6 +1,6 @@
 # Tic Tac Toe
 
-Two players share one device and take turns on a 3x3 grid, or one plays the computer.
+Two players share one device and take turns on a 3x3 grid, or play on two devices, or one plays the computer.
 
 ## Screenshot
 
@@ -15,16 +15,24 @@ Drawn on a PC by `tools/preview/screenshots.sh`, with the same pixels the panel 
 - The first player to get three marks in a row (across, down or diagonally) wins.
 - If all nine squares fill up and nobody has three in a row, the game is a draw.
 
-## Playing the computer
+## Choosing who you play
 
-The buttons under the grid choose who you play: `2P` for two players on one device, or `EASY` or `HARD` against the computer. The one being played is filled.
+The buttons under the grid choose who you play: `2P` for two players on one device, `EASY` or `HARD` against the computer, or `NEARBY` for two devices. The one being played is filled.
 
 - `EASY` takes a win when it sees one, but only blocks yours half the time. It can be beaten.
 - `HARD` looks through every move to the end of the game, so it never loses. A draw is the best you can do.
 
 You and the computer take turns to go first: you're X in your first game, and the computer is X in the next. The line above the grid says which mark is yours (`YOUR MOVE (X)`).
 
-`NEARBY`, greyed for now, is for two devices.
+## Playing on two devices
+
+Tap `NEARBY` on two Stickies near each other. They find each other over the radio in a second or two, with no Wi-Fi network or setup, and a coin toss picks who's X and goes first.
+
+- The line above the grid says `YOUR MOVE (X)` or `THEIR MOVE`, and at the end `YOU WIN`, `THEY WIN` or `A DRAW`.
+- After a game both are asked to play again. In the next game the loser goes first, and O after a draw.
+- `LEAVE`, or `BACK` in the header, ends the match and tells the other device. `LEAVE` asks first if you've made a move.
+- Your own game on this device is kept while you play, and is back when the match ends. A match isn't saved.
+- The other device must be running PocketPlay. CrossPlay's Tic Tac Toe has no two-device play.
 
 ## Getting around
 

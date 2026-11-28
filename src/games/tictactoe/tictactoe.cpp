@@ -7,12 +7,15 @@
 
 #include "core/graphics.h"
 #include "core/storage.h"
+#include "core/link/match.h"
+#include "core/link/name.h"
 #include "core/text.h"
 #include "tictactoe_brain.h"
 #include "tictactoe_flow.h"
 #include "tictactoe_icon.h"
 #include "tictactoe_rules.h"
 #include "tictactoe_save.h"
+#include "ui/link/link_screens.h"
 #include "ui/ui.h"
 
 namespace ttt = tictactoe;
@@ -20,6 +23,10 @@ namespace ttt = tictactoe;
 namespace {
 
 constexpr const char* SAVE_FILE = "tictactoe";
+
+// Nearby, the whole board is sent with each move. Change its layout and raise
+// GameId::TicTacToe with it, or two builds would read each other's boards wrongly.
+static_assert(sizeof(ttt::Game) == 11, "tictactoe::Game is sent over the link: raise GameId::TicTacToe if it changes");
 
 // CrossPlay's layout: the status in a capsule under the header, the board, the rules,
 // and NEW GAME along the bottom.
@@ -47,8 +54,6 @@ constexpr int MODE_RADIUS = 14;
 constexpr int MODE_TOP = BUTTON_TOP - ui::GAP - BUTTON_HEIGHT;
 
 enum class ModeButton : uint8_t { TwoPlayers, Easy, Hard, Nearby };
-// Two-device play isn't here yet, so NEARBY is drawn greyed and does nothing.
-constexpr bool NEARBY_READY = false;
 constexpr const char* MODE_LABELS[] = {"2P", "EASY", "HARD", "NEARBY"};
 constexpr int MODE_COUNT = 4;
 constexpr int MODE_WIDTH = (INNER_WIDTH - (MODE_COUNT - 1) * MODE_GAP) / MODE_COUNT;
@@ -76,13 +81,15 @@ int modeAt(int x, int y) {
   return -1;
 }
 
-void drawModes(uint8_t* frame, int selected) {
+// `dimOthers` greys every button but the selected one, during a match, when they
+// can't act.
+void drawModes(uint8_t* frame, int selected, bool dimOthers) {
   const Font font = modeFont();
   for (int i = 0; i < MODE_COUNT; i++) {
     const bool on = i == selected;
-    if (i == static_cast<int>(ModeButton::Nearby) && !NEARBY_READY) {
-      // Greyed, not hidden, so the row doesn't move when it arrives: one dot in four,
-      // inside the corners.
+    if (dimOthers && !on) {
+      // Greyed, not hidden, so the row doesn't move: one dot in four, inside the
+      // corners.
       for (int y = MODE_TOP + MODE_RADIUS / 2; y < MODE_TOP + BUTTON_HEIGHT - MODE_RADIUS / 2; y++) {
         for (int x = modeLeft(i) + MODE_RADIUS / 2; x < modeLeft(i) + MODE_WIDTH - MODE_RADIUS / 2; x++) {
           if (x % 2 == 0 && y % 2 == 0) setPixel(frame, x, y, true);
@@ -139,9 +146,15 @@ bool boardIsEmpty(const ttt::Game& game) {
   return true;
 }
 
+const char* matchHeadline(const ttt::Game& game, uint8_t mine) {
+  if (game.outcome == ttt::Outcome::Draw) return "A DRAW";
+  const bool xWon = game.outcome == ttt::Outcome::XWins;
+  return xWon == (mine == ttt::kX) ? "YOU WIN" : "THEY WIN";
+}
+
 ttt::Level levelOf(ttt::Mode mode) { return mode == ttt::Mode::Hard ? ttt::Level::Hard : ttt::Level::Easy; }
 
-class TicTacToe final : public Game {
+class TicTacToe final : public Game, public linkplay::MatchHost {
  public:
   const char* name() const override { return "TIC TAC TOE"; }
   const uint8_t* icon() const override { return tictactoeIcon::ICON; }
@@ -160,11 +173,19 @@ class TicTacToe final : public Game {
       startGame(saved_.mode);
     }
     confirming_ = false;
+    notice_ = nullptr;
   }
 
   TapResult onTap(int x, int y) override {
+    if (match_.ownsScreen()) return tapMatchScreen(x, y);
+    if (match_.active() && ui::isOnBack(x, y)) {
+      match_.leave();  // tells them, and onLinkEnded() brings back your own game
+      return TapResult::RedrawFull;
+    }
     if (ui::isOnBack(x, y)) return TapResult::Leave;
     if (confirming_) return tapConfirm(x, y);
+    if (match_.active()) return tapMatch(x, y);
+    notice_ = nullptr;
 
     if (ui::isInBox(x, y, MARGIN, BUTTON_TOP, INNER_WIDTH, BUTTON_HEIGHT)) {
       // With nothing to clear there's nothing to start: a computer that opens has
@@ -190,6 +211,7 @@ class TicTacToe final : public Game {
   // before it answers. An opening move is made when the game starts instead, so a
   // new game doesn't refresh twice.
   bool update() override {
+    if (match_.active()) return match_.update(millis());
     if (!computersTurn() || confirming_) return false;
     const int cell = ttt::chooseCell(saved_.game, levelOf(saved_.mode), rng_);
     if (!ttt::place(saved_.game, cell)) return false;
@@ -197,11 +219,53 @@ class TicTacToe final : public Game {
     return true;
   }
 
-  void draw(uint8_t* frame) override { drawBoard(frame); }
+  // Looking for a player, or a match going on.
+  bool busy() const override { return match_.keepAwake(); }
+
+  void draw(uint8_t* frame) override {
+    if (match_.ownsScreen()) {
+      linkui::draw(frame, match_, name(), matchHeadline(net_, mine_));
+      return;
+    }
+    drawBoard(frame);
+    // So the finished board is held on screen from when it was drawn.
+    if (match_.active()) match_.notePainted(millis());
+  }
 
   bool saveFailed() const override { return saveFailed_; }
 
   void retrySave() override { persist(); }
+
+  // --- linkplay::MatchHost ---
+
+  // X opens, so whoever moves first plays X: the coin toss's pick in the first game,
+  // and in another the one who didn't move last (see nextMark()).
+  void onMatchStart(bool goesFirst) override {
+    mine_ = ttt::nextMark(net_, mine_, goesFirst);
+    ttt::start(net_);
+    confirming_ = false;
+  }
+
+  // Kept only if it's your board with one move of theirs added, so a damaged or
+  // foreign packet can't put an impossible board on screen.
+  bool takeOpponentState() override {
+    ttt::Game incoming{};
+    if (!play_.takeOpponent(incoming)) return false;
+    if (!ttt::isNextMove(net_, incoming, ttt::other(mine_))) {
+      Serial.println("Tic Tac Toe: a board from the other device didn't check out, so it's ignored");
+      return false;
+    }
+    net_ = incoming;
+    return true;
+  }
+
+  bool matchGameOver() const override { return ttt::over(net_); }
+
+  // Nothing to record: the final board stays up, then the match screen asks for
+  // another game.
+  void onMatchEnded() override { confirming_ = false; }
+
+  void onLinkEnded() override { confirming_ = false; }
 
  private:
   bool vsComputer() const { return saved_.mode != ttt::Mode::TwoPlayers; }
@@ -222,7 +286,7 @@ class TicTacToe final : public Game {
         mode = ttt::Mode::Hard;
         break;
       case ModeButton::Nearby:
-        return TapResult::Nothing;  // two-device play comes next
+        return startNearby();
     }
     if (mode == saved_.mode && boardIsEmpty(saved_.game)) return TapResult::Nothing;
     return askToStart(mode);
@@ -236,8 +300,57 @@ class TicTacToe final : public Game {
       return TapResult::RedrawFull;
     }
     confirming_ = true;
+    pendingLeave_ = false;
     pendingMode_ = mode;
     return TapResult::Redraw;
+  }
+
+  // Your own game stays as it is, saved, and comes back when the match ends, so
+  // NEARBY doesn't need asking.
+  TapResult startNearby() {
+    if (!match_.enter(linkplay::GameId::TicTacToe, linkplay::deviceName())) {
+      notice_ = "RADIO FAILED";
+      return TapResult::Redraw;
+    }
+    ttt::start(net_);
+    return TapResult::Redraw;
+  }
+
+  TapResult tapMatchScreen(int x, int y) {
+    switch (linkui::tapAt(match_, x, y)) {
+      case linkui::Tap::PlayAgain:
+        match_.proposeRematch();
+        return TapResult::Redraw;
+      case linkui::Tap::Leave:
+        match_.leave();
+        return TapResult::RedrawFull;
+      case linkui::Tap::Nothing:
+        return TapResult::Nothing;
+    }
+    return TapResult::Nothing;
+  }
+
+  // In a match the other modes are greyed, LEAVE ends it (asking first once you've
+  // moved), and a mark only goes down on your turn, once their last move is here.
+  TapResult tapMatch(int x, int y) {
+    if (ui::isInBox(x, y, MARGIN, BUTTON_TOP, INNER_WIDTH, BUTTON_HEIGHT)) {
+      if (!ttt::worthKeeping(net_, ttt::other(mine_))) {
+        match_.leave();
+        return TapResult::RedrawFull;
+      }
+      confirming_ = true;
+      pendingLeave_ = true;
+      return TapResult::Redraw;
+    }
+    if (!match_.yourTurn() || net_.turn != mine_) return TapResult::Nothing;
+    if (!ui::isInBox(x, y, BOARD_LEFT, BOARD_TOP, BOARD_SIZE, BOARD_SIZE)) return TapResult::Nothing;
+    const int column = (x - BOARD_LEFT) / CELL_SIZE;
+    const int row = (y - BOARD_TOP) / CELL_SIZE;
+    ttt::Game next = net_;
+    if (!ttt::place(next, row * ttt::kSize + column)) return TapResult::Nothing;
+    if (!play_.play(next)) return TapResult::Nothing;  // the link refused it, so nothing happened
+    net_ = next;
+    return ttt::over(net_) ? TapResult::RedrawFull : TapResult::Redraw;
   }
 
   // NEW GAME starts the mode that was tapped. Anything else, KEEP PLAYING or not,
@@ -246,7 +359,11 @@ class TicTacToe final : public Game {
   TapResult tapConfirm(int x, int y) {
     confirming_ = false;
     if (ui::isInBox(x, y, CONFIRM_LEFT, BUTTON_TOP, HALF_WIDTH, BUTTON_HEIGHT)) {
-      startGame(pendingMode_);
+      if (pendingLeave_) {
+        match_.leave();
+      } else {
+        startGame(pendingMode_);
+      }
       return TapResult::RedrawFull;
     }
     return TapResult::Redraw;
@@ -277,6 +394,12 @@ class TicTacToe final : public Game {
 
   const char* statusText() const {
     if (confirming_) return "END THIS GAME?";
+    if (notice_ != nullptr) return notice_;
+    if (match_.active()) {
+      if (ttt::over(net_)) return matchHeadline(net_, mine_);
+      if (net_.turn != mine_ || !match_.yourTurn()) return "THEIR MOVE";
+      return mine_ == ttt::kX ? "YOUR MOVE (X)" : "YOUR MOVE (O)";
+    }
     const ttt::Game& game = saved_.game;
     if (!vsComputer()) {
       switch (game.outcome) {
@@ -303,7 +426,7 @@ class TicTacToe final : public Game {
   }
 
   void drawBoard(uint8_t* frame) {
-    const ttt::Game& game = saved_.game;
+    const ttt::Game& game = match_.active() ? net_ : saved_.game;
     ui::drawBand(frame, name(), nullptr, true);
 
     // Outlined while the game runs, and solid once it's over: a fill that appears
@@ -326,14 +449,19 @@ class TicTacToe final : public Game {
       drawCell(frame, cell, game.cell[cell], won);
     }
 
-    // While confirming, the mode that would start is the one filled.
-    drawModes(frame, static_cast<int>(confirming_ ? pendingMode_ : saved_.mode));
+    if (match_.active()) {
+      drawModes(frame, static_cast<int>(ModeButton::Nearby), true);
+    } else {
+      // While confirming, the mode that would start is the one filled.
+      drawModes(frame, static_cast<int>(confirming_ ? pendingMode_ : saved_.mode), false);
+    }
 
+    const char* action = match_.active() ? "LEAVE" : "NEW GAME";
     if (confirming_) {
       ui::drawPill(frame, MARGIN, BUTTON_TOP, HALF_WIDTH, "KEEP PLAYING", false);
-      ui::drawPill(frame, CONFIRM_LEFT, BUTTON_TOP, HALF_WIDTH, "NEW GAME", true);
+      ui::drawPill(frame, CONFIRM_LEFT, BUTTON_TOP, HALF_WIDTH, action, true);
     } else {
-      ui::drawPill(frame, MARGIN, BUTTON_TOP, INNER_WIDTH, "NEW GAME", true);
+      ui::drawPill(frame, MARGIN, BUTTON_TOP, INNER_WIDTH, action, true);
     }
   }
 
@@ -378,8 +506,19 @@ class TicTacToe final : public Game {
   // A new game is waiting for NEW GAME to confirm it. Never saved.
   bool confirming_ = false;
   ttt::Mode pendingMode_ = ttt::Mode::TwoPlayers;
+  // What's being confirmed is leaving a match, not a new game.
+  bool pendingLeave_ = false;
+  // RADIO FAILED, in the status line until the next tap.
+  const char* notice_ = nullptr;
   bool loaded_ = false;
   bool saveFailed_ = false;
+
+  // Nearby: the board both devices share, and the mark you play. A match isn't
+  // saved; your own game above stays as it was, and is back when the match ends.
+  ttt::Game net_{};
+  uint8_t mine_ = ttt::kX;
+  linkplay::Play<ttt::Game> play_;
+  linkplay::Match match_{play_, *this};
 };
 
 }  // namespace

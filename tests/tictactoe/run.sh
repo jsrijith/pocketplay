@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tic Tac Toe's rules, its computer player, its save and when it asks before a new game, checked on the PC without a panel.
+# Tic Tac Toe's rules, its computer player, its save, its confirm and its play between two devices, checked on the PC without a panel.
 set -euo pipefail
 cd "$(dirname "$0")"
 . ../flags.sh
@@ -14,3 +14,10 @@ SRC=../../src/games/tictactoe
 "$OUT/test_tictactoe_save"
 "${CXX:-c++}" -std=c++17 $FLAGS -I"$SRC" test_tictactoe_flow.cpp -o "$OUT/test_tictactoe_flow"
 "$OUT/test_tictactoe_flow"
+
+# Nearby: whole matches between two devices over tests/link/FakeLink.h, with the link's
+# real code and the stand-in radio from tests/link.
+LINK=../../src/core/link
+"${CXX:-c++}" -std=c++17 $FLAGS -O1 -I"$SRC" -I../../src -I../link test_tictactoe_link.cpp \
+  $LINK/protocol.cpp $LINK/session.cpp $LINK/play.cpp $LINK/match.cpp ../link/radio_stub.cpp -o "$OUT/test_tictactoe_link"
+"$OUT/test_tictactoe_link"
