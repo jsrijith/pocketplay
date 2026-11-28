@@ -74,6 +74,8 @@ Two devices can play a game over the radio (`core/link/`, from CrossPlay). Yacht
 
 Only one device's random numbers may count: the side that moves first deals, and its state carries the seed.
 
+`goesFirst` is only right for the first game. The link doesn't reset the turn for another one: whoever didn't send the last move goes next, and `onMatchStart()` gets the first game's coin toss again. A game whose matches end after an even number of moves, as Yacht Dice's do, never notices. One that ends on the winner's move, as Tic Tac Toe does, has to work out who moves first itself (`tictactoe_flow.h`'s `nextMark()`).
+
 ## What a game's folder holds
 
 | File | Purpose | May use |
